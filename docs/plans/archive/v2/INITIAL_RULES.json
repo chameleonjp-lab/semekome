@@ -1,0 +1,125 @@
+{
+  "document_version": "2.0",
+  "ruleset_id": "workshop-tank-prototype-0.1",
+  "status": "proposed_unplaytested",
+  "notice_ja": "独自ゲーム用の初期調整値。原作の解析値ではない。ゲーム実装・プレイ検査・権利調査の完了を示さない。",
+  "simulation": {
+    "ticks_per_second": 60,
+    "integer_subunits_per_floor_unit": 1000,
+    "match_limit_ticks": 25200,
+    "terminal_outcome_resolution": "end_of_tick_both_sides",
+    "timeout_outcome": "draw"
+  },
+  "team": {
+    "human_commanders": 1,
+    "support_units": 2,
+    "total_actors": 3,
+    "armor_max": 360,
+    "armor_repair_budget": 96,
+    "armor_repair_per_crate": 12,
+    "armor_repair_work_ticks": 90,
+    "breach_is_permanent": true,
+    "armor_repair_after_breach": false
+  },
+  "actor": {
+    "health": 4,
+    "floor_speed_units_per_second": 3.0,
+    "radius_floor_units": 0.28,
+    "carry_slots": 2,
+    "carry_weight_limit": 3,
+    "weight_3_speed_multiplier": 0.85,
+    "dash_distance_units": 1.2,
+    "dash_duration_ticks": 12,
+    "dash_cooldown_ticks": 54,
+    "dash_actor_damage": 1,
+    "dash_equipment_damage": 10,
+    "dash_knockback_units": 0.6,
+    "damage_invulnerability_ticks": 36,
+    "respawn_ticks": 300,
+    "spawn_protection_ticks": 60,
+    "action_range_units": 0.8,
+    "drop_range_units": 0.6
+  },
+  "supply": {
+    "selected_types": 4,
+    "weight_min": 1,
+    "weight_max": 3,
+    "weight_sum": 8,
+    "selection": "seeded_shuffled_bag",
+    "ports": 2,
+    "period_ticks_each_port": 210,
+    "first_spawn_delay_ticks_by_port": [
+      30,
+      135
+    ],
+    "port_full_floor_limit": 16,
+    "advance_bag_only_on_success": true,
+    "blocked_port_retry_ticks": 30,
+    "disruption_duration_ticks": 360,
+    "disruption_immunity_after_end_ticks": 240
+  },
+  "cannon": {
+    "loading_stations": 1,
+    "routes": [
+      "direct",
+      "detour"
+    ],
+    "queue_capacity": 2,
+    "launch_cooldown_ticks": 48,
+    "route_capture": "at_enqueue",
+    "route_length_units": {
+      "direct": 120,
+      "detour": 156
+    },
+    "inter_route_collisions": false,
+    "same_team_collisions": false
+  },
+  "equipment": {
+    "health": 60,
+    "disabled_ticks": 480,
+    "repair_work_ticks": 120,
+    "repair_crate_cost": 1,
+    "manual_restore_health": 60,
+    "automatic_restore_health": 60,
+    "supply_timer_policy": "freeze_no_catchup",
+    "queue_policy": "retain_pause_no_reorder"
+  },
+  "objective": {
+    "control_panels": 2,
+    "work_ticks_each": 150,
+    "cargo_required": "empty",
+    "work_interrupt": "any_damage_movement_release_or_disabled",
+    "incomplete_progress_policy": "reset",
+    "completed_panel_policy": "permanent",
+    "parallel_worker_speed_bonus": false,
+    "eligible_actors": "any_active_hostile_actor",
+    "only_after_breach": true
+  },
+  "limits": {
+    "projectiles_total": 96,
+    "full_capacity_policy": "pause_producer_never_delete_active_object",
+    "floor_crates_supply_pause_threshold_per_room": 16,
+    "supply_groups_total_per_origin": 48,
+    "drop_over_floor_threshold": "allow_drop_pause_supply_until_below_threshold",
+    "split_group_count": "all_children_share_one_origin_group_until_all_retired"
+  },
+  "initial_loadout": {
+    "standard_slug": 3,
+    "dense_payload": 2,
+    "screen_panel": 2,
+    "fast_dart": 1
+  },
+  "ui_targets": {
+    "min_touch_css_px": 48,
+    "portrait_width_test_css_px": [
+      360,
+      390,
+      402,
+      430
+    ],
+    "frame_rate_target": 60,
+    "normal_frame_time_p95_ms_target": 20,
+    "stress_frame_time_p95_ms_target": 33.3,
+    "input_to_visible_p95_ms_target": 100
+  }
+}

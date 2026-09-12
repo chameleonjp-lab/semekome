@@ -1,0 +1,59 @@
+{
+  "document_version": "3.0",
+  "checked_at": "2026-09-08",
+  "scope_ja": "資料ファイルの構造・参照・数値・旧仕様撤去の整合性のみ。ゲームは実装していない。",
+  "document_checks": {
+    "all_json_parsed": true,
+    "unique_requirement_ids": true,
+    "unique_test_ids": true,
+    "all_test_requirement_ids_exist": true,
+    "all_requirements_have_planned_tests": true,
+    "all_game_acceptance_tests_not_run": true,
+    "requirement_count_matches_main": true,
+    "planned_test_count_matches_main": true,
+    "case_count_is_eight": true,
+    "seven_unique_exterior_parts": true,
+    "seven_unique_gates": true,
+    "gate_count_and_part_count_agree": true,
+    "core_one_hit": true,
+    "both_teams_same_conditions": true,
+    "user_spec_separate_from_proposals": true,
+    "aggregate_health_matches_parts": true,
+    "no_legacy_runtime_keys": true,
+    "no_core_hold_or_empty_cargo": true,
+    "repair_ticks_match_text": true,
+    "limit_ticks_match_text": true,
+    "old_candidate_data_excluded": true,
+    "ruleset_bumped": true,
+    "loadout_weights_valid": true,
+    "all_crate_targets_use_part_damage": true,
+    "no_old_active_objective_in_main": true,
+    "markdown_requirement_references_exist": true
+  },
+  "counts": {
+    "requirements": 49,
+    "planned_tests": 78,
+    "case_catalog": 8,
+    "parts_per_vehicle": 7,
+    "gates_per_vehicle": 7
+  },
+  "not_performed": [
+    "game_implementation",
+    "game_test_execution",
+    "iphone_device_test",
+    "human_playtest",
+    "new_external_legal_research",
+    "trademark_clearance",
+    "patent_clearance",
+    "completed_asset_rights_review"
+  ],
+  "pdf_visual_check": {
+    "status": "reviewed",
+    "renderer": "pdfium via render_pdf.py",
+    "rendered_pages": 29,
+    "text_outside_page_bounds": 0,
+    "review_ja": "全29ページの一覧画像と、表紙・勝敗条件の原寸画像を確認。目次の余分なページと表紙内の重なりを修正して再描画した。最終出力に文字の欠け・重なりは確認されなかった。",
+    "caveat_ja": "画面での資料確認であり、ゲームやiPhone実機の動作検査ではない。"
+  },
+  "pdf_page_count": 29
+}

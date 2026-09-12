@@ -1,0 +1,656 @@
+{
+  "version": "4.0",
+  "requirements": [
+    {
+      "id": "REQ-01",
+      "title_ja": "独自作品として設計する",
+      "requirement_ja": "既存作品の名称・文章・素材・配置・個別データの一対一移植を行わない。",
+      "acceptance_ja": "由来台帳と公開ファイルの検査に加え、人が画面と音を確認する。",
+      "phase": "R1",
+      "category": "rights",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-02",
+      "title_ja": "戦車戦闘に限定する",
+      "requirement_ja": "探索、収集、町、船、原作キャラクターの再現を対象外にする。",
+      "acceptance_ja": "範囲一覧と変更内容の照合で混入がない。",
+      "phase": "R1",
+      "category": "scope",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-03",
+      "title_ja": "両車の全部屋と砲撃を同期する",
+      "requirement_ja": "両戦車内の全室、連絡区画、砲撃、敵30人の仕事と復活を同じ戦闘時計で進める。",
+      "acceptance_ja": "別室へ移動しても人物が消えず、輸送・砲撃・20秒復活が続く。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-04",
+      "title_ja": "運搬を攻撃につなげる",
+      "requirement_ja": "補給された現物を運搬し、装填した場合にのみ通常砲弾を作る。",
+      "acceptance_ja": "現物と装填履歴なしの通常射撃を検出すると失敗する。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-05",
+      "title_ja": "運搬量を選ばせる",
+      "requirement_ja": "横並びの2枠と合計重量3を上限にする。",
+      "acceptance_ja": "重量2を2個持てず、選択枠を使った後も他の荷物が残る。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-06",
+      "title_ja": "操作を単純化する",
+      "requirement_ja": "連続移動、扱う、短距離突進、荷物選択を基本操作にする。",
+      "acceptance_ja": "移動と別指の扱う操作が両立し、指を離した次の更新で入力が止まる。",
+      "phase": "R2",
+      "category": "input",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-07",
+      "title_ja": "補給配分を事前に決める",
+      "requirement_ja": "4種の配分1〜3・合計8による循環補給を行う。",
+      "acceptance_ja": "成功した8回の補給ごとに設定内訳と一致する。停止時は順番を消費しない。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-08",
+      "title_ja": "砲撃経路を選ぶ",
+      "requirement_ja": "各装填口・砲台から直通・迂回を選び、投入時の経路と目標を固定する。",
+      "acceptance_ja": "自車1口と敵6砲台で投入済みの経路・目標は後の設定変更の影響を受けない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-09",
+      "title_ja": "迎撃を時間と経路で決める",
+      "requirement_ja": "同一経路で敵味方の弾が接触すると迎撃耐久を相互に1減らす。",
+      "acceptance_ja": "高威力というだけで相手の弾を無条件に消さない。別経路では衝突しない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-10",
+      "title_ja": "砲台別の待ち列と射出枠を管理する",
+      "requirement_ja": "自車1口・敵6基の各待ち列2個、各車全体で48更新に最大1発という初期案を使う。",
+      "acceptance_ja": "他の砲台へ待ち列を移さず、停止や混雑でケースを消さず、射手不在では新規射出しない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-11",
+      "title_ja": "弾8種に用途を持たせる",
+      "requirement_ja": "威力、迎撃耐久、速さ、重量、特殊効果を独立に定義する。",
+      "acceptance_ja": "全8種に役割説明と単独・組み合わせ検査がある。",
+      "phase": "R4",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-12",
+      "title_ja": "弾と修理の二択を作る",
+      "requirement_ja": "同じケースを砲撃または自車の修理へ使えるようにする。",
+      "acceptance_ja": "一つのケースから発射と修理の両方が成立しない。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-13",
+      "title_ja": "未破壊部位だけを限度付きで直す",
+      "requirement_ja": "全7部位共通の修復総量96とし、破壊済み部位の復元を禁止する。",
+      "acceptance_ja": "対象部位の上限・共通予算を超えず、破壊と修理が同時なら破壊を優先し門を閉じない。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-14",
+      "title_ja": "作業区画へは常時侵入できる",
+      "requirement_ja": "両戦車の作業区画を連絡区画でつなぎ、コア室とは7門で分ける。",
+      "acceptance_ja": "外装破壊前にも設備を妨害できるが、閉門を飛び越えてコア室へ入れない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-15",
+      "title_ja": "侵入で相手の仕事を妨げる",
+      "requirement_ja": "ケースの奪取、敵の押し退け、設備の一時停止を可能にする。",
+      "acceptance_ja": "設備停止中は補給または装填処理が実際に止まる。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-16",
+      "title_ja": "設備に復帰方法を持たせる",
+      "requirement_ja": "設備は8秒後に自動復旧し、ケース1個の2秒作業でも復旧できる。",
+      "acceptance_ja": "手動修理と自動復帰が同時でも二重復帰・二重消費しない。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-17",
+      "title_ja": "外装全壊だけで決着させない",
+      "requirement_ja": "7部位の全破壊で7門を開き、補給・砲撃・防衛を継続する。",
+      "acceptance_ja": "全7門が開いてもコアへの有効な命中がなければ戦闘が続く。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "user_requirement_with_explicit_implementation_proposals"
+    },
+    {
+      "id": "REQ-18",
+      "title_ja": "敵コアへの一撃で勝利を決める",
+      "requirement_ja": "全7門開放後にコア室内で敵コアへ有効な近距離攻撃を1回当てる。",
+      "acceptance_ja": "敵コアに当てれば勝利、自車コアに同条件で当たれば敗北。長押しや追加耐久は要求しない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "user_requirement_with_explicit_implementation_proposals",
+      "user_confirmed_core_rule": true
+    },
+    {
+      "id": "REQ-19",
+      "title_ja": "コアへの侵入を実際に防げる",
+      "requirement_ja": "閉じた門・壁・守備者との接触を解決してからコア命中を判定する。",
+      "acceptance_ja": "6門開放では侵入できず、突進は手前の守備者で止まり、コアへの通常接触では勝てない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "user_requirement_with_explicit_implementation_proposals"
+    },
+    {
+      "id": "REQ-20",
+      "title_ja": "双方のコア命中を同条件で確定する",
+      "requirement_ja": "同更新の有効コア命中を集め、両方なら引き分け、片側ならその攻撃側勝利とする。",
+      "acceptance_ja": "配列順を反転しても同じ勝敗。時間上限ではコア判定を先にし、結果を二重確定しない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-21",
+      "title_ja": "討伐と陣営別の復帰条件を定義する",
+      "requirement_ja": "全荷物を落として仕事を中断する。対象の敵30人は1200更新後に復活し、自車側の300更新は別の未確定案にする。",
+      "acceptance_ja": "敵全員の復活遅延が20秒であり、共通の5秒設定を誤適用しない。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-22",
+      "title_ja": "仲間に作業を任せる",
+      "requirement_ja": "主人公と補助員2体で運搬、迎撃、防衛、侵入を分担する。",
+      "acceptance_ja": "主人公が敵車にいても指示を受けた補助員が射撃を続ける。",
+      "phase": "R4",
+      "category": "ai",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-23",
+      "title_ja": "人数差と共通の物体制約を分ける",
+      "requirement_ja": "敵は30人、同じケース・重量・攻撃・7門・コア判定を使う。人数、砲台操作、復帰時間の違いは明示する。",
+      "acceptance_ja": "敵の無料の弾や隠れた攻撃を使わず、敵30人のほかに班長や出撃兵を増やさない。",
+      "phase": "R4",
+      "category": "ai",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-24",
+      "title_ja": "人物と仕事の取り合いを解除する",
+      "requirement_ja": "物体・受渡し床・砲台操作の予約、期限、中断、経路再計算を設ける。",
+      "acceptance_ja": "30人の同時運搬や討伐後に予約が永久に残らず、同じ物体を複製しない。",
+      "phase": "R4",
+      "category": "ai",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-25",
+      "title_ja": "難易度を説明できる形にする",
+      "requirement_ja": "判断の待ち時間と作戦選択を変え、隠れた数値優遇をしない。",
+      "acceptance_ja": "同じ編成の装甲・弾性能・補給量は難易度で変わらない。",
+      "phase": "R4",
+      "category": "ai",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-26",
+      "title_ja": "戦況と敵の仕事を読めるようにする",
+      "requirement_ja": "車内、砲撃経路、外装7部位、開放門数、コア状態、現在室、接敵中の役割と復活予告を示す。",
+      "acceptance_ja": "30人の体力表示で操作領域を埋めず、色だけに頼らず人物の仕事を判別できる。",
+      "phase": "R2",
+      "category": "ui",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-27",
+      "title_ja": "扱う対象を確定して表示する",
+      "requirement_ja": "扱うボタンの対象を強調し、押し始めに対象を固定する。コア攻撃は突進で行う。",
+      "acceptance_ja": "同じ押下中に取得から修理へ勝手に変化せず、扱うだけでは勝敗が成立しない。",
+      "phase": "R2",
+      "category": "input",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-28",
+      "title_ja": "片手による画面操作と複数指に対応する",
+      "requirement_ja": "操作領域を48 CSSピクセル以上にし、画面幅と安全領域を考慮する。",
+      "acceptance_ja": "360〜430幅、縦横、3指入力で重なり・欠け・入力混線がない。",
+      "phase": "R5",
+      "category": "ui",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-29",
+      "title_ja": "中断から安全に戻る",
+      "requirement_ja": "一人用で非表示時に停止し、入力を消去し、明示操作で再開する。",
+      "acceptance_ja": "復帰直後の暴走、経過時間の一括処理、音の無断開始をしない。",
+      "phase": "R2",
+      "category": "input",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-30",
+      "title_ja": "演出をルールから分ける",
+      "requirement_ja": "揺れ、音、粒子、描画頻度によってダメージや補給を変更しない。",
+      "acceptance_ja": "同じ入力を30・60・120回描画で再生して結果が一致する。",
+      "phase": "R1",
+      "category": "technical",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-31",
+      "title_ja": "物体の所在を一意にする",
+      "requirement_ja": "各ケースを床、所持、待ち列、飛行、処理済みのいずれかで管理する。",
+      "acceptance_ja": "全更新で重複所有が0件、消費と生成の由来を追える。",
+      "phase": "R1",
+      "category": "technical",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-32",
+      "title_ja": "再生できる記録を残す",
+      "requirement_ja": "ルール版、初期状態、乱数開始値、順番付き入力を保存する。",
+      "acceptance_ja": "同じブラウザ実行条件では記録を再生して同じ状態要約になる。",
+      "phase": "R1",
+      "category": "technical",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-33",
+      "title_ja": "高速弾をすり抜けさせない",
+      "requirement_ja": "前回から今回までの移動区間を使って接触を調べる。",
+      "acceptance_ja": "速度や描画間引きによるすり抜けと二重命中がない。",
+      "phase": "R2",
+      "category": "technical",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-34",
+      "title_ja": "表示品質を調整しても遊びを変えない",
+      "requirement_ja": "負荷が高い場合は装飾を減らし、弾数・補給・仲間の判断を変えない。",
+      "acceptance_ja": "軽量表示と標準表示で同じ入力から同じ勝敗になる。",
+      "phase": "R5",
+      "category": "performance",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-35",
+      "title_ja": "新ルールで一戦から再戦できる",
+      "requirement_ja": "編成、通常戦、結果、再戦をつなぎ、外装・門・コア・30人の名簿と復活予定を各戦で分離する。",
+      "acceptance_ja": "前戦の復活・砲台操作・荷物が次戦へ混入しない。",
+      "phase": "R5",
+      "category": "product",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-36",
+      "title_ja": "7部位・7門・コア攻撃を学べる",
+      "requirement_ja": "運搬砲撃、迎撃、門開放とコア攻撃の3練習を新規設計する。",
+      "acceptance_ja": "初めての参加者が全外装破壊だけでは勝てずコア攻撃が必要と説明・実行できる。",
+      "phase": "R5",
+      "category": "product",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-37",
+      "title_ja": "新しい内容目録で完了を判定する",
+      "requirement_ja": "8ケース、味方3補助型、敵4役割30人、自車3配置・敵複数室3構成、6対戦、3練習を目録にする。",
+      "acceptance_ja": "各通常戦に30人と20秒復活があり、基準構成の接続データだけで全構成や実装完了と数えない。",
+      "phase": "R5",
+      "category": "product",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-38",
+      "title_ja": "素材の使用根拠を記録する",
+      "requirement_ja": "作成者、入手元、使用条件、生成記録、加工、確認者を記録する。",
+      "acceptance_ja": "由来不明の画像・音・フォント・外部コードが公開内容にない。",
+      "phase": "R6",
+      "category": "rights",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-39",
+      "title_ja": "公開前に名称と表現を確認する",
+      "requirement_ja": "名称、ロゴ、キャラクター、文章、画面、音、宣伝表示を確認する。",
+      "acceptance_ja": "未確認の項目を合法確認済みとせず、疑義を解消するまで該当公開を止める。",
+      "phase": "R6",
+      "category": "rights",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-40",
+      "title_ja": "検査結果を偽らない",
+      "requirement_ja": "自動検査、実機確認、試遊、権利調査の状態を分ける。",
+      "acceptance_ja": "未実施は未実施と表示し、自動検査を実機検査へ読み替えない。",
+      "phase": "R6",
+      "category": "quality",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-41",
+      "title_ja": "作業をレビューできる形にする",
+      "requirement_ja": "既存の実装先を確認し、枝分かれした変更と取り込み依頼で進める。",
+      "acceptance_ja": "mainへの直接変更や無断マージをしない。",
+      "phase": "R1",
+      "category": "workflow",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-42",
+      "title_ja": "通信対戦を別計画にする",
+      "requirement_ja": "初期版を一人用とし、通信対戦を完成条件に混ぜない。",
+      "acceptance_ja": "同じ入力形式を残すが、未実装のオンライン機能を表示しない。",
+      "phase": "R6",
+      "category": "scope",
+      "status": "proposed_not_implemented",
+      "design_basis": "carried_forward_proposal"
+    },
+    {
+      "id": "REQ-43",
+      "title_ja": "外装と門を各7つ独立に持つ",
+      "requirement_ja": "車両ごとに7部位を別耐久で管理し、初回破壊1回につき門1つを開く。",
+      "acceptance_ja": "全更新で開放門数と破壊済み部位数が一致し、同一部位の再通知で門が増えない。",
+      "phase": "R1",
+      "category": "combat",
+      "status": "specified_not_implemented",
+      "design_basis": "user_requirement"
+    },
+    {
+      "id": "REQ-44",
+      "title_ja": "全7門を通るコア経路を作る",
+      "requirement_ja": "作業区画からコア室への全経路に門7つを直列で設け、1枚でも閉じれば進入を防ぐ。",
+      "acceptance_ja": "全開では到達し、任意の門1枚を閉じた状態では移動・突進・押し退け・別経路で到達できない。",
+      "phase": "R1",
+      "category": "layout",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-45",
+      "title_ja": "外装の狙いと着弾先を固定する",
+      "requirement_ja": "装填時の部位指定と着弾更新開始時点の代替目標を使い、損傷を部位ごとに集計する。",
+      "acceptance_ja": "変更が飛行弾へ遡及せず、余剰損傷が別部位・コアへ流れず、同時着弾で二重破壊しない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-46",
+      "title_ja": "破壊と門開放を不可逆にする",
+      "requirement_ja": "破壊済み外装と開放済み門は戦闘中に復元しない。未破壊部位と設備だけ修理可能にする。",
+      "acceptance_ja": "再計算・保存復帰・修理・自動設備復旧で閉門せず、再戦でのみ初期状態へ戻る。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-47",
+      "title_ja": "コア命中の権限と更新境界を定める",
+      "requirement_ja": "全門開放、コア室内、敵対、生存、復帰保護外、正しい近距離攻撃を検査する。",
+      "acceptance_ja": "遠隔・味方・保護中・同更新の開門による早期命中は拒否し、同更新の攻撃者戦闘不能では有効命中を取り消さない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-48",
+      "title_ja": "仲間と敵が各室とコア経路を理解する",
+      "requirement_ja": "人物は役割・担当室を持ち、閉門を守り、開門後だけ正しい経路でコア防衛・攻撃へ進む。",
+      "acceptance_ja": "コア室への初期配置・復活をせず、敵も自車への侵入とコア攻撃を成立させられる。",
+      "phase": "R4",
+      "category": "ai",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-49",
+      "title_ja": "旧仕様と記録を混在させない",
+      "requirement_ja": "旧制御盤、敵3人、敵5秒復帰、両車単一装填口の条件を現行設定から撤去する。",
+      "acceptance_ja": "第2・第3版の戦闘記録を暗黙変換せず、理由を表示して設定は保持する。",
+      "phase": "R1",
+      "category": "quality",
+      "status": "proposed_not_implemented",
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+    },
+    {
+      "id": "REQ-50",
+      "title_ja": "敵車内を複数の部屋に分ける",
+      "requirement_ja": "コア室以外にも複数の敵車内部屋を設け、砲台と人物の仕事場を配置する。",
+      "acceptance_ja": "役割ごとの担当室が存在し、一つの部屋に30人を置いた構成を完成扱いにしない。",
+      "phase": "R1",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "user_confirmed"
+    },
+    {
+      "id": "REQ-51",
+      "title_ja": "敵30人を固定名簿で持つ",
+      "requirement_ja": "30個の固定人物番号を持ち、場内外の生存者と復活待ちで30枠を維持する。",
+      "acceptance_ja": "敵班長・別室・出撃・復活で31人以上の名簿にならない。",
+      "phase": "R1",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "user_confirmed_count_implementation_accounting"
+    },
+    {
+      "id": "REQ-52",
+      "title_ja": "砲台と四つの役割を分ける",
+      "requirement_ja": "射手・射手護衛・弾の運び手・内部兵を設ける。人数6・6・8・10と砲台6基は初期案。",
+      "acceptance_ja": "4役割の計30人と設備6基が別の一覧にあり、関係の参照が正しい。",
+      "phase": "R2",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "user_confirmed_roles_proposed_distribution"
+    },
+    {
+      "id": "REQ-53",
+      "title_ja": "各敵の討伐20秒後に復活する",
+      "requirement_ja": "敵30人はそれぞれの討伐時点から20秒後に復活する。60更新/秒ではd＋1200を使う。",
+      "acceptance_ja": "d＋1199では復活せず、戦闘継続中のd＋1200で本人が一度だけ生存へ戻る。",
+      "phase": "R1",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "user_confirmed"
+    },
+    {
+      "id": "REQ-54",
+      "title_ja": "討伐時の荷物と作業を整理する",
+      "requirement_ja": "死亡を一度だけ確定し、荷物をその場に落とし、攻撃・予約・砲台操作権を解除する。",
+      "acceptance_ja": "復活時に所持品が複製されず、古い生存世代の攻撃・作業が新しい本人へ作用しない。",
+      "phase": "R3",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-55",
+      "title_ja": "担当室で予定時刻に復活する",
+      "requirement_ja": "コア室を除く担当室の専用床で復活する。初期案の1秒保護を使い、混雑で20秒を延長しない。",
+      "acceptance_ja": "壁・門を無視せず、床の占有時も人数と時刻が保たれ、室外や門奥へ不正移動しない。",
+      "phase": "R3",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-56",
+      "title_ja": "射手が働いて初めて砲台が撃つ",
+      "requirement_ja": "射手・砲台・装填済み現物・車両の射出枠の全条件を満たしたときだけ射出する。",
+      "acceptance_ja": "討伐や離席で担当砲台だけ止まり、既発射弾は継続、待ち列は保持される。",
+      "phase": "R2",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-57",
+      "title_ja": "弾の運び手を補給へ結び付ける",
+      "requirement_ja": "補給口から砲台の受渡し床へ現物を運び、射手が受け取り装填する。",
+      "acceptance_ja": "輸送を止めると既存在庫を使い切った砲台が止まり、空のケースや見えない弾を生成しない。",
+      "phase": "R3",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-58",
+      "title_ja": "射手護衛が担当を守る",
+      "requirement_ja": "護衛は担当射手・砲台の付近を守り、侵入者が範囲を離れれば戻る。",
+      "acceptance_ja": "護衛の討伐が接近の機会を作り、全員で車内全域を無制限に追跡しない。",
+      "phase": "R4",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-59",
+      "title_ja": "内部兵に巡回と限定出撃を持たせる",
+      "requirement_ja": "内部兵10人のうち初期案の2人までを侵入担当に使い、残りは入口や通路を守る。",
+      "acceptance_ja": "出撃・討伐・復活後も30人内に収まり、相手の7門を越えず、条件成立後はコア攻撃できる。",
+      "phase": "R4",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-60",
+      "title_ja": "全滅や再討伐をコア条件にしない",
+      "requirement_ja": "開門は外装破壊だけ、勝敗は有効なコア命中だけで決める。コア室に常駐・初期配置・復活を設けない。",
+      "acceptance_ja": "敵が生き残っていても7門開放後の有効な一撃で決着し、復活で門が閉じない。",
+      "phase": "R2",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "preserve_user_confirmed_victory_conditions"
+    },
+    {
+      "id": "REQ-61",
+      "title_ja": "人物復活で世界を戻さない",
+      "requirement_ja": "人物復活は外装・門・コア・設備・砲弾・待ち列・補給順・修理予算を初期化しない。",
+      "acceptance_ja": "人物20秒と設備8秒を独立させ、片方の復帰で他方が復帰しない。",
+      "phase": "R3",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-62",
+      "title_ja": "画面外の復活時計を維持する",
+      "requirement_ja": "別室でも戦闘時計で20秒を計り、明示停止や非表示停止では時計ごと止める。",
+      "acceptance_ja": "部屋移動・描画省略で復活が早まらず遅れず、非表示時間をまとめて適用しない。",
+      "phase": "R2",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-63",
+      "title_ja": "部屋と役割と復活を表示する",
+      "requirement_ja": "現在室と出口、近くの人物の役割、観測した討伐の復活予告を読めるようにする。",
+      "acceptance_ja": "スマートフォンで30本のバーを常時表示せず、未発見室の敵位置を勝手に公開しない。",
+      "phase": "R5",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-64",
+      "title_ja": "30人が動く条件で性能と同期を測る",
+      "requirement_ja": "30人生存・30人同時復活・人物集中・6砲台・多弾・連続再戦を検査する。",
+      "acceptance_ja": "描画を減らしても同じ記録の生存・輸送・20秒復活・門・勝敗が一致し、実機未確認を合格扱いにしない。",
+      "phase": "R6",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "implementation_proposal"
+    },
+    {
+      "id": "REQ-65",
+      "title_ja": "陣営別の条件と改訂範囲を明記する",
+      "requirement_ja": "敵30人・20秒という指定と、自車3人・5秒、砲台数などの未確定案を区別する。",
+      "acceptance_ja": "共有5秒設定を敵へ継承せず、自車を無断で30人に増やさず、旧戦闘を暗黙変換しない。",
+      "phase": "R1",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "scope_protection"
+    }
+  ]
+}

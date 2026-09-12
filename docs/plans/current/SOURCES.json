@@ -1,0 +1,107 @@
+{
+  "version": "3.0",
+  "sources": [
+    {
+      "id": "L01",
+      "publisher": "文化庁",
+      "title": "他人の著作物を利用したい場合など",
+      "url": "https://www.bunka.go.jp/seisaku/chosakuken/seidokaisetsu/chosakukensha_fumei/",
+      "used_for": "アイデア・単なるデータと著作物の区別。他の権利も別途確認する必要。",
+      "verification": "本文を確認",
+      "checked_at": "2026-09-08"
+    },
+    {
+      "id": "L02",
+      "publisher": "文化庁",
+      "title": "AIと著作権 II",
+      "url": "https://www.bunka.go.jp/seisaku/chosakuken/pdf/94097701_02.pdf",
+      "used_for": "アイデアと表現の区別、AI生成物と既存の創作的表現の関係。",
+      "verification": "検索・本文を確認。PDF物理ページ7と49を画像確認。引用は要約のみ",
+      "checked_at": "2026-09-08"
+    },
+    {
+      "id": "L03",
+      "publisher": "文化庁",
+      "title": "著作権、これってOK？NG？",
+      "url": "https://www.bunka.go.jp/seisaku/chosakuken/taisetsu/point/index.html",
+      "used_for": "二次創作やゲーム映像・音楽・キャラクター画像の利用条件。",
+      "verification": "本文を確認",
+      "checked_at": "2026-09-08"
+    },
+    {
+      "id": "L04",
+      "publisher": "特許庁",
+      "title": "商標を検索してみましょう",
+      "url": "https://www.jpo.go.jp/support/startup/shohyo_search.html",
+      "used_for": "名称の読み方を含めた類似検索の案内。個別名称の調査結果ではない。",
+      "verification": "検索抜粋を確認。本文取得は403で失敗",
+      "checked_at": "2026-09-08"
+    },
+    {
+      "id": "L05",
+      "publisher": "特許庁",
+      "title": "コンピュータソフトウエア関連技術の審査基準等について",
+      "url": "https://www.jpo.go.jp/system/laws/rule/guideline/patent/cs_shinsa.html",
+      "used_for": "ソフトウエア関連発明は著作権と別の特許確認が必要になるという制度上の注意。",
+      "verification": "公式検索結果を確認。個別特許は調査していない",
+      "checked_at": "2026-09-08"
+    },
+    {
+      "id": "L06",
+      "publisher": "経済産業省",
+      "title": "不正競争防止法の概要",
+      "url": "https://www.meti.go.jp/policy/economy/chizai/chiteki/unfaircompetition_new.html",
+      "used_for": "周知・著名な表示の扱い。公式関連作と誤認させない公開方針。",
+      "verification": "検索抜粋を確認。本文取得は403で失敗",
+      "checked_at": "2026-09-08"
+    },
+    {
+      "id": "T01",
+      "publisher": "Phaser公式",
+      "title": "Phaser Vite TypeScript Template",
+      "url": "https://github.com/phaserjs/template-vite-ts",
+      "used_for": "表示・開発構成の候補。過去の記事の版番号をそのまま採用しない。",
+      "verification": "公式リポジトリの検索結果を確認。依存関係の導入・動作検証は未実施",
+      "checked_at": "2026-09-08"
+    },
+    {
+      "id": "T02",
+      "publisher": "Phaser公式",
+      "title": "Input",
+      "url": "https://docs.phaser.io/phaser/concepts/input",
+      "used_for": "マウスとタッチの入力処理に関する公式資料。",
+      "verification": "公式資料の検索結果を確認",
+      "checked_at": "2026-09-08"
+    },
+    {
+      "id": "T03",
+      "publisher": "MDN",
+      "title": "Pointer events",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events",
+      "used_for": "指の識別、入力中断、追跡。",
+      "verification": "本文を確認",
+      "checked_at": "2026-09-08"
+    },
+    {
+      "id": "T04",
+      "publisher": "MDN",
+      "title": "Page Visibility API",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API",
+      "used_for": "画面非表示と復帰の検出。",
+      "verification": "本文を確認",
+      "checked_at": "2026-09-08"
+    },
+    {
+      "id": "T05",
+      "publisher": "Playwright公式",
+      "title": "Emulation / Browsers",
+      "url": "https://playwright.dev/docs/emulation",
+      "related_url": "https://playwright.dev/docs/browsers",
+      "used_for": "自動操作と実機検証を区別する。",
+      "verification": "公式資料の検索結果を確認",
+      "checked_at": "2026-09-08"
+    }
+  ],
+  "revision_notice_ja": "外部資料の確認履歴は第2版から継承。第3版ではユーザーの7外装・7門・コア攻撃の指定を反映し、外部資料を新規調査していない。",
+  "revision_note_ja": "第4版はユーザー指定を反映した設計改訂。外部出典の確認履歴は従来版から引継ぎ、今回再調査していない。"
+}

@@ -1,0 +1,659 @@
+{
+  "version": "2.0",
+  "execution_status": "not_run",
+  "tests": [
+    {
+      "id": "AT-001",
+      "requirement_ids": [
+        "REQ-01",
+        "REQ-38"
+      ],
+      "given_ja": "公開対象のコードと素材がそろっている。",
+      "when_ja": "名称・素材由来・コード・文章・全体画面を確認する。",
+      "expected_ja": "旧原作候補の転記、未許諾の素材、原作画面の写し取りが見つからず、由来の不明点が解消されている。",
+      "test_type": "human_rights_review",
+      "phase": "R6",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-002",
+      "requirement_ids": [
+        "REQ-02"
+      ],
+      "given_ja": "初期版の実装一覧がある。",
+      "when_ja": "本文の対象外一覧と照合する。",
+      "expected_ja": "船、探索、原作キャラクターの再現が混入していない。",
+      "test_type": "document",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-003",
+      "requirement_ids": [
+        "REQ-03",
+        "REQ-22"
+      ],
+      "given_ja": "主人公の自車で補助員がケースを運び、飛行弾がある。",
+      "when_ja": "主人公を敵車へ移動させて10秒経過させる。",
+      "expected_ja": "自車の補給・運搬・発射・砲撃が同じ時計で進み、画面外だから停止しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-004",
+      "requirement_ids": [
+        "REQ-04",
+        "REQ-23"
+      ],
+      "given_ja": "両陣営の物体と発射履歴が取得できる。",
+      "when_ja": "一戦を再生して全通常射撃を照合する。",
+      "expected_ja": "各発射へ一つの装填元ケースがあり、そのケースは同時に床・所持・待ち列に存在しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-005",
+      "requirement_ids": [
+        "REQ-05"
+      ],
+      "given_ja": "作業員が重量2のケースを一つ持っている。",
+      "when_ja": "重量2を追加で拾い、その後重量1を拾う。",
+      "expected_ja": "前者は取得不可、後者は取得可。合計重量3となり速度が85%になる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-006",
+      "requirement_ids": [
+        "REQ-05"
+      ],
+      "given_ja": "左右枠に異なるケースを持ち、右枠を選択している。",
+      "when_ja": "選択したケースを装填する。",
+      "expected_ja": "右枠のケースだけが消費され、左枠と表示順が維持される。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-007",
+      "requirement_ids": [
+        "REQ-06",
+        "REQ-28"
+      ],
+      "given_ja": "スマートフォン幅の画面と複数指入力がある。",
+      "when_ja": "左指で移動し、右指で扱う操作を行う。",
+      "expected_ja": "移動が中断せず、指の役割が混ざらず、扱うが1回だけ実行される。",
+      "test_type": "browser",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-008",
+      "requirement_ids": [
+        "REQ-07"
+      ],
+      "given_ja": "補給配分が標準3、重量2、防護2、高速1。",
+      "when_ja": "上限に達しない条件で8回の補給を3巡行う。",
+      "expected_ja": "各巡の成功した8回の内訳が配分と一致する。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-009",
+      "requirement_ids": [
+        "REQ-07"
+      ],
+      "given_ja": "次の補給が決まっており、補給先が満杯。",
+      "when_ja": "補給の時刻を過ぎた後に空きを作る。",
+      "expected_ja": "停止中に順番を消費せず、再開してもまとめて複数個を出さない。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-010",
+      "requirement_ids": [
+        "REQ-08"
+      ],
+      "given_ja": "直通としてケースを投入済み。",
+      "when_ja": "装填口を迂回へ切り替える。",
+      "expected_ja": "投入済みは直通、新規投入は迂回になる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-011",
+      "requirement_ids": [
+        "REQ-09"
+      ],
+      "given_ja": "防護板（耐久3）と重量弾（耐久2）が同一経路で接触する。",
+      "when_ja": "接触を1回解決する。",
+      "expected_ja": "防護板2、重量弾1となり、装甲損傷値は接触計算に使わない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-012",
+      "requirement_ids": [
+        "REQ-09"
+      ],
+      "given_ja": "敵味方の2弾が異なる経路にある。",
+      "when_ja": "見た目上の近い位置を同時に通過する。",
+      "expected_ja": "接触を発生させず、表示にも交差したような誤解を生む装飾を置かない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-013",
+      "requirement_ids": [
+        "REQ-09",
+        "REQ-33"
+      ],
+      "given_ja": "同じ2弾が一度接触した後も短時間重なっている。",
+      "when_ja": "複数更新を進める。",
+      "expected_ja": "同じ組の接触を離れるまで再適用しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-014",
+      "requirement_ids": [
+        "REQ-10"
+      ],
+      "given_ja": "共通待ち列2個が埋まっている。",
+      "when_ja": "作業員が3個目を投入しようとする。",
+      "expected_ja": "そのケースは手元に残り、発射音・成功表示・消費を発生させない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-015",
+      "requirement_ids": [
+        "REQ-10",
+        "REQ-16"
+      ],
+      "given_ja": "待ち列が2個あり、装填装置が停止している。",
+      "when_ja": "8秒の停止と復帰を進める。",
+      "expected_ja": "待ち列が保持され、復帰した更新ではまとめて発射しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-016",
+      "requirement_ids": [
+        "REQ-11"
+      ],
+      "given_ja": "分割弾が中央を通過する直前。",
+      "when_ja": "接触せず中央を越える。",
+      "expected_ja": "親を消し損傷4の子弾3個を作る。子は再分割せず総損傷量は12。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-017",
+      "requirement_ids": [
+        "REQ-11",
+        "REQ-33"
+      ],
+      "given_ja": "分割弾の中央通過と敵弾との接触が同時。",
+      "when_ja": "同じ更新を処理する。",
+      "expected_ja": "接触を先に行い、親が消えた場合は子を生成しない。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-018",
+      "requirement_ids": [
+        "REQ-11",
+        "REQ-34"
+      ],
+      "given_ja": "飛行物体の空きが分割に不足する。",
+      "when_ja": "親弾が分割地点を越える。",
+      "expected_ja": "親のまま進め、他の弾を消さない。その親は再分割しない。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-019",
+      "requirement_ids": [
+        "REQ-11"
+      ],
+      "given_ja": "補給妨害が発動し6秒停止中。",
+      "when_ja": "同効果を重ね、停止終了後4秒以内にも命中させる。",
+      "expected_ja": "停止は延長せず、終了後4秒は再停止しない。損傷は通常通り処理する。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-020",
+      "requirement_ids": [
+        "REQ-11"
+      ],
+      "given_ja": "補給妨害と補給設備破壊が同時に有効。",
+      "when_ja": "片方だけの停止を解除する。",
+      "expected_ja": "他方の理由が残る限り補給は再開しない。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-021",
+      "requirement_ids": [
+        "REQ-11"
+      ],
+      "given_ja": "通路妨害領域内に両陣営の作業員がおり、一人は重量3。",
+      "when_ja": "移動させる。",
+      "expected_ja": "両陣営へ65%の速度効果が付き、重量3は0.85×0.65になる。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-022",
+      "requirement_ids": [
+        "REQ-12",
+        "REQ-31"
+      ],
+      "given_ja": "一つのケースが装甲修理用に予約されている。",
+      "when_ja": "同じケースを同時に装填しようとする。",
+      "expected_ja": "同時の発射と修理消費を拒否し、物体は一つの状態にだけ存在する。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-023",
+      "requirement_ids": [
+        "REQ-13"
+      ],
+      "given_ja": "装甲の回復余地10、残り回復予算5。",
+      "when_ja": "ケース1個で修理を完了する。",
+      "expected_ja": "5だけ回復して予算0になり、ケースは1個消費される。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-024",
+      "requirement_ids": [
+        "REQ-13",
+        "REQ-17"
+      ],
+      "given_ja": "装甲1で修理が完了する更新に損傷1以上を受ける。",
+      "when_ja": "損傷と作業完了を処理する。",
+      "expected_ja": "装甲0と開放を先に確定し、装甲回復は成立しない。ケースは消費しない。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-025",
+      "requirement_ids": [
+        "REQ-14"
+      ],
+      "given_ja": "両車両の装甲が残っている。",
+      "when_ja": "連絡区画を通って相手車内に入り、その後帰還する。",
+      "expected_ja": "装甲0を必要とせず往復でき、制御盤へ直接移動しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-026",
+      "requirement_ids": [
+        "REQ-15",
+        "REQ-16"
+      ],
+      "given_ja": "補給駆動部の耐久が10で、補給直前。",
+      "when_ja": "突進で破壊する。",
+      "expected_ja": "補給が止まり、停止解除後に残り待ち時間から再開する。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-027",
+      "requirement_ids": [
+        "REQ-16",
+        "REQ-31"
+      ],
+      "given_ja": "手動修理完了と設備の自動復帰が同じ更新。",
+      "when_ja": "両方を処理する。",
+      "expected_ja": "手動完了を先に処理する。修理有効ならケース1個だけを消費し、復帰は1回。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-028",
+      "requirement_ids": [
+        "REQ-17"
+      ],
+      "given_ja": "自車の装甲が1。",
+      "when_ja": "弾が命中して0になる。",
+      "expected_ja": "即敗北にせず、補給・砲撃・移動・防衛が継続する。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-029",
+      "requirement_ids": [
+        "REQ-18"
+      ],
+      "given_ja": "敵の装甲が残り、制御盤付近に攻撃側がいる。",
+      "when_ja": "扱うを継続する。",
+      "expected_ja": "制圧の進捗を増やさず、使用不可の理由を表示する。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-030",
+      "requirement_ids": [
+        "REQ-18"
+      ],
+      "given_ja": "敵の装甲0、攻撃側が荷物を持って制御盤付近にいる。",
+      "when_ja": "扱うを押す。",
+      "expected_ja": "制圧は開始せず、荷物を置く必要を表示する。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-031",
+      "requirement_ids": [
+        "REQ-18",
+        "REQ-22"
+      ],
+      "given_ja": "敵の装甲0、空手の補助員に侵入命令。",
+      "when_ja": "敵の妨害なしで制御盤へ向かわせる。",
+      "expected_ja": "補助員も主人公と同じ条件で制圧を完了できる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-032",
+      "requirement_ids": [
+        "REQ-19"
+      ],
+      "given_ja": "制御盤作業が150更新のうち149更新まで進んでいる。",
+      "when_ja": "次の更新で被弾する。",
+      "expected_ja": "完了させず未完了の進捗だけを0へ戻す。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-033",
+      "requirement_ids": [
+        "REQ-19"
+      ],
+      "given_ja": "制御盤Aは停止済み、Bで作業中。",
+      "when_ja": "Bの作業員を押し退ける。",
+      "expected_ja": "Aは停止を維持し、Bだけ進捗0になる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-034",
+      "requirement_ids": [
+        "REQ-19"
+      ],
+      "given_ja": "同じ制御盤へ二人の攻撃側がいる。",
+      "when_ja": "両方に作業を開始させる。",
+      "expected_ja": "一人だけが作業権を持ち、2倍速にはならない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-035",
+      "requirement_ids": [
+        "REQ-20"
+      ],
+      "given_ja": "双方が一つずつ制御盤を停止済み。",
+      "when_ja": "同じ更新で互いの二つ目を停止する。",
+      "expected_ja": "処理順に関係なく引き分けになる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-036",
+      "requirement_ids": [
+        "REQ-20"
+      ],
+      "given_ja": "時間上限の更新で片側だけの制圧が完了する。",
+      "when_ja": "更新を確定する。",
+      "expected_ja": "その陣営の勝利を優先する。どちらも未完了なら引き分け。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-037",
+      "requirement_ids": [
+        "REQ-21"
+      ],
+      "given_ja": "体力1で荷物2個を持つ作業員が作業中。",
+      "when_ja": "損傷1を与える。",
+      "expected_ja": "作業を中断し、荷物を2個とも床へ置き、300更新後に復帰する。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-038",
+      "requirement_ids": [
+        "REQ-21"
+      ],
+      "given_ja": "復帰保護60更新中の作業員。",
+      "when_ja": "攻撃、取得、装填、修理、制圧、被弾、押し退けを試す。",
+      "expected_ja": "どれも成立しない。移動のみ可能で、保護終了後に通常行動へ戻る。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-039",
+      "requirement_ids": [
+        "REQ-24"
+      ],
+      "given_ja": "補助員がケースを予約して移動中。",
+      "when_ja": "主人公が先に取得するか、補助員の命令を変える。",
+      "expected_ja": "予約を解放し、有効な別対象を選び直す。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-040",
+      "requirement_ids": [
+        "REQ-25"
+      ],
+      "given_ja": "同じ敵編成で易しいと難しいを比較する。",
+      "when_ja": "初期状態と設定を記録する。",
+      "expected_ja": "装甲・体力・弾性能・補給量に隠れた差がなく、判断間隔と作戦だけが異なる。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-041",
+      "requirement_ids": [
+        "REQ-26",
+        "REQ-28"
+      ],
+      "given_ja": "縦横各画面幅360〜430の操作画面。",
+      "when_ja": "制圧危険、砲撃、仲間命令、荷物を同時に表示する。",
+      "expected_ja": "重要表示と操作領域が隠れず、横スクロールも生じない。",
+      "test_type": "browser",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-042",
+      "requirement_ids": [
+        "REQ-27"
+      ],
+      "given_ja": "床ケースと設備が近くにある。",
+      "when_ja": "扱うを押し始めた後、対象が消失する。",
+      "expected_ja": "同じ押下のまま他の対象へ行動を変更しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-043",
+      "requirement_ids": [
+        "REQ-29"
+      ],
+      "given_ja": "移動と扱うを押し続けている。",
+      "when_ja": "アプリを非表示にして復帰する。",
+      "expected_ja": "戦闘は停止し、入力はすべて解除され、再開操作なしには進まない。",
+      "test_type": "device",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-044",
+      "requirement_ids": [
+        "REQ-30",
+        "REQ-32"
+      ],
+      "given_ja": "同じルール版、開始状態、入力列を用意する。",
+      "when_ja": "描画を毎秒30・60・120回に変えて再生する。",
+      "expected_ja": "同じ実行条件で状態要約と勝敗が一致する。",
+      "test_type": "rule",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-045",
+      "requirement_ids": [
+        "REQ-31"
+      ],
+      "given_ja": "供給から消費までの全物体履歴を取得できる。",
+      "when_ja": "全更新で所在の不変条件を検査する。",
+      "expected_ja": "一物体の重複所有、消費後の再利用、根拠のない生成が0件。",
+      "test_type": "rule",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-046",
+      "requirement_ids": [
+        "REQ-33"
+      ],
+      "given_ja": "高速弾が1更新で相手の位置を越える。",
+      "when_ja": "移動区間による接触検査を行う。",
+      "expected_ja": "接触を1回検出し、すり抜けや二重命中を起こさない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-047",
+      "requirement_ids": [
+        "REQ-34"
+      ],
+      "given_ja": "標準表示と軽量表示で同じ戦闘記録を再生する。",
+      "when_ja": "状態と描画時間を記録する。",
+      "expected_ja": "戦闘結果が一致する。描画目標は計測結果で判断し未計測を合格にしない。",
+      "test_type": "performance",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-048",
+      "requirement_ids": [
+        "REQ-35"
+      ],
+      "given_ja": "一戦を終え、再戦を繰り返す。",
+      "when_ja": "20戦を連続で開始し終了する。",
+      "expected_ja": "前戦の弾、入力、予約、タイマー、音が残らない。",
+      "test_type": "browser",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-049",
+      "requirement_ids": [
+        "REQ-36"
+      ],
+      "given_ja": "原作を知らない参加者を含む小規模試遊を行う。",
+      "when_ja": "3練習の後でルール説明と実操作を依頼する。",
+      "expected_ja": "5人中4人を初期目安として3要点を説明・実行できる。未達は説明と表示を修正する。",
+      "test_type": "playtest",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-050",
+      "requirement_ids": [
+        "REQ-37"
+      ],
+      "given_ja": "初期版の内容目録がある。",
+      "when_ja": "ケース8、補助型3、配置3、通常設定6、練習3を照合する。",
+      "expected_ja": "未実装や見た目だけの差を完成件数へ含めない。",
+      "test_type": "document",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-051",
+      "requirement_ids": [
+        "REQ-38",
+        "REQ-39"
+      ],
+      "given_ja": "正式名称と公開素材一式がある。",
+      "when_ja": "素材由来、名称、全体表現、公開説明、必要な個別権利調査を行う。",
+      "expected_ja": "各項目の確認結果と未解決事項が記録され、未確認を問題なしとしない。",
+      "test_type": "human_rights_review",
+      "phase": "R6",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-052",
+      "requirement_ids": [
+        "REQ-40",
+        "REQ-42"
+      ],
+      "given_ja": "公開前の報告書がある。",
+      "when_ja": "自動検査、実機、試遊、権利確認、通信機能を照合する。",
+      "expected_ja": "未実施は未実施と表示し、通信対戦は初期版の完成範囲に含めない。",
+      "test_type": "document",
+      "phase": "R6",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-053",
+      "requirement_ids": [
+        "REQ-41"
+      ],
+      "given_ja": "実装先が決まり変更を行う。",
+      "when_ja": "変更履歴と取り込み依頼を確認する。",
+      "expected_ja": "専用の作業枝と取り込み依頼があり、main直変更・無断マージがない。",
+      "test_type": "workflow",
+      "phase": "R1",
+      "execution_status": "not_run"
+    }
+  ]
+}

@@ -1,0 +1,228 @@
+{
+  "sources": [
+    {
+      "id": "S01",
+      "title": "任天堂：『スライムもりもりドラゴンクエスト2 大戦車としっぽ団』",
+      "note": "公式紹介。二画面、勇車、DSワイヤレス対戦。",
+      "url": "https://www.nintendo.co.jp/ds/software/adqj/index.html",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S02",
+      "title": "電撃オンライン：2006年1月18日「勇車バトルで大盛り上がり！…プレス対戦イベント」",
+      "note": "当日の取材。逆転、対戦形式、戦術、大会固有条件。",
+      "url": "https://dengekionline.com/data/news/2006/1/18/616cfaf7bd4792aad7dbce8936910329.html",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S03",
+      "title": "任天堂：3DSカンファレンス2011『スライムもりもりドラゴンクエスト3』",
+      "note": "公式紹介。船バトル・パーツ。",
+      "url": "https://www.nintendo.co.jp/event/conference2011/titlelist/slimemorimori/index.html",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S04",
+      "title": "4Gamer：2011年6月23日、船バトルの流れを紹介する記事",
+      "note": "二門、HP0、ロープ、命令。",
+      "url": "https://www.4gamer.net/games/130/G013007/20110616058/",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S05",
+      "title": "GamersTemple：snkupoのRocket Slime攻略、操作と目次",
+      "note": "英語版攻略。",
+      "url": "https://www.gamerstemple.com/guides/ds/2887/1/dragon-quest-heroes-rocket-slime-walkthrough",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S06",
+      "title": "GamersTemple：同攻略のTank Battles And Crewmembers",
+      "note": "30枠、補給、侵入、仲間。",
+      "url": "https://www.gamerstemple.com/vg/games26/002887/002887g118.asp",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S07",
+      "title": "GamersTemple：同攻略のItems",
+      "note": "記載数値と個別効果。英語版との数値差に注意。",
+      "url": "https://www.gamerstemple.com/vg/games26/002887/002887g119.asp",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S08",
+      "title": "ゴリラwiki：勇車について",
+      "note": "日本語攻略記録。",
+      "url": "https://suramori2.gorillawiki.jp/entry/29",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S09",
+      "title": "ゴリラwiki：スライムのアクション",
+      "note": "3個、下から投げる、体当たり、浮遊。",
+      "url": "https://suramori2.gorillawiki.jp/entry/28",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S10",
+      "title": "ゴリラwiki：しざい1/5",
+      "note": "名称と記載攻撃力。",
+      "url": "https://suramori2.gorillawiki.jp/entry/30",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S11",
+      "title": "ゴリラwiki：しざい2/5",
+      "note": "名称と記載攻撃力。",
+      "url": "https://suramori2.gorillawiki.jp/entry/31",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S12",
+      "title": "ゴリラwiki：しざい3/5",
+      "note": "名称と記載攻撃力。",
+      "url": "https://suramori2.gorillawiki.jp/entry/32",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S13",
+      "title": "ゴリラwiki：しざい4/5",
+      "note": "名称と記載攻撃力。",
+      "url": "https://suramori2.gorillawiki.jp/entry/33",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S14",
+      "title": "ゴリラwiki：しざい5/5",
+      "note": "名称と記載攻撃力。",
+      "url": "https://suramori2.gorillawiki.jp/entry/34",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S15",
+      "title": "アニヲタWiki：スライムもりもりドラゴンクエスト2に出てくる弾の一覧",
+      "note": "編集型の補助資料。合体や細部は未実測。",
+      "url": "https://w.atwiki.jp/aniwotawiki/pages/17592.html",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S16",
+      "title": "kirafura：スライムもりもり2アイテム一覧",
+      "note": "古い攻略表。文字化けを含むため単独での名称判定に使わない。",
+      "url": "https://www.kirafura.com/dq/suramori2/sura2-item1.htm",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S17",
+      "title": "GamersTemple：チュートリアルを含む章",
+      "note": "30枠の不足、砲門、初戦。",
+      "url": "https://www.gamerstemple.com/vg/games26/002887/002887g105.asp",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S18",
+      "title": "Dragon's Den：Rocket Slime Crew Members",
+      "note": "英語の仲間一覧と指示。",
+      "url": "https://www.woodus.com/den/games/slimedq2/crew_members.php",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S19",
+      "title": "Dragon's Den：Rocket Slime Items",
+      "note": "別目録との突合用。",
+      "url": "https://www.woodus.com/den/games/slimedq2/items.php",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S20",
+      "title": "Gamers Wiki：スライムもりもり2",
+      "note": "編集型の攻略記録。最終戦限定の説明やドリル等。",
+      "url": "https://gamers.wiki.fc2.com/wiki/スライムもりもり%20ドラゴンクエスト２%20大戦車としっぽ団",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S21",
+      "title": "Mario Boards：2007年のRocket Slimeスレッド",
+      "note": "主人公と仲間の復帰差についての低確度の補助記録。確定根拠にしない。",
+      "url": "https://www.marioboards.com/threads/970/",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S22",
+      "title": "Phaser公式：TypeScript + Vite Template紹介",
+      "note": "2024年の記事であり、記載版を最新とはしない。",
+      "url": "https://phaser.io/news/2024/01/phaser-vite-typescript-template",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S23",
+      "title": "Phaser公式テンプレートのリポジトリ",
+      "note": "実装開始時の構成確認先。",
+      "url": "https://github.com/phaserjs/template-vite-ts",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S24",
+      "title": "MDN：Pointer events",
+      "note": "指の識別、追跡、中断、タッチ操作。",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Pointer_events",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S25",
+      "title": "MDN：Page Visibility API",
+      "note": "画面の非表示と復帰。",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/API/Page_Visibility_API",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S26",
+      "title": "MDN：Autoplay guide",
+      "note": "音の自動再生制限。",
+      "url": "https://developer.mozilla.org/en-US/docs/Web/Media/Guides/Autoplay",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S27",
+      "title": "スクウェア・エニックス公式：本作の動画・生配信・画像投稿ガイドライン",
+      "note": "別ゲームへの素材使用許諾と混同しない。",
+      "url": "https://www.dragonquest.jp/guideline/slamori2/nds/",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S28",
+      "title": "RTA in Japan：本作のイベント記録ページ",
+      "note": "観察候補であり、この調査では動画を実測していない。",
+      "url": "https://rtain.jp/game-title/dragon_quest_heroes_rocket_slime/",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S29",
+      "title": "Playwright公式：Emulation",
+      "note": "端末条件を模擬する機能。",
+      "url": "https://playwright.dev/docs/emulation",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S30",
+      "title": "Playwright公式：Browsers",
+      "note": "対応ブラウザとWebKitの扱い。",
+      "url": "https://playwright.dev/docs/browsers",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S31",
+      "title": "任天堂：2003年10月〜11月発売ソフト",
+      "note": "初代の作品確認。",
+      "url": "https://www.nintendo.co.jp/n08/before/03_1011.html",
+      "accessed_on": "2026-09-08"
+    },
+    {
+      "id": "S32",
+      "title": "GamersTemple：Final Chapter",
+      "note": "敵指揮役の復帰や設備妨害の攻略例。",
+      "url": "https://www.gamerstemple.com/vg/games26/002887/002887g116.asp",
+      "accessed_on": "2026-09-08"
+    }
+  ]
+}

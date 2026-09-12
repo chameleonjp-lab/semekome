@@ -1,0 +1,28 @@
+{
+  "document_version": "3.0",
+  "notice_ja": "素材はまだ作成・選定していない。examples は記入欄の例であり、実在素材の権利確認ではない。",
+  "assets": [],
+  "entry_template": {
+    "asset_id": "",
+    "purpose_ja": "",
+    "file_path": "",
+    "kind": "image|sound|music|font|code|text",
+    "creator": "",
+    "created_at": "",
+    "source_url": "",
+    "license_name": "",
+    "license_text_path": "",
+    "commercial_use_confirmed": null,
+    "modification_allowed": null,
+    "attribution_required": null,
+    "attribution_text": "",
+    "ai_tool_and_version": "",
+    "generation_prompt_record": "",
+    "source_input_record": "",
+    "changes_ja": "",
+    "similarity_review_ja": "",
+    "reviewed_by": "",
+    "reviewed_at": "",
+    "release_status": "not_reviewed"
+  }
+}

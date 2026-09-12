@@ -1,0 +1,327 @@
+{
+  "imported_at_utc": "2026-09-12T07:25:45.654051+00:00",
+  "scope": "48 original UTF-8 planning source files extracted from the four conversation archives; no content edits",
+  "current_version": "v4",
+  "source_payload_sha256": "9d7e27ea5caca6b6cb6361ec66ffb7f736272f4a901392ec4200044f30c5380d",
+  "counts_by_version": {
+    "v1": 7,
+    "v2": 11,
+    "v3": 13,
+    "v4": 17
+  },
+  "stored_original_formats": [
+    "Markdown",
+    "JSON",
+    "Python document validator"
+  ],
+  "not_stored_original_formats": [
+    "four original PDF exports",
+    "four original ZIP packages"
+  ],
+  "document_validation": {
+    "document_checks": 46,
+    "passed": 46,
+    "failed": [],
+    "counts": {
+      "requirements": 65,
+      "planned_tests": 115,
+      "enemy_npc_slots": 30,
+      "non_core_rooms_proposal": 7,
+      "turrets_proposal": 6,
+      "case_catalog": 8
+    }
+  },
+  "game_implemented": false,
+  "game_acceptance_tests_executed": false,
+  "iphone_device_test_executed": false,
+  "files": [
+    {
+      "path": "docs/plans/archive/v1/AI_HANDOFF.md",
+      "version": "v1",
+      "bytes": 2359,
+      "sha256": "e8f68c634107eb90f8c859537fe835a5141746d61176aee7c81e4903e57d586d"
+    },
+    {
+      "path": "docs/plans/archive/v1/AMMO_CANDIDATES.json",
+      "version": "v1",
+      "bytes": 31058,
+      "sha256": "f0005459ec590c331adc446e96a13fe704645107d6ad6a9bff624ffee9e4708d"
+    },
+    {
+      "path": "docs/plans/archive/v1/CREW_CANDIDATES.json",
+      "version": "v1",
+      "bytes": 8903,
+      "sha256": "611bdeef8e3b96c0e90e03fae13239acda5b31d5ae96e3937f3fb076716aa65f"
+    },
+    {
+      "path": "docs/plans/archive/v1/IMPLEMENTATION_PLAN.md",
+      "version": "v1",
+      "bytes": 54148,
+      "sha256": "06b687caec92358bd6f9935ebf0e8f2c89693265d8c8851d2673bd0e45aede2e"
+    },
+    {
+      "path": "docs/plans/archive/v1/README.md",
+      "version": "v1",
+      "bytes": 831,
+      "sha256": "0de029588759fda286ac2fab728c48c102baf38f2b70218f23b0db1808dcf05e"
+    },
+    {
+      "path": "docs/plans/archive/v1/SOURCES.json",
+      "version": "v1",
+      "bytes": 8634,
+      "sha256": "a847e9458d6721684f7949b8ac47e914d5d9a10552a598c1f8decf169cd89ad5"
+    },
+    {
+      "path": "docs/plans/archive/v1/VERIFICATION_CASES.json",
+      "version": "v1",
+      "bytes": 19404,
+      "sha256": "926fa7d1b1896d47038d948ed8c296b1813ca6416b0c8862e8002f630f82f569"
+    },
+    {
+      "path": "docs/plans/archive/v2/ACCEPTANCE_TESTS.json",
+      "version": "v2",
+      "bytes": 22782,
+      "sha256": "6dff3acd4f2a11808022cf9f117104cac4c1da5da0bd54ecf3751120edb63676"
+    },
+    {
+      "path": "docs/plans/archive/v2/AI_HANDOFF.md",
+      "version": "v2",
+      "bytes": 2482,
+      "sha256": "09d9823d660031fa07504c2269b07627e7a6822d9c418547ddf9dd5d0c86409f"
+    },
+    {
+      "path": "docs/plans/archive/v2/ASSET_REGISTER_TEMPLATE.json",
+      "version": "v2",
+      "bytes": 819,
+      "sha256": "364113b47046480b05c2c5582b8ea0be56e5d67f3340b40b3e25bb7206e6f8ff"
+    },
+    {
+      "path": "docs/plans/archive/v2/DOCUMENT_CHECKS.json",
+      "version": "v2",
+      "bytes": 1168,
+      "sha256": "ce53960a88d4acb003202a146295b2eacab779df83b99193b5c957c2b1f91075"
+    },
+    {
+      "path": "docs/plans/archive/v2/INITIAL_RULES.json",
+      "version": "v2",
+      "bytes": 3596,
+      "sha256": "1971f2ace5342bb7b70fc095dfdfae9ead2e150f0078c7ae9d6cf562ffce9279"
+    },
+    {
+      "path": "docs/plans/archive/v2/MIGRATION_NOTES.md",
+      "version": "v2",
+      "bytes": 1612,
+      "sha256": "18cfe81420a63072f35537d8631ee8c6b67637e3b0ea6d62476123d6eed8d5a0"
+    },
+    {
+      "path": "docs/plans/archive/v2/ORIGINAL_CASES.json",
+      "version": "v2",
+      "bytes": 2809,
+      "sha256": "8a2ad0291cd857a8056cafd85185b45b2beabdbe9422f290f2508437571808cd"
+    },
+    {
+      "path": "docs/plans/archive/v2/PRODUCT_REQUIREMENTS.md",
+      "version": "v2",
+      "bytes": 48052,
+      "sha256": "4eb1373633a2bc83a88c1de344a899ef4da53a5bcd9e798576bf62255cad3865"
+    },
+    {
+      "path": "docs/plans/archive/v2/REQUIREMENTS.json",
+      "version": "v2",
+      "bytes": 16842,
+      "sha256": "1ea0c89add22ddc99c92beafbe52e91273d1b215ffb92ce63841824b07c83964"
+    },
+    {
+      "path": "docs/plans/archive/v2/RIGHTS_REVIEW.md",
+      "version": "v2",
+      "bytes": 2213,
+      "sha256": "39ab95ed71c88688dbe64cab5b901afc3407cb3e8ba5f98cfc3ac3de5032ee96"
+    },
+    {
+      "path": "docs/plans/archive/v2/SOURCES.json",
+      "version": "v2",
+      "bytes": 4423,
+      "sha256": "ece40f6096507d88accf4878df1c91a58878af8c2d92379d07024f13a17da796"
+    },
+    {
+      "path": "docs/plans/archive/v3/ACCEPTANCE_TESTS.json",
+      "version": "v3",
+      "bytes": 36757,
+      "sha256": "a21a78e7ba51ced0c9de53db1483075ea506eb26c3e151458cc404a13af8d751"
+    },
+    {
+      "path": "docs/plans/archive/v3/AI_HANDOFF.md",
+      "version": "v3",
+      "bytes": 3588,
+      "sha256": "18f5c92bf4e01a04983caa79b92b5381c6f75a16bb176fff2bf78a4730b0cd3b"
+    },
+    {
+      "path": "docs/plans/archive/v3/ASSET_REGISTER_TEMPLATE.json",
+      "version": "v3",
+      "bytes": 819,
+      "sha256": "9d19178a55cca540626254f0a0ee2ce8ed8f0977cc8dc5f65f57a6ceb3c80b3b"
+    },
+    {
+      "path": "docs/plans/archive/v3/DOCUMENT_CHECKS.json",
+      "version": "v3",
+      "bytes": 2205,
+      "sha256": "30bb14e26019e32516cd811a3d11e326dabc1e5a256c2aa34af88ca2c433cd65"
+    },
+    {
+      "path": "docs/plans/archive/v3/INITIAL_RULES.json",
+      "version": "v3",
+      "bytes": 6809,
+      "sha256": "927f0d99f06d8625c471d382b12980f8ae4e0c6f75fa83721c5d55d99b531071"
+    },
+    {
+      "path": "docs/plans/archive/v3/MIGRATION_NOTES.md",
+      "version": "v3",
+      "bytes": 2965,
+      "sha256": "ab35603c4ed5c5e5ef6ee2bb968bc5290673582da3ab95f983970e10e239df8e"
+    },
+    {
+      "path": "docs/plans/archive/v3/ORIGINAL_CASES.json",
+      "version": "v3",
+      "bytes": 2800,
+      "sha256": "d4a1b2b89514972943001127d6e880736b4a4c08d1c97889cb808446203fa92a"
+    },
+    {
+      "path": "docs/plans/archive/v3/PRODUCT_REQUIREMENTS.md",
+      "version": "v3",
+      "bytes": 58207,
+      "sha256": "3519454966c107a0e249a05e474c64c3cb5aa7b9685bd27945ccd512a4bdc7a1"
+    },
+    {
+      "path": "docs/plans/archive/v3/README.md",
+      "version": "v3",
+      "bytes": 920,
+      "sha256": "5f210df58602214b9b6de3f43b6b067a63e387b7d9bd4d8764c7fb8636bdde73"
+    },
+    {
+      "path": "docs/plans/archive/v3/REQUIREMENTS.json",
+      "version": "v3",
+      "bytes": 23405,
+      "sha256": "fcb88a6c6fbece10b483bff663fae0daee83995834fc5f81c020eb92c0bfc711"
+    },
+    {
+      "path": "docs/plans/archive/v3/RIGHTS_REVIEW.md",
+      "version": "v3",
+      "bytes": 2466,
+      "sha256": "396b7c83aa5426010ae316321ebdd705dbd65bb6b500dbcb129b827905db50b5"
+    },
+    {
+      "path": "docs/plans/archive/v3/SEVEN_PART_CORE_RULES.md",
+      "version": "v3",
+      "bytes": 4340,
+      "sha256": "74874766706f3e14bf947eab278a7fd0401d47dc74bd14d353ce3025586fa99c"
+    },
+    {
+      "path": "docs/plans/archive/v3/SOURCES.json",
+      "version": "v3",
+      "bytes": 4629,
+      "sha256": "943c0f12fef42e9b79a377398fbc1b2cd3539ce578661680d41778415a2c4382"
+    },
+    {
+      "path": "docs/plans/current/ACCEPTANCE_TESTS.json",
+      "version": "v4",
+      "bytes": 55790,
+      "sha256": "4310dcc955a4f1870eee5b185b6d53d4b077f2363ce72e1ce10e0ed6cb78f422"
+    },
+    {
+      "path": "docs/plans/current/AI_HANDOFF.md",
+      "version": "v4",
+      "bytes": 4255,
+      "sha256": "79dd9c6409b7b42c68d5e4c803b64eafdf6e0e16afe63c5c6499f16e9aef19fd"
+    },
+    {
+      "path": "docs/plans/current/ASSET_REGISTER_TEMPLATE.json",
+      "version": "v4",
+      "bytes": 819,
+      "sha256": "9d19178a55cca540626254f0a0ee2ce8ed8f0977cc8dc5f65f57a6ceb3c80b3b"
+    },
+    {
+      "path": "docs/plans/current/DOCUMENT_CHECKS.json",
+      "version": "v4",
+      "bytes": 3214,
+      "sha256": "98b08b887b501917f3be93617bf4712f41cce399212640ce81ad2e4217576af8"
+    },
+    {
+      "path": "docs/plans/current/ENEMY_ROSTER.json",
+      "version": "v4",
+      "bytes": 13372,
+      "sha256": "7490ce9a7bee2e6ae362f8cb46ecebfdb9e0fbd130edc7ba274cd70e15715836"
+    },
+    {
+      "path": "docs/plans/current/INITIAL_RULES.json",
+      "version": "v4",
+      "bytes": 9705,
+      "sha256": "f534a247e182d0715b093d2cf1e93b1393f457203eeb99159f0fd6d9b8899b3b"
+    },
+    {
+      "path": "docs/plans/current/INTERIOR_LAYOUTS.json",
+      "version": "v4",
+      "bytes": 9719,
+      "sha256": "ec81eb57408b5a9775d62949e3a3481581c6e6c0c0dca10e2a0be2d56909d27c"
+    },
+    {
+      "path": "docs/plans/current/MIGRATION_NOTES.md",
+      "version": "v4",
+      "bytes": 4883,
+      "sha256": "101412a7d5918cd25e79be6af5d21a872db00dc30bbadf4e07ac89ca306f8b69"
+    },
+    {
+      "path": "docs/plans/current/NPC_ROOMS_AND_RESPAWN.md",
+      "version": "v4",
+      "bytes": 5566,
+      "sha256": "3f994bf9bc214e48a308609b88206be035f8d2d7a343e744f7dd5fbfb4bfb8b4"
+    },
+    {
+      "path": "docs/plans/current/ORIGINAL_CASES.json",
+      "version": "v4",
+      "bytes": 2800,
+      "sha256": "97a6068072c9bccfc0e2d5a69f721c92c21951dfc1cbf3bf5bac9b9f53da4684"
+    },
+    {
+      "path": "docs/plans/current/PRODUCT_REQUIREMENTS.md",
+      "version": "v4",
+      "bytes": 74102,
+      "sha256": "77e84934e6964f72b800db65dca5e5a8eeec9e39f5d11f2fae9319bbc583331a"
+    },
+    {
+      "path": "docs/plans/current/README.md",
+      "version": "v4",
+      "bytes": 1091,
+      "sha256": "60a2a82cad09df73a4fe760f90ba585a108ec593ad36d817123b25688f46c764"
+    },
+    {
+      "path": "docs/plans/current/REQUIREMENTS.json",
+      "version": "v4",
+      "bytes": 32439,
+      "sha256": "c6d26db3a6be7ea5e360f72e9d76c6cfa928683e98163e6ea72927557f57367a"
+    },
+    {
+      "path": "docs/plans/current/RIGHTS_REVIEW.md",
+      "version": "v4",
+      "bytes": 2466,
+      "sha256": "396b7c83aa5426010ae316321ebdd705dbd65bb6b500dbcb129b827905db50b5"
+    },
+    {
+      "path": "docs/plans/current/SEVEN_PART_CORE_RULES.md",
+      "version": "v4",
+      "bytes": 4893,
+      "sha256": "0139b1891754315b83d341a060a0f5c589726c4f8fc7f3a83d169f96fea2fcf0"
+    },
+    {
+      "path": "docs/plans/current/SOURCES.json",
+      "version": "v4",
+      "bytes": 4803,
+      "sha256": "718fe30492936323809741329848a6759b5cd4d5d78e3b796e763da1f3c7f8e8"
+    },
+    {
+      "path": "docs/plans/current/validate_documents.py",
+      "version": "v4",
+      "bytes": 9573,
+      "sha256": "a117904d14fa86a274cbd787ac36b06943e85bfdc9319096e3d9a6ceac85c427"
+    }
+  ]
+}

@@ -1,0 +1,363 @@
+{
+  "title": "英語資料の仲間名 照合候補32件",
+  "status": "index_only_not_verified_complete_game_roster",
+  "notice": "S18に掲載された名称の確認用索引。日本語名、各能力、対戦枠、成長差、全件性は未確定。",
+  "source_ids": [
+    "S18"
+  ],
+  "sources_file": "SOURCES.json",
+  "crew": [
+    {
+      "id": "candidate_crew_01",
+      "source_name_en": "Big Daddy",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_02",
+      "source_name_en": "Blubba",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_03",
+      "source_name_en": "Bo",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_04",
+      "source_name_en": "Bunnicorn",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_05",
+      "source_name_en": "Cactiball",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_06",
+      "source_name_en": "Curate Rollo",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_07",
+      "source_name_en": "Dancing Flame",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_08",
+      "source_name_en": "Dracky",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_09",
+      "source_name_en": "Flancisco",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_10",
+      "source_name_en": "Ghost",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_11",
+      "source_name_en": "Glooperior",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_12",
+      "source_name_en": "Golem",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_13",
+      "source_name_en": "Goodybag",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_14",
+      "source_name_en": "Goosashi",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_15",
+      "source_name_en": "Gooshido",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_16",
+      "source_name_en": "Hammerhood",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_17",
+      "source_name_en": "Hooly",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_18",
+      "source_name_en": "Imp",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_19",
+      "source_name_en": "Jailcat",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_20",
+      "source_name_en": "Jinkster",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_21",
+      "source_name_en": "Killing Machine",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_22",
+      "source_name_en": "Living Statue",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_23",
+      "source_name_en": "Mama Mia",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_24",
+      "source_name_en": "Mimic",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_25",
+      "source_name_en": "Mischievous Mole",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_26",
+      "source_name_en": "Picksy",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_27",
+      "source_name_en": "Platypunk",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_28",
+      "source_name_en": "Restless Armour",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_29",
+      "source_name_en": "Swotsy",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_30",
+      "source_name_en": "Tokyo Tom",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_31",
+      "source_name_en": "Walking Corpse",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_crew_32",
+      "source_name_en": "Wyrtle",
+      "name_ja": null,
+      "commands": null,
+      "capacity": null,
+      "hp": null,
+      "revival_rule": null,
+      "special_abilities": null,
+      "production_approved": false
+    }
+  ]
+}

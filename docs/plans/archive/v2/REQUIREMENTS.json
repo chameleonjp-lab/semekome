@@ -1,0 +1,383 @@
+{
+  "version": "2.0",
+  "requirements": [
+    {
+      "id": "REQ-01",
+      "title_ja": "独自作品として設計する",
+      "requirement_ja": "既存作品の名称・文章・素材・配置・個別データの一対一移植を行わない。",
+      "acceptance_ja": "由来台帳と公開ファイルの検査に加え、人が画面と音を確認する。",
+      "phase": "R1",
+      "category": "rights",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-02",
+      "title_ja": "戦車戦闘に限定する",
+      "requirement_ja": "探索、収集、町、船、原作キャラクターの再現を対象外にする。",
+      "acceptance_ja": "範囲一覧と変更内容の照合で混入がない。",
+      "phase": "R1",
+      "category": "scope",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-03",
+      "title_ja": "三つの作業空間と砲撃を同期する",
+      "requirement_ja": "両戦車内と連絡区画、砲撃空間を同じ戦闘時計で進める。",
+      "acceptance_ja": "敵車へ移動しても自車の砲撃・補給・仲間の作業が継続する。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-04",
+      "title_ja": "運搬を攻撃につなげる",
+      "requirement_ja": "補給された現物を運搬し、装填した場合にのみ通常砲弾を作る。",
+      "acceptance_ja": "現物と装填履歴なしの通常射撃を検出すると失敗する。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-05",
+      "title_ja": "運搬量を選ばせる",
+      "requirement_ja": "横並びの2枠と合計重量3を上限にする。",
+      "acceptance_ja": "重量2を2個持てず、選択枠を使った後も他の荷物が残る。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-06",
+      "title_ja": "操作を単純化する",
+      "requirement_ja": "連続移動、扱う、短距離突進、荷物選択を基本操作にする。",
+      "acceptance_ja": "移動と別指の扱う操作が両立し、指を離した次の更新で入力が止まる。",
+      "phase": "R2",
+      "category": "input",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-07",
+      "title_ja": "補給配分を事前に決める",
+      "requirement_ja": "4種の配分1〜3・合計8による循環補給を行う。",
+      "acceptance_ja": "成功した8回の補給ごとに設定内訳と一致する。停止時は順番を消費しない。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-08",
+      "title_ja": "砲撃経路を選ぶ",
+      "requirement_ja": "一つの装填口から直通・迂回の2経路へ配分する。",
+      "acceptance_ja": "投入済みの経路は後の切り替えで変わらない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-09",
+      "title_ja": "迎撃を時間と経路で決める",
+      "requirement_ja": "同一経路で敵味方の弾が接触すると迎撃耐久を相互に1減らす。",
+      "acceptance_ja": "高威力というだけで相手の弾を無条件に消さない。別経路では衝突しない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-10",
+      "title_ja": "射撃の待ち列を管理する",
+      "requirement_ja": "共通待ち列2個、発射間隔48更新を初期値とする。",
+      "acceptance_ja": "満杯なら荷物を保持し、停止時に削除も順序変更もしない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-11",
+      "title_ja": "弾8種に用途を持たせる",
+      "requirement_ja": "威力、迎撃耐久、速さ、重量、特殊効果を独立に定義する。",
+      "acceptance_ja": "全8種に役割説明と単独・組み合わせ検査がある。",
+      "phase": "R4",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-12",
+      "title_ja": "弾と修理の二択を作る",
+      "requirement_ja": "同じケースを砲撃または自車の修理へ使えるようにする。",
+      "acceptance_ja": "一つのケースから発射と修理の両方が成立しない。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-13",
+      "title_ja": "回復で終わらない戦闘を防ぐ",
+      "requirement_ja": "装甲修復総量を96に制限し、装甲0後の装甲回復を禁止する。",
+      "acceptance_ja": "予算超過、0後の再封鎖、上限超過回復を防ぐ。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-14",
+      "title_ja": "侵入を常時可能にする",
+      "requirement_ja": "両戦車を固有の連絡区画でつなぎ、装甲0前でも行き来できる。",
+      "acceptance_ja": "往復、被弾、帰還、仲間の追従が成立する。瞬間的に敵中枢へ出現しない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-15",
+      "title_ja": "侵入で相手の仕事を妨げる",
+      "requirement_ja": "ケースの奪取、敵の押し退け、設備の一時停止を可能にする。",
+      "acceptance_ja": "設備停止中は補給または装填処理が実際に止まる。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-16",
+      "title_ja": "設備に復帰方法を持たせる",
+      "requirement_ja": "設備は8秒後に自動復旧し、ケース1個の2秒作業でも復旧できる。",
+      "acceptance_ja": "手動修理と自動復帰が同時でも二重復帰・二重消費しない。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-17",
+      "title_ja": "装甲0で即決着させない",
+      "requirement_ja": "装甲0は制御盤2か所の操作を解禁する状態として扱う。",
+      "acceptance_ja": "自車装甲0でも射撃、移動、補給、防衛が続く。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-18",
+      "title_ja": "直接制圧で勝利を決める",
+      "requirement_ja": "敵車の制御盤2か所を各2.5秒操作して停止させる。",
+      "acceptance_ja": "条件を満たす攻撃側作業員だけが操作でき、遠隔砲撃だけでは勝てない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-19",
+      "title_ja": "制圧を妨害できるようにする",
+      "requirement_ja": "被弾、移動、入力解除、行動不能で未完了の作業を最初からにする。",
+      "acceptance_ja": "完了済みの盤は維持し、未完了だけを戻す。複数人で速度は上がらない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-20",
+      "title_ja": "同時決着を固定する",
+      "requirement_ja": "同じ更新内の両陣営の制圧をまとめて判定する。",
+      "acceptance_ja": "双方完了は引き分け。時間上限の更新では制圧判定を先に行う。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-21",
+      "title_ja": "作業員の戦闘不能を定義する",
+      "requirement_ja": "体力4、荷物を落とし、5秒後に自車へ復帰する。",
+      "acceptance_ja": "復帰保護中は攻撃・拾得・装填・制圧ができず、押し退けも無効になる。",
+      "phase": "R3",
+      "category": "combat",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-22",
+      "title_ja": "仲間に作業を任せる",
+      "requirement_ja": "主人公と補助員2体で運搬、迎撃、防衛、侵入を分担する。",
+      "acceptance_ja": "主人公が敵車にいても指示を受けた補助員が射撃を続ける。",
+      "phase": "R4",
+      "category": "ai",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-23",
+      "title_ja": "敵にも現物の制約を課す",
+      "requirement_ja": "敵も同じ補給、重量、装填、復帰、勝利条件を使う。",
+      "acceptance_ja": "敵だけの弾生成、装甲補正、瞬間移動を検査で検出する。",
+      "phase": "R4",
+      "category": "ai",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-24",
+      "title_ja": "取り合いと行き詰まりを解除する",
+      "requirement_ja": "対象予約、期限、中断、経路再計算を設ける。",
+      "acceptance_ja": "対象消失・死亡・命令変更で予約を解放し、同じ物を二重取得しない。",
+      "phase": "R4",
+      "category": "ai",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-25",
+      "title_ja": "難易度を説明できる形にする",
+      "requirement_ja": "判断の待ち時間と作戦選択を変え、隠れた数値優遇をしない。",
+      "acceptance_ja": "同じ編成の装甲・弾性能・補給量は難易度で変わらない。",
+      "phase": "R4",
+      "category": "ai",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-26",
+      "title_ja": "画面をまたいで戦況を読めるようにする",
+      "requirement_ja": "車内、砲撃経路、装甲、制御盤、仲間の現在作業を同時に表示する。",
+      "acceptance_ja": "侵入や砲撃の重大情報がメニューや指で隠れ続けない。",
+      "phase": "R2",
+      "category": "ui",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-27",
+      "title_ja": "扱う対象を確定して表示する",
+      "requirement_ja": "扱うボタンの対象を強調し、押し始めに対象を固定する。",
+      "acceptance_ja": "同じ押下中に拾うから修理・制圧へ勝手に切り替わらない。",
+      "phase": "R2",
+      "category": "input",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-28",
+      "title_ja": "片手による画面操作と複数指に対応する",
+      "requirement_ja": "操作領域を48 CSSピクセル以上にし、画面幅と安全領域を考慮する。",
+      "acceptance_ja": "360〜430幅、縦横、3指入力で重なり・欠け・入力混線がない。",
+      "phase": "R5",
+      "category": "ui",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-29",
+      "title_ja": "中断から安全に戻る",
+      "requirement_ja": "一人用で非表示時に停止し、入力を消去し、明示操作で再開する。",
+      "acceptance_ja": "復帰直後の暴走、経過時間の一括処理、音の無断開始をしない。",
+      "phase": "R2",
+      "category": "input",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-30",
+      "title_ja": "演出をルールから分ける",
+      "requirement_ja": "揺れ、音、粒子、描画頻度によってダメージや補給を変更しない。",
+      "acceptance_ja": "同じ入力を30・60・120回描画で再生して結果が一致する。",
+      "phase": "R1",
+      "category": "technical",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-31",
+      "title_ja": "物体の所在を一意にする",
+      "requirement_ja": "各ケースを床、所持、待ち列、飛行、処理済みのいずれかで管理する。",
+      "acceptance_ja": "全更新で重複所有が0件、消費と生成の由来を追える。",
+      "phase": "R1",
+      "category": "technical",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-32",
+      "title_ja": "再生できる記録を残す",
+      "requirement_ja": "ルール版、初期状態、乱数開始値、順番付き入力を保存する。",
+      "acceptance_ja": "同じブラウザ実行条件では記録を再生して同じ状態要約になる。",
+      "phase": "R1",
+      "category": "technical",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-33",
+      "title_ja": "高速弾をすり抜けさせない",
+      "requirement_ja": "前回から今回までの移動区間を使って接触を調べる。",
+      "acceptance_ja": "速度や描画間引きによるすり抜けと二重命中がない。",
+      "phase": "R2",
+      "category": "technical",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-34",
+      "title_ja": "表示品質を調整しても遊びを変えない",
+      "requirement_ja": "負荷が高い場合は装飾を減らし、弾数・補給・仲間の判断を変えない。",
+      "acceptance_ja": "軽量表示と標準表示で同じ入力から同じ勝敗になる。",
+      "phase": "R5",
+      "category": "performance",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-35",
+      "title_ja": "一戦から再戦できる",
+      "requirement_ja": "練習、編成、通常戦、結果、再戦をつなぐ。",
+      "acceptance_ja": "2戦目に前の弾、予約、荷物、タイマーが残らない。",
+      "phase": "R5",
+      "category": "product",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-36",
+      "title_ja": "学習場面を独自に作る",
+      "requirement_ja": "運搬砲撃、迎撃、侵入制圧の3練習を新規設計する。",
+      "acceptance_ja": "原作未経験者が各練習後に対象操作を説明・実行できる。",
+      "phase": "R5",
+      "category": "product",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-37",
+      "title_ja": "独自の内容目録で完了を判定する",
+      "requirement_ja": "8ケース、3補助型、3車内配置、6対戦設定、3練習を目録にする。",
+      "acceptance_ja": "見た目だけの差や未実装の説明だけを完成件数に入れない。",
+      "phase": "R5",
+      "category": "product",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-38",
+      "title_ja": "素材の使用根拠を記録する",
+      "requirement_ja": "作成者、入手元、使用条件、生成記録、加工、確認者を記録する。",
+      "acceptance_ja": "由来不明の画像・音・フォント・外部コードが公開内容にない。",
+      "phase": "R6",
+      "category": "rights",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-39",
+      "title_ja": "公開前に名称と表現を確認する",
+      "requirement_ja": "名称、ロゴ、キャラクター、文章、画面、音、宣伝表示を確認する。",
+      "acceptance_ja": "未確認の項目を合法確認済みとせず、疑義を解消するまで該当公開を止める。",
+      "phase": "R6",
+      "category": "rights",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-40",
+      "title_ja": "検査結果を偽らない",
+      "requirement_ja": "自動検査、実機確認、試遊、権利調査の状態を分ける。",
+      "acceptance_ja": "未実施は未実施と表示し、自動検査を実機検査へ読み替えない。",
+      "phase": "R6",
+      "category": "quality",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-41",
+      "title_ja": "作業をレビューできる形にする",
+      "requirement_ja": "既存の実装先を確認し、枝分かれした変更と取り込み依頼で進める。",
+      "acceptance_ja": "mainへの直接変更や無断マージをしない。",
+      "phase": "R1",
+      "category": "workflow",
+      "status": "proposed_not_implemented"
+    },
+    {
+      "id": "REQ-42",
+      "title_ja": "通信対戦を別計画にする",
+      "requirement_ja": "初期版を一人用とし、通信対戦を完成条件に混ぜない。",
+      "acceptance_ja": "同じ入力形式を残すが、未実装のオンライン機能を表示しない。",
+      "phase": "R6",
+      "category": "scope",
+      "status": "proposed_not_implemented"
+    }
+  ]
+}

@@ -1,0 +1,414 @@
+{
+  "version": "4.0",
+  "id": "enemy_compartment_v1",
+  "status": "proposed_graph_only_unimplemented_geometry",
+  "notice_ja": "基準1構成の部屋接続・担当名簿。床座標・壁・経路探索のゲームコードではない。全3構成完成とは扱わない。",
+  "rooms": [
+    {
+      "id": "entry",
+      "label_ja": "入口警備室",
+      "kind": "security",
+      "size_units_proposal": [
+        8,
+        6
+      ],
+      "recovery_pads": [
+        {
+          "id": "entry_pad_E21",
+          "assigned_npc_id": "E21",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "entry_pad_E22",
+          "assigned_npc_id": "E22",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "entry_pad_E23",
+          "assigned_npc_id": "E23",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "entry_pad_E24",
+          "assigned_npc_id": "E24",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        }
+      ]
+    },
+    {
+      "id": "ammo_a",
+      "label_ja": "第1弾薬室",
+      "kind": "supply",
+      "size_units_proposal": [
+        8,
+        6
+      ],
+      "recovery_pads": [
+        {
+          "id": "ammo_a_pad_E13",
+          "assigned_npc_id": "E13",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "ammo_a_pad_E14",
+          "assigned_npc_id": "E14",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "ammo_a_pad_E15",
+          "assigned_npc_id": "E15",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "ammo_a_pad_E16",
+          "assigned_npc_id": "E16",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        }
+      ]
+    },
+    {
+      "id": "ammo_b",
+      "label_ja": "第2弾薬室",
+      "kind": "supply",
+      "size_units_proposal": [
+        8,
+        6
+      ],
+      "recovery_pads": [
+        {
+          "id": "ammo_b_pad_E17",
+          "assigned_npc_id": "E17",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "ammo_b_pad_E18",
+          "assigned_npc_id": "E18",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "ammo_b_pad_E19",
+          "assigned_npc_id": "E19",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "ammo_b_pad_E20",
+          "assigned_npc_id": "E20",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        }
+      ]
+    },
+    {
+      "id": "battery_a",
+      "label_ja": "第1砲撃室",
+      "kind": "battery",
+      "size_units_proposal": [
+        10,
+        8
+      ],
+      "recovery_pads": [
+        {
+          "id": "battery_a_pad_E01",
+          "assigned_npc_id": "E01",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "battery_a_pad_E02",
+          "assigned_npc_id": "E02",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "battery_a_pad_E07",
+          "assigned_npc_id": "E07",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "battery_a_pad_E08",
+          "assigned_npc_id": "E08",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        }
+      ]
+    },
+    {
+      "id": "battery_b",
+      "label_ja": "第2砲撃室",
+      "kind": "battery",
+      "size_units_proposal": [
+        10,
+        8
+      ],
+      "recovery_pads": [
+        {
+          "id": "battery_b_pad_E03",
+          "assigned_npc_id": "E03",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "battery_b_pad_E04",
+          "assigned_npc_id": "E04",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "battery_b_pad_E09",
+          "assigned_npc_id": "E09",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "battery_b_pad_E10",
+          "assigned_npc_id": "E10",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        }
+      ]
+    },
+    {
+      "id": "battery_c",
+      "label_ja": "第3砲撃室",
+      "kind": "battery",
+      "size_units_proposal": [
+        10,
+        8
+      ],
+      "recovery_pads": [
+        {
+          "id": "battery_c_pad_E05",
+          "assigned_npc_id": "E05",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "battery_c_pad_E06",
+          "assigned_npc_id": "E06",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "battery_c_pad_E11",
+          "assigned_npc_id": "E11",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "battery_c_pad_E12",
+          "assigned_npc_id": "E12",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        }
+      ]
+    },
+    {
+      "id": "security",
+      "label_ja": "中央警備室",
+      "kind": "security",
+      "size_units_proposal": [
+        12,
+        8
+      ],
+      "recovery_pads": [
+        {
+          "id": "security_pad_E25",
+          "assigned_npc_id": "E25",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "security_pad_E26",
+          "assigned_npc_id": "E26",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "security_pad_E27",
+          "assigned_npc_id": "E27",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "security_pad_E28",
+          "assigned_npc_id": "E28",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "security_pad_E29",
+          "assigned_npc_id": "E29",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        },
+        {
+          "id": "security_pad_E30",
+          "assigned_npc_id": "E30",
+          "geometry_status": "coordinates_to_be_authored_in_R1"
+        }
+      ]
+    },
+    {
+      "id": "core",
+      "label_ja": "コア室",
+      "kind": "core",
+      "size_units_proposal": [
+        8,
+        6
+      ],
+      "recovery_pads": []
+    }
+  ],
+  "corridor_nodes": [
+    "corridor_0",
+    "corridor_1",
+    "corridor_2",
+    "corridor_3",
+    "corridor_4",
+    "corridor_5",
+    "corridor_6"
+  ],
+  "links": [
+    {
+      "a": "entry",
+      "b": "security",
+      "gate_id": null
+    },
+    {
+      "a": "entry",
+      "b": "ammo_a",
+      "gate_id": null
+    },
+    {
+      "a": "ammo_a",
+      "b": "battery_a",
+      "gate_id": null
+    },
+    {
+      "a": "ammo_a",
+      "b": "security",
+      "gate_id": null
+    },
+    {
+      "a": "security",
+      "b": "ammo_b",
+      "gate_id": null
+    },
+    {
+      "a": "security",
+      "b": "battery_b",
+      "gate_id": null
+    },
+    {
+      "a": "ammo_b",
+      "b": "battery_c",
+      "gate_id": null
+    },
+    {
+      "a": "battery_c",
+      "b": "security",
+      "gate_id": null
+    },
+    {
+      "a": "security",
+      "b": "corridor_0",
+      "gate_id": null
+    },
+    {
+      "a": "corridor_0",
+      "b": "corridor_1",
+      "gate_id": "G1"
+    },
+    {
+      "a": "corridor_1",
+      "b": "corridor_2",
+      "gate_id": "G2"
+    },
+    {
+      "a": "corridor_2",
+      "b": "corridor_3",
+      "gate_id": "G3"
+    },
+    {
+      "a": "corridor_3",
+      "b": "corridor_4",
+      "gate_id": "G4"
+    },
+    {
+      "a": "corridor_4",
+      "b": "corridor_5",
+      "gate_id": "G5"
+    },
+    {
+      "a": "corridor_5",
+      "b": "corridor_6",
+      "gate_id": "G6"
+    },
+    {
+      "a": "corridor_6",
+      "b": "core",
+      "gate_id": "G7"
+    }
+  ],
+  "turrets": [
+    {
+      "id": "T1",
+      "room_id": "battery_a",
+      "operator_npc_id": "E01",
+      "health": 60,
+      "queue_capacity": 2,
+      "staging_floor_slots": 2,
+      "equipment_restore_ticks": 480,
+      "counts_as_npc": false
+    },
+    {
+      "id": "T2",
+      "room_id": "battery_a",
+      "operator_npc_id": "E02",
+      "health": 60,
+      "queue_capacity": 2,
+      "staging_floor_slots": 2,
+      "equipment_restore_ticks": 480,
+      "counts_as_npc": false
+    },
+    {
+      "id": "T3",
+      "room_id": "battery_b",
+      "operator_npc_id": "E03",
+      "health": 60,
+      "queue_capacity": 2,
+      "staging_floor_slots": 2,
+      "equipment_restore_ticks": 480,
+      "counts_as_npc": false
+    },
+    {
+      "id": "T4",
+      "room_id": "battery_b",
+      "operator_npc_id": "E04",
+      "health": 60,
+      "queue_capacity": 2,
+      "staging_floor_slots": 2,
+      "equipment_restore_ticks": 480,
+      "counts_as_npc": false
+    },
+    {
+      "id": "T5",
+      "room_id": "battery_c",
+      "operator_npc_id": "E05",
+      "health": 60,
+      "queue_capacity": 2,
+      "staging_floor_slots": 2,
+      "equipment_restore_ticks": 480,
+      "counts_as_npc": false
+    },
+    {
+      "id": "T6",
+      "room_id": "battery_c",
+      "operator_npc_id": "E06",
+      "health": 60,
+      "queue_capacity": 2,
+      "staging_floor_slots": 2,
+      "equipment_restore_ticks": 480,
+      "counts_as_npc": false
+    }
+  ],
+  "supply_ports": [
+    {
+      "id": "supply_1",
+      "room_id": "ammo_a"
+    },
+    {
+      "id": "supply_2",
+      "room_id": "ammo_b"
+    }
+  ],
+  "supply_drive_room": "security",
+  "layout_variants_planned": [
+    "central_work",
+    "distributed_supply",
+    "branching_routes"
+  ]
+}

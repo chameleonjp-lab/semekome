@@ -1,0 +1,222 @@
+{
+  "document_version": "3.0",
+  "ruleset_id": "workshop-tank-prototype-0.2-seven-gates",
+  "status": "proposed_unplaytested",
+  "notice_ja": "独自ゲーム用の初期調整値。原作の解析値ではない。ゲーム実装・プレイ検査・権利調査の完了を示さない。",
+  "simulation": {
+    "ticks_per_second": 60,
+    "integer_subunits_per_floor_unit": 1000,
+    "match_limit_ticks": 25200,
+    "terminal_outcome_resolution": "end_of_tick_both_sides",
+    "timeout_outcome": "draw",
+    "legacy_replay_policy": "reject_older_ruleset_with_message_preserve_settings"
+  },
+  "team": {
+    "human_commanders": 1,
+    "support_units": 2,
+    "total_actors": 3
+  },
+  "actor": {
+    "health": 4,
+    "floor_speed_units_per_second": 3.0,
+    "radius_floor_units": 0.28,
+    "carry_slots": 2,
+    "carry_weight_limit": 3,
+    "weight_3_speed_multiplier": 0.85,
+    "dash_distance_units": 1.2,
+    "dash_duration_ticks": 12,
+    "dash_cooldown_ticks": 54,
+    "dash_actor_damage": 1,
+    "dash_equipment_damage": 10,
+    "dash_knockback_units": 0.6,
+    "damage_invulnerability_ticks": 36,
+    "respawn_ticks": 300,
+    "spawn_protection_ticks": 60,
+    "action_range_units": 0.8,
+    "drop_range_units": 0.6,
+    "dash_target_policy": "first_actor_equipment_or_eligible_enemy_core_then_stop"
+  },
+  "supply": {
+    "selected_types": 4,
+    "weight_min": 1,
+    "weight_max": 3,
+    "weight_sum": 8,
+    "selection": "seeded_shuffled_bag",
+    "ports": 2,
+    "period_ticks_each_port": 210,
+    "first_spawn_delay_ticks_by_port": [
+      30,
+      135
+    ],
+    "port_full_floor_limit": 16,
+    "advance_bag_only_on_success": true,
+    "blocked_port_retry_ticks": 30,
+    "disruption_duration_ticks": 360,
+    "disruption_immunity_after_end_ticks": 240
+  },
+  "cannon": {
+    "loading_stations": 1,
+    "routes": [
+      "direct",
+      "detour"
+    ],
+    "queue_capacity": 2,
+    "launch_cooldown_ticks": 48,
+    "route_capture": "at_enqueue",
+    "route_length_units": {
+      "direct": 120,
+      "detour": 156
+    },
+    "inter_route_collisions": false,
+    "same_team_collisions": false,
+    "target_part_capture": "at_enqueue",
+    "split_child_target": "inherit_parent_preferred_part_id"
+  },
+  "equipment": {
+    "health": 60,
+    "disabled_ticks": 480,
+    "repair_work_ticks": 120,
+    "repair_crate_cost": 1,
+    "manual_restore_health": 60,
+    "automatic_restore_health": 60,
+    "supply_timer_policy": "freeze_no_catchup",
+    "queue_policy": "retain_pause_no_reorder"
+  },
+  "objective": {
+    "type": "enemy_core_direct_hit",
+    "cores_per_vehicle": 1,
+    "valid_hits_to_lose": 1,
+    "requires_all_7_gates_open_at_tick_start": true,
+    "requires_actor_in_core_room": true,
+    "eligible_actors": "any_active_hostile_actor_at_tick_start_not_spawn_protected",
+    "accepted_attack_types": [
+      "dash"
+    ],
+    "requires_empty_cargo": false,
+    "hold_work_required": false,
+    "normal_contact_wins": false,
+    "friendly_hit_wins": false,
+    "external_projectile_hit_wins": false,
+    "valid_hit_and_attacker_disabled_same_tick": "valid_hit_counts",
+    "both_cores_hit_same_tick": "draw",
+    "core_hit_precedes_timeout": true,
+    "final_gate_opening_tick": "no_new_core_hit_until_next_tick",
+    "outcome_committed_once": true
+  },
+  "limits": {
+    "projectiles_total": 96,
+    "full_capacity_policy": "pause_producer_never_delete_active_object",
+    "floor_crates_supply_pause_threshold_per_room": 16,
+    "supply_groups_total_per_origin": 48,
+    "drop_over_floor_threshold": "allow_drop_pause_supply_until_below_threshold",
+    "split_group_count": "all_children_share_one_origin_group_until_all_retired"
+  },
+  "initial_loadout": {
+    "standard_slug": 3,
+    "dense_payload": 2,
+    "screen_panel": 2,
+    "fast_dart": 1
+  },
+  "ui_targets": {
+    "min_touch_css_px": 48,
+    "portrait_width_test_css_px": [
+      360,
+      390,
+      402,
+      430
+    ],
+    "frame_rate_target": 60,
+    "normal_frame_time_p95_ms_target": 20,
+    "stress_frame_time_p95_ms_target": 33.3,
+    "input_to_visible_p95_ms_target": 100
+  },
+  "user_confirmed_requirements": {
+    "exterior_parts_per_vehicle": 7,
+    "gates_per_vehicle": 7,
+    "cores_per_vehicle": 1,
+    "one_unique_part_destroyed_opens_one_gate": true,
+    "core_room_requires_all_gates_open": true,
+    "valid_core_hits_to_lose": 1,
+    "same_victory_conditions_for_both_teams": true
+  },
+  "design_proposal_notice_ja": "user_confirmed_requirements以外の耐久・照準・門の順番・修理・攻撃種・同時判定・数値は補足案。ユーザーが個別承認した条件ではない。",
+  "exterior": {
+    "part_count": 7,
+    "parts": [
+      {
+        "id": "P1",
+        "label_ja": "外装1",
+        "max_health": 50
+      },
+      {
+        "id": "P2",
+        "label_ja": "外装2",
+        "max_health": 50
+      },
+      {
+        "id": "P3",
+        "label_ja": "外装3",
+        "max_health": 50
+      },
+      {
+        "id": "P4",
+        "label_ja": "外装4",
+        "max_health": 50
+      },
+      {
+        "id": "P5",
+        "label_ja": "外装5",
+        "max_health": 50
+      },
+      {
+        "id": "P6",
+        "label_ja": "外装6",
+        "max_health": 50
+      },
+      {
+        "id": "P7",
+        "label_ja": "外装7",
+        "max_health": 50
+      }
+    ],
+    "aggregate_max_health_for_display": 350,
+    "health_authority": "per_part_only",
+    "destroyed_parts_can_be_repaired": false,
+    "destruction_is_permanent": true,
+    "repair_budget_per_team": 96,
+    "repair_per_crate": 12,
+    "repair_work_ticks": 90,
+    "repair_target_capture": "at_work_start",
+    "default_repair_target": "greatest_damage_ratio_alive_then_part_id",
+    "simultaneous_repair_budget_order": "work_start_tick_then_actor_id",
+    "damage_before_repair": true,
+    "overflow_damage_policy": "discard_no_cross_part_spill",
+    "damage_target_snapshot": "start_of_impact_tick",
+    "damage_aggregation": "all_impacts_per_part_before_destruction",
+    "default_attack_target": "lowest_alive_part_id",
+    "destroyed_target_fallback": "lowest_alive_part_id_at_impact_tick_start",
+    "all_destroyed_impact_policy": "zero_part_damage_keep_payload_special_effects_never_damage_core"
+  },
+  "gates": {
+    "count": 7,
+    "ordered_ids": [
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G6",
+      "G7"
+    ],
+    "unlock_policy": "open_prefix_of_destroyed_unique_part_count",
+    "fixed_part_to_gate_mapping": false,
+    "open_is_permanent": true,
+    "damageable": false,
+    "movement_uses": "tick_start_open_state",
+    "opening_effects_delay_rules": false,
+    "block_actors_dash_knockback_and_shortcuts": true,
+    "all_layout_paths_to_core_cross_all_seven_gates": true,
+    "min_corridor_width_units": 1.4,
+    "min_gate_spacing_units": 1.2
+  }
+}
