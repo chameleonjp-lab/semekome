@@ -1,13 +1,7 @@
-# semekome の資料を扱う際の基準
+# semekome の作業基準
 
-実装前に `docs/plans/current/AI_HANDOFF.md` と `docs/plans/current/PRODUCT_REQUIREMENTS.md` を全文読む。外装・門・コアは `SEVEN_PART_CORE_RULES.md`、敵の部屋・30人・20秒復活は `NPC_ROOMS_AND_RESPAWN.md` も参照する。
-
-`docs/plans/current/` は第4版の実装基準。`docs/plans/archive/` は履歴であり、撤回された制御盤方式・敵3人・敵5秒復帰・原作再現目標などを再導入しない。原作の画像・音・キャラクター表現や、旧版の原作アイテム候補を実装データへ混ぜない。
-
-ユーザー指定と設計提案を区別する。7部位・7門・有効なコア攻撃による勝敗・敵30人・各人の討伐20秒後の復活を、負荷や難易度調整の名目で減らさない。
-
-この格納作業は資料整備だけであり、ゲームの受け入れ検査・試遊・iPhone実機確認は未実施。資料の検査結果をゲームの検査合格と呼ばない。
-
-`validate_documents.py` は `DOCUMENT_CHECKS.json` を上書きする。元資料の照合時は一時コピーで実行する。資料を更新した場合は、変更理由と関連する要件・検査の変更も記録する。
-
-mainへ直接pushせず、作業ブランチとDraft Pull Requestを使う。マージ・公開・保護設定変更は勝手に行わない。
+現行はdocs/plans/current/の第5版。AI_HANDOFF.mdとPRODUCT_REQUIREMENTS.mdを全文読み、MAP_ADOPTION.md、SCREEN_FLOW_AND_BATTLEFIELD.md、RESULTS_SCORE_RANKING.mdも読む。archive/v1〜v4は履歴。
+ユーザー指定と補足案を区別する。採用配置の左右方向、7部位7門核一撃、敵30人20秒、主人公5秒観戦復活、相互侵入、広場突破、名前登録とカウントダウン、結果と上位10位を省かない。図にない核と7門を撤去しない。原作素材・名称替えのデータを入れない。
+4砲台・人数配分・広場担当数・得点式・寸法は補足案。図の採用を当たり判定や実機合格にしない。ランキング接続時は共有リポジトリの規約と実登録を確認し、未確認のgame_slug・受付処理を推測しない。
+資料検査、ゲーム検査、試遊、実機、接続を区別し、未実施を合格にしない。現行validate_documents.pyは既定で読み取りのみ。--write-report指定時だけDOCUMENT_CHECKS.jsonを更新する。履歴の検査ファイルは変更しない。
+mainへの直接push・無断マージ・自動マージ・保護変更・公開を禁止する。作業ブランチとDraft PRで提出する。
