@@ -1,11 +1,9 @@
-# 第4版 配布資料
+# 現行計画書 / 第5版
+[計画書全文](PRODUCT_REQUIREMENTS.md) → [採用図と配置](MAP_ADOPTION.md) → [画面・広場・復活](SCREEN_FLOW_AND_BATTLEFIELD.md) → [結果・ランキング](RESULTS_SCORE_RANKING.md) → [実装担当へ](AI_HANDOFF.md)
 
-最初にNPC_ROOMS_AND_RESPAWN.mdを読む。勝敗はSEVEN_PART_CORE_RULES.md、全体はPRODUCT_REQUIREMENTS.md、実装担当の入口はAI_HANDOFF.mdとする。
+## 図面
+![対向配置](drawings/04_CASTLES_FACE_EACH_OTHER.svg)
 
-今回の確定追加は、コア室以外の複数の敵部屋、役割を持つ敵30人、各人の討伐20秒後の復活。既存の7部位・7門・コア一撃は維持する。役割内訳、7室、砲台6基、復活床などは補足案である。
-
-65件の要件、115件の未実施のゲーム検査計画、独自ケース8種、敵30人の名簿、基準1構成の部屋接続、初期設定、権利確認資料を含む。全3構成の床図面やゲームコードが完成した資料ではない。
-
-validate_documents.pyを実行すると資料の参照・人数・設定・接続を確認できる。結果はDOCUMENT_CHECKS.json。これはゲームの検査結果ではない。
-
-旧資料は上書きしていない。原作素材・フォントファイルは同梱しない。ゲーム実装、試遊、iPhone実機確認、新規の権利調査は実施していない。
+核室と7門は採用画像で省略されているため、上の補足構造図に残す。図面は設計資料であり、ゲームの完成画面ではない。
+今回の第5版追補は、採用配置・画面遷移・広場戦・5秒観戦復活・結果画面・上位10位ランキングを第4版より優先する。既存のREQUIREMENTS.jsonとACCEPTANCE_TESTS.jsonは、実装着手前に第5版の内容へ同期する。
+ゲーム実装、ランキング接続、試遊、iPhone実機検査は未実施。
