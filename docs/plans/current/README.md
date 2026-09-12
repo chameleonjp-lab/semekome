@@ -3,7 +3,7 @@
 
 ## 図面
 ![対向配置](drawings/04_CASTLES_FACE_EACH_OTHER.svg)
-[画面遷移](drawings/01_SCREEN_FLOW.svg) / [3種類のゲーム画面](drawings/02_THREE_GAME_VIEWS.svg) / [自陣の移動用平面図](drawings/03_HOME_MOVEMENT_MAP.svg)
 
-核室と7門は採用図で省略されているため補足平面図に残す。図面は設計資料であり、ゲームの完成画面ではない。
-REQUIREMENTS.jsonとACCEPTANCE_TESTS.jsonを実装・検査へ結び付ける。検査計画は未実施。validate_documents.pyの結果は資料検査のみ。
+核室と7門は採用画像で省略されているため、上の補足構造図に残す。図面は設計資料であり、ゲームの完成画面ではない。
+今回の第5版追補は、採用配置・画面遷移・広場戦・5秒観戦復活・結果画面・上位10位ランキングを第4版より優先する。既存のREQUIREMENTS.jsonとACCEPTANCE_TESTS.jsonは、実装着手前に第5版の内容へ同期する。
+ゲーム実装、ランキング接続、試遊、iPhone実機検査は未実施。
