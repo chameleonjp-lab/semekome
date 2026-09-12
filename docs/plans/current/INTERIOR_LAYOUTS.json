@@ -1,245 +1,612 @@
 {
-  "version": "4.0",
-  "id": "enemy_compartment_v1",
-  "status": "proposed_graph_only_unimplemented_geometry",
-  "notice_ja": "基準1構成の部屋接続・担当名簿。床座標・壁・経路探索のゲームコードではない。全3構成完成とは扱わない。",
+  "version": "5.0",
+  "id": "facing_castles_v1",
+  "status": "proposed_geometry_not_runtime_tested",
+  "notice_ja": "採用図に合わせた自陣側の126×70セル設計案。床座標・壁厚・通行・当たり判定・実機性能は未検査で、敵側は明示した左右反転で生成する。砲台と補給口のcellはR1表示用の座標提案であり、衝突検査済みの実装座標ではない。",
+  "grid": {
+    "width_cells": 126,
+    "height_cells": 70,
+    "cell_unit": "floor_design_cell",
+    "coordinate_origin": "top_left",
+    "self_front_axis": "+x",
+    "self_front": "right",
+    "enemy_transform": {
+      "point": "(125-x,y)",
+      "rect": "(126-x1,y0,126-x0,y1)",
+      "direction": "(-dx,dy)"
+    }
+  },
+  "orientation": {
+    "self_side": "left_castle_front_right",
+    "enemy_side": "right_castle_front_left",
+    "enemy_is_horizontal_mirror": true,
+    "screen_text_and_controls_mirrored": false,
+    "front_room_ids": [
+      "battery_a",
+      "battery_b",
+      "ammo_a",
+      "ammo_b",
+      "central_corridor"
+    ],
+    "rear_room_ids": [
+      "battery_c",
+      "battery_d",
+      "ammo_c",
+      "ammo_d",
+      "respawn",
+      "core"
+    ]
+  },
   "rooms": [
     {
-      "id": "entry",
-      "label_ja": "入口警備室",
-      "kind": "security",
+      "id": "core",
+      "label_ja": "核室",
+      "kind": "core",
+      "rect_cells": [
+        2,
+        30,
+        10,
+        40
+      ],
+      "size_cells": [
+        8,
+        10
+      ],
       "size_units_proposal": [
         8,
-        6
+        10
       ],
-      "recovery_pads": [
+      "recovery_pads": []
+    },
+    {
+      "id": "respawn",
+      "label_ja": "復活室",
+      "kind": "respawn",
+      "rect_cells": [
+        54,
+        26,
+        64,
+        44
+      ],
+      "size_cells": [
+        10,
+        18
+      ],
+      "size_units_proposal": [
+        10,
+        18
+      ],
+      "recovery_pads": [],
+      "player_respawn_pads": [
         {
-          "id": "entry_pad_E21",
-          "assigned_npc_id": "E21",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "player_respawn_pad_P1",
+          "assigned_npc_id": "P1",
+          "cell": [
+            58,
+            35
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "entry_pad_E22",
-          "assigned_npc_id": "E22",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "player_respawn_pad_P2",
+          "assigned_npc_id": "P2",
+          "cell": [
+            60,
+            35
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "entry_pad_E23",
-          "assigned_npc_id": "E23",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "entry_pad_E24",
-          "assigned_npc_id": "E24",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "player_respawn_pad_P3",
+          "assigned_npc_id": "P3",
+          "cell": [
+            62,
+            35
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         }
       ]
     },
     {
-      "id": "ammo_a",
-      "label_ja": "第1弾薬室",
-      "kind": "supply",
+      "id": "central_corridor",
+      "label_ja": "中央通路",
+      "kind": "corridor",
+      "rect_cells": [
+        66,
+        25,
+        124,
+        45
+      ],
+      "size_cells": [
+        58,
+        20
+      ],
       "size_units_proposal": [
-        8,
-        6
+        58,
+        20
       ],
       "recovery_pads": [
         {
-          "id": "ammo_a_pad_E13",
-          "assigned_npc_id": "E13",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "ammo_a_pad_E14",
-          "assigned_npc_id": "E14",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "ammo_a_pad_E15",
-          "assigned_npc_id": "E15",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "ammo_a_pad_E16",
-          "assigned_npc_id": "E16",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        }
-      ]
-    },
-    {
-      "id": "ammo_b",
-      "label_ja": "第2弾薬室",
-      "kind": "supply",
-      "size_units_proposal": [
-        8,
-        6
-      ],
-      "recovery_pads": [
-        {
-          "id": "ammo_b_pad_E17",
+          "id": "central_corridor_pad_E17",
           "assigned_npc_id": "E17",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "cell": [
+            68,
+            29
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "ammo_b_pad_E18",
+          "id": "central_corridor_pad_E18",
           "assigned_npc_id": "E18",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "cell": [
+            72,
+            29
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "ammo_b_pad_E19",
+          "id": "central_corridor_pad_E19",
           "assigned_npc_id": "E19",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "cell": [
+            76,
+            29
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "ammo_b_pad_E20",
+          "id": "central_corridor_pad_E20",
           "assigned_npc_id": "E20",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "cell": [
+            80,
+            29
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        },
+        {
+          "id": "central_corridor_pad_E21",
+          "assigned_npc_id": "E21",
+          "cell": [
+            68,
+            41
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        },
+        {
+          "id": "central_corridor_pad_E22",
+          "assigned_npc_id": "E22",
+          "cell": [
+            72,
+            41
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        },
+        {
+          "id": "central_corridor_pad_E23",
+          "assigned_npc_id": "E23",
+          "cell": [
+            76,
+            41
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        },
+        {
+          "id": "central_corridor_pad_E24",
+          "assigned_npc_id": "E24",
+          "cell": [
+            80,
+            41
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         }
       ]
     },
     {
-      "id": "battery_a",
-      "label_ja": "第1砲撃室",
-      "kind": "battery",
+      "id": "repair",
+      "label_ja": "修理室",
+      "kind": "repair",
+      "rect_cells": [
+        70,
+        4,
+        82,
+        18
+      ],
+      "size_cells": [
+        12,
+        14
+      ],
       "size_units_proposal": [
-        10,
-        8
+        12,
+        14
       ],
       "recovery_pads": [
         {
-          "id": "battery_a_pad_E01",
-          "assigned_npc_id": "E01",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "repair_pad_E25",
+          "assigned_npc_id": "E25",
+          "cell": [
+            72,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "battery_a_pad_E02",
-          "assigned_npc_id": "E02",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "repair_pad_E26",
+          "assigned_npc_id": "E26",
+          "cell": [
+            76,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "battery_a_pad_E07",
-          "assigned_npc_id": "E07",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "battery_a_pad_E08",
-          "assigned_npc_id": "E08",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "repair_pad_E27",
+          "assigned_npc_id": "E27",
+          "cell": [
+            79,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         }
       ]
     },
     {
-      "id": "battery_b",
-      "label_ja": "第2砲撃室",
-      "kind": "battery",
+      "id": "command",
+      "label_ja": "指令室",
+      "kind": "command",
+      "rect_cells": [
+        70,
+        52,
+        82,
+        66
+      ],
+      "size_cells": [
+        12,
+        14
+      ],
       "size_units_proposal": [
-        10,
-        8
+        12,
+        14
       ],
       "recovery_pads": [
         {
-          "id": "battery_b_pad_E03",
-          "assigned_npc_id": "E03",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "command_pad_E28",
+          "assigned_npc_id": "E28",
+          "cell": [
+            72,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "battery_b_pad_E04",
-          "assigned_npc_id": "E04",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "command_pad_E29",
+          "assigned_npc_id": "E29",
+          "cell": [
+            76,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "battery_b_pad_E09",
-          "assigned_npc_id": "E09",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "command_pad_E30",
+          "assigned_npc_id": "E30",
+          "cell": [
+            79,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        }
+      ]
+    },
+    {
+      "id": "ammo_c",
+      "label_ja": "弾薬庫C",
+      "kind": "supply",
+      "rect_cells": [
+        51,
+        4,
+        62,
+        18
+      ],
+      "size_cells": [
+        11,
+        14
+      ],
+      "size_units_proposal": [
+        11,
+        14
+      ],
+      "recovery_pads": [
+        {
+          "id": "ammo_c_pad_E13",
+          "assigned_npc_id": "E13",
+          "cell": [
+            53,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "battery_b_pad_E10",
-          "assigned_npc_id": "E10",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "ammo_c_pad_E14",
+          "assigned_npc_id": "E14",
+          "cell": [
+            58,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         }
       ]
     },
     {
       "id": "battery_c",
-      "label_ja": "第3砲撃室",
+      "label_ja": "砲撃室C",
       "kind": "battery",
+      "rect_cells": [
+        39,
+        4,
+        50,
+        18
+      ],
+      "size_cells": [
+        11,
+        14
+      ],
       "size_units_proposal": [
-        10,
-        8
+        11,
+        14
       ],
       "recovery_pads": [
         {
-          "id": "battery_c_pad_E05",
+          "id": "battery_c_pad_E03",
+          "assigned_npc_id": "E03",
+          "cell": [
+            41,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        },
+        {
+          "id": "battery_c_pad_E07",
+          "assigned_npc_id": "E07",
+          "cell": [
+            46,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        }
+      ]
+    },
+    {
+      "id": "ammo_d",
+      "label_ja": "弾薬庫D",
+      "kind": "supply",
+      "rect_cells": [
+        51,
+        52,
+        62,
+        66
+      ],
+      "size_cells": [
+        11,
+        14
+      ],
+      "size_units_proposal": [
+        11,
+        14
+      ],
+      "recovery_pads": [
+        {
+          "id": "ammo_d_pad_E15",
+          "assigned_npc_id": "E15",
+          "cell": [
+            53,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        },
+        {
+          "id": "ammo_d_pad_E16",
+          "assigned_npc_id": "E16",
+          "cell": [
+            58,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        }
+      ]
+    },
+    {
+      "id": "battery_d",
+      "label_ja": "砲撃室D",
+      "kind": "battery",
+      "rect_cells": [
+        39,
+        52,
+        50,
+        66
+      ],
+      "size_cells": [
+        11,
+        14
+      ],
+      "size_units_proposal": [
+        11,
+        14
+      ],
+      "recovery_pads": [
+        {
+          "id": "battery_d_pad_E04",
+          "assigned_npc_id": "E04",
+          "cell": [
+            41,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        },
+        {
+          "id": "battery_d_pad_E08",
+          "assigned_npc_id": "E08",
+          "cell": [
+            46,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        }
+      ]
+    },
+    {
+      "id": "ammo_a",
+      "label_ja": "弾薬庫A",
+      "kind": "supply",
+      "rect_cells": [
+        88,
+        4,
+        99,
+        18
+      ],
+      "size_cells": [
+        11,
+        14
+      ],
+      "size_units_proposal": [
+        11,
+        14
+      ],
+      "recovery_pads": [
+        {
+          "id": "ammo_a_pad_E09",
+          "assigned_npc_id": "E09",
+          "cell": [
+            90,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        },
+        {
+          "id": "ammo_a_pad_E10",
+          "assigned_npc_id": "E10",
+          "cell": [
+            95,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        }
+      ]
+    },
+    {
+      "id": "battery_a",
+      "label_ja": "砲撃室A",
+      "kind": "battery",
+      "rect_cells": [
+        101,
+        4,
+        112,
+        18
+      ],
+      "size_cells": [
+        11,
+        14
+      ],
+      "size_units_proposal": [
+        11,
+        14
+      ],
+      "recovery_pads": [
+        {
+          "id": "battery_a_pad_E01",
+          "assigned_npc_id": "E01",
+          "cell": [
+            103,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        },
+        {
+          "id": "battery_a_pad_E05",
           "assigned_npc_id": "E05",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "battery_c_pad_E06",
-          "assigned_npc_id": "E06",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "battery_c_pad_E11",
-          "assigned_npc_id": "E11",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "battery_c_pad_E12",
-          "assigned_npc_id": "E12",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "cell": [
+            108,
+            7
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         }
       ]
     },
     {
-      "id": "security",
-      "label_ja": "中央警備室",
-      "kind": "security",
+      "id": "ammo_b",
+      "label_ja": "弾薬庫B",
+      "kind": "supply",
+      "rect_cells": [
+        88,
+        52,
+        99,
+        66
+      ],
+      "size_cells": [
+        11,
+        14
+      ],
       "size_units_proposal": [
-        12,
-        8
+        11,
+        14
       ],
       "recovery_pads": [
         {
-          "id": "security_pad_E25",
-          "assigned_npc_id": "E25",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "ammo_b_pad_E11",
+          "assigned_npc_id": "E11",
+          "cell": [
+            90,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         },
         {
-          "id": "security_pad_E26",
-          "assigned_npc_id": "E26",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "security_pad_E27",
-          "assigned_npc_id": "E27",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "security_pad_E28",
-          "assigned_npc_id": "E28",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "security_pad_E29",
-          "assigned_npc_id": "E29",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
-        },
-        {
-          "id": "security_pad_E30",
-          "assigned_npc_id": "E30",
-          "geometry_status": "coordinates_to_be_authored_in_R1"
+          "id": "ammo_b_pad_E12",
+          "assigned_npc_id": "E12",
+          "cell": [
+            95,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
         }
       ]
     },
     {
-      "id": "core",
-      "label_ja": "コア室",
-      "kind": "core",
-      "size_units_proposal": [
-        8,
-        6
+      "id": "battery_b",
+      "label_ja": "砲撃室B",
+      "kind": "battery",
+      "rect_cells": [
+        101,
+        52,
+        112,
+        66
       ],
-      "recovery_pads": []
+      "size_cells": [
+        11,
+        14
+      ],
+      "size_units_proposal": [
+        11,
+        14
+      ],
+      "recovery_pads": [
+        {
+          "id": "battery_b_pad_E02",
+          "assigned_npc_id": "E02",
+          "cell": [
+            103,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        },
+        {
+          "id": "battery_b_pad_E06",
+          "assigned_npc_id": "E06",
+          "cell": [
+            108,
+            57
+          ],
+          "geometry_status": "document_coordinate_proposal_not_collision_tested"
+        }
+      ]
     }
   ],
   "corridor_nodes": [
@@ -251,164 +618,766 @@
     "corridor_5",
     "corridor_6"
   ],
-  "links": [
+  "corridor_geometry": [
     {
-      "a": "entry",
-      "b": "security",
-      "gate_id": null
+      "id": "corridor_0",
+      "rect_cells": [
+        47,
+        30,
+        52,
+        40
+      ]
     },
     {
-      "a": "entry",
+      "id": "corridor_1",
+      "rect_cells": [
+        41,
+        30,
+        46,
+        40
+      ]
+    },
+    {
+      "id": "corridor_2",
+      "rect_cells": [
+        35,
+        30,
+        40,
+        40
+      ]
+    },
+    {
+      "id": "corridor_3",
+      "rect_cells": [
+        29,
+        30,
+        34,
+        40
+      ]
+    },
+    {
+      "id": "corridor_4",
+      "rect_cells": [
+        23,
+        30,
+        28,
+        40
+      ]
+    },
+    {
+      "id": "corridor_5",
+      "rect_cells": [
+        17,
+        30,
+        22,
+        40
+      ]
+    },
+    {
+      "id": "corridor_6",
+      "rect_cells": [
+        11,
+        30,
+        16,
+        40
+      ]
+    }
+  ],
+  "passages": [
+    {
+      "id": "passage_01",
+      "a": "central_corridor",
+      "b": "repair",
+      "rect_cells": [
+        76,
+        18,
+        78,
+        25
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_02",
+      "a": "central_corridor",
+      "b": "command",
+      "rect_cells": [
+        76,
+        45,
+        78,
+        52
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_03",
+      "a": "central_corridor",
       "b": "ammo_a",
-      "gate_id": null
+      "rect_cells": [
+        93,
+        18,
+        95,
+        25
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_04",
+      "a": "central_corridor",
+      "b": "battery_a",
+      "rect_cells": [
+        105,
+        18,
+        107,
+        25
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_05",
+      "a": "central_corridor",
+      "b": "ammo_b",
+      "rect_cells": [
+        93,
+        45,
+        95,
+        52
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_06",
+      "a": "central_corridor",
+      "b": "battery_b",
+      "rect_cells": [
+        105,
+        45,
+        107,
+        52
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_07",
+      "a": "central_corridor",
+      "b": "ammo_c",
+      "rect_cells": [
+        55,
+        18,
+        57,
+        25
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_08",
+      "a": "central_corridor",
+      "b": "battery_c",
+      "rect_cells": [
+        43,
+        18,
+        45,
+        25
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_09",
+      "a": "central_corridor",
+      "b": "ammo_d",
+      "rect_cells": [
+        55,
+        45,
+        57,
+        52
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_10",
+      "a": "central_corridor",
+      "b": "battery_d",
+      "rect_cells": [
+        43,
+        45,
+        45,
+        52
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_11",
+      "a": "central_corridor",
+      "b": "respawn",
+      "rect_cells": [
+        64,
+        33,
+        66,
+        37
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_12",
+      "a": "ammo_a",
+      "b": "battery_a",
+      "rect_cells": [
+        99,
+        9,
+        101,
+        13
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_13",
+      "a": "ammo_b",
+      "b": "battery_b",
+      "rect_cells": [
+        99,
+        57,
+        101,
+        61
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_14",
+      "a": "ammo_c",
+      "b": "battery_c",
+      "rect_cells": [
+        50,
+        9,
+        51,
+        13
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_15",
+      "a": "ammo_d",
+      "b": "battery_d",
+      "rect_cells": [
+        50,
+        57,
+        51,
+        61
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_16",
+      "a": "rear_top_common",
+      "b": "rear_top_room_branch",
+      "rect_cells": [
+        39,
+        20,
+        68,
+        24
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_17",
+      "a": "rear_top_room_branch",
+      "b": "battery_c",
+      "rect_cells": [
+        43,
+        18,
+        46,
+        24
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_18",
+      "a": "rear_top_room_branch",
+      "b": "ammo_c",
+      "rect_cells": [
+        55,
+        18,
+        58,
+        24
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_19",
+      "a": "rear_top_common",
+      "b": "central_corridor",
+      "rect_cells": [
+        64,
+        20,
+        68,
+        27
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_20",
+      "a": "rear_bottom_common",
+      "b": "rear_bottom_room_branch",
+      "rect_cells": [
+        39,
+        46,
+        68,
+        50
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_21",
+      "a": "rear_bottom_room_branch",
+      "b": "battery_d",
+      "rect_cells": [
+        43,
+        46,
+        46,
+        52
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_22",
+      "a": "rear_bottom_room_branch",
+      "b": "ammo_d",
+      "rect_cells": [
+        55,
+        46,
+        58,
+        52
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_23",
+      "a": "rear_bottom_common",
+      "b": "central_corridor",
+      "rect_cells": [
+        64,
+        43,
+        68,
+        50
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_24",
+      "a": "respawn",
+      "b": "corridor_0",
+      "rect_cells": [
+        52,
+        33,
+        54,
+        37
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_25",
+      "a": "corridor_0",
+      "b": "corridor_1",
+      "rect_cells": [
+        46,
+        33,
+        47,
+        37
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_26",
+      "a": "corridor_1",
+      "b": "corridor_2",
+      "rect_cells": [
+        40,
+        33,
+        41,
+        37
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_27",
+      "a": "corridor_2",
+      "b": "corridor_3",
+      "rect_cells": [
+        34,
+        33,
+        35,
+        37
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_28",
+      "a": "corridor_3",
+      "b": "corridor_4",
+      "rect_cells": [
+        28,
+        33,
+        29,
+        37
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_29",
+      "a": "corridor_4",
+      "b": "corridor_5",
+      "rect_cells": [
+        22,
+        33,
+        23,
+        37
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_30",
+      "a": "corridor_5",
+      "b": "corridor_6",
+      "rect_cells": [
+        16,
+        33,
+        17,
+        37
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "passage_31",
+      "a": "corridor_6",
+      "b": "core",
+      "rect_cells": [
+        10,
+        33,
+        11,
+        37
+      ],
+      "geometry_status": "document_coordinate_proposal_not_collision_tested"
+    }
+  ],
+  "passage_auxiliary_nodes": [
+    "rear_top_common",
+    "rear_top_room_branch",
+    "rear_bottom_common",
+    "rear_bottom_room_branch"
+  ],
+  "shared_rear_passage_ids": [
+    "passage_16",
+    "passage_17",
+    "passage_18",
+    "passage_19",
+    "passage_20",
+    "passage_21",
+    "passage_22",
+    "passage_23"
+  ],
+  "gate_route": {
+    "from_work_to_core": [
+      "central_corridor",
+      "respawn",
+      "corridor_0",
+      "corridor_1",
+      "corridor_2",
+      "corridor_3",
+      "corridor_4",
+      "corridor_5",
+      "corridor_6",
+      "core"
+    ],
+    "gates_in_order": [
+      "G1",
+      "G2",
+      "G3",
+      "G4",
+      "G5",
+      "G6",
+      "G7"
+    ]
+  },
+  "links": [
+    {
+      "a": "central_corridor",
+      "b": "repair",
+      "gate_id": null,
+      "passage_id": "passage_01"
+    },
+    {
+      "a": "central_corridor",
+      "b": "command",
+      "gate_id": null,
+      "passage_id": "passage_02"
+    },
+    {
+      "a": "central_corridor",
+      "b": "ammo_a",
+      "gate_id": null,
+      "passage_id": "passage_03"
+    },
+    {
+      "a": "central_corridor",
+      "b": "battery_a",
+      "gate_id": null,
+      "passage_id": "passage_04"
+    },
+    {
+      "a": "central_corridor",
+      "b": "ammo_b",
+      "gate_id": null,
+      "passage_id": "passage_05"
+    },
+    {
+      "a": "central_corridor",
+      "b": "battery_b",
+      "gate_id": null,
+      "passage_id": "passage_06"
+    },
+    {
+      "a": "central_corridor",
+      "b": "ammo_c",
+      "gate_id": null,
+      "passage_id": "passage_07"
+    },
+    {
+      "a": "central_corridor",
+      "b": "battery_c",
+      "gate_id": null,
+      "passage_id": "passage_08"
+    },
+    {
+      "a": "central_corridor",
+      "b": "ammo_d",
+      "gate_id": null,
+      "passage_id": "passage_09"
+    },
+    {
+      "a": "central_corridor",
+      "b": "battery_d",
+      "gate_id": null,
+      "passage_id": "passage_10"
+    },
+    {
+      "a": "central_corridor",
+      "b": "respawn",
+      "gate_id": null,
+      "passage_id": "passage_11"
     },
     {
       "a": "ammo_a",
       "b": "battery_a",
-      "gate_id": null
-    },
-    {
-      "a": "ammo_a",
-      "b": "security",
-      "gate_id": null
-    },
-    {
-      "a": "security",
-      "b": "ammo_b",
-      "gate_id": null
-    },
-    {
-      "a": "security",
-      "b": "battery_b",
-      "gate_id": null
+      "gate_id": null,
+      "passage_id": "passage_12"
     },
     {
       "a": "ammo_b",
+      "b": "battery_b",
+      "gate_id": null,
+      "passage_id": "passage_13"
+    },
+    {
+      "a": "ammo_c",
       "b": "battery_c",
-      "gate_id": null
+      "gate_id": null,
+      "passage_id": "passage_14"
     },
     {
-      "a": "battery_c",
-      "b": "security",
-      "gate_id": null
+      "a": "ammo_d",
+      "b": "battery_d",
+      "gate_id": null,
+      "passage_id": "passage_15"
     },
     {
-      "a": "security",
+      "a": "respawn",
       "b": "corridor_0",
-      "gate_id": null
+      "gate_id": null,
+      "passage_id": "passage_24"
     },
     {
       "a": "corridor_0",
       "b": "corridor_1",
-      "gate_id": "G1"
+      "gate_id": "G1",
+      "passage_id": "passage_25"
     },
     {
       "a": "corridor_1",
       "b": "corridor_2",
-      "gate_id": "G2"
+      "gate_id": "G2",
+      "passage_id": "passage_26"
     },
     {
       "a": "corridor_2",
       "b": "corridor_3",
-      "gate_id": "G3"
+      "gate_id": "G3",
+      "passage_id": "passage_27"
     },
     {
       "a": "corridor_3",
       "b": "corridor_4",
-      "gate_id": "G4"
+      "gate_id": "G4",
+      "passage_id": "passage_28"
     },
     {
       "a": "corridor_4",
       "b": "corridor_5",
-      "gate_id": "G5"
+      "gate_id": "G5",
+      "passage_id": "passage_29"
     },
     {
       "a": "corridor_5",
       "b": "corridor_6",
-      "gate_id": "G6"
+      "gate_id": "G6",
+      "passage_id": "passage_30"
     },
     {
       "a": "corridor_6",
       "b": "core",
-      "gate_id": "G7"
+      "gate_id": "G7",
+      "passage_id": "passage_31"
     }
   ],
   "turrets": [
     {
       "id": "T1",
+      "label_ja": "砲台A",
       "room_id": "battery_a",
       "operator_npc_id": "E01",
       "health": 60,
       "queue_capacity": 2,
       "staging_floor_slots": 2,
       "equipment_restore_ticks": 480,
-      "counts_as_npc": false
+      "counts_as_npc": false,
+      "cell": [
+        106,
+        13
+      ],
+      "geometry_status": "r1_display_coordinate_proposal_not_collision_tested"
     },
     {
       "id": "T2",
-      "room_id": "battery_a",
+      "label_ja": "砲台B",
+      "room_id": "battery_b",
       "operator_npc_id": "E02",
       "health": 60,
       "queue_capacity": 2,
       "staging_floor_slots": 2,
       "equipment_restore_ticks": 480,
-      "counts_as_npc": false
+      "counts_as_npc": false,
+      "cell": [
+        106,
+        61
+      ],
+      "geometry_status": "r1_display_coordinate_proposal_not_collision_tested"
     },
     {
       "id": "T3",
-      "room_id": "battery_b",
+      "label_ja": "砲台C",
+      "room_id": "battery_c",
       "operator_npc_id": "E03",
       "health": 60,
       "queue_capacity": 2,
       "staging_floor_slots": 2,
       "equipment_restore_ticks": 480,
-      "counts_as_npc": false
+      "counts_as_npc": false,
+      "cell": [
+        44,
+        13
+      ],
+      "geometry_status": "r1_display_coordinate_proposal_not_collision_tested"
     },
     {
       "id": "T4",
-      "room_id": "battery_b",
+      "label_ja": "砲台D",
+      "room_id": "battery_d",
       "operator_npc_id": "E04",
       "health": 60,
       "queue_capacity": 2,
       "staging_floor_slots": 2,
       "equipment_restore_ticks": 480,
-      "counts_as_npc": false
-    },
-    {
-      "id": "T5",
-      "room_id": "battery_c",
-      "operator_npc_id": "E05",
-      "health": 60,
-      "queue_capacity": 2,
-      "staging_floor_slots": 2,
-      "equipment_restore_ticks": 480,
-      "counts_as_npc": false
-    },
-    {
-      "id": "T6",
-      "room_id": "battery_c",
-      "operator_npc_id": "E06",
-      "health": 60,
-      "queue_capacity": 2,
-      "staging_floor_slots": 2,
-      "equipment_restore_ticks": 480,
-      "counts_as_npc": false
+      "counts_as_npc": false,
+      "cell": [
+        44,
+        61
+      ],
+      "geometry_status": "r1_display_coordinate_proposal_not_collision_tested"
     }
   ],
   "supply_ports": [
     {
       "id": "supply_1",
-      "room_id": "ammo_a"
+      "room_id": "ammo_a",
+      "cell": [
+        93,
+        13
+      ],
+      "geometry_status": "r1_display_coordinate_proposal_not_collision_tested"
     },
     {
       "id": "supply_2",
-      "room_id": "ammo_b"
+      "room_id": "ammo_b",
+      "cell": [
+        93,
+        61
+      ],
+      "geometry_status": "r1_display_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "supply_3",
+      "room_id": "ammo_c",
+      "cell": [
+        56,
+        13
+      ],
+      "geometry_status": "r1_display_coordinate_proposal_not_collision_tested"
+    },
+    {
+      "id": "supply_4",
+      "room_id": "ammo_d",
+      "cell": [
+        56,
+        61
+      ],
+      "geometry_status": "r1_display_coordinate_proposal_not_collision_tested"
     }
   ],
-  "supply_drive_room": "security",
+  "supply_drive_room": "central_corridor",
+  "front_entry": {
+    "room_id": "central_corridor",
+    "cell": [
+      123,
+      35
+    ]
+  },
   "layout_variants_planned": [
-    "central_work",
-    "distributed_supply",
-    "branching_routes"
-  ]
+    "facing_castles_pair"
+  ],
+  "equipment_coordinate_basis": {
+    "status": "r1_display_coordinate_proposal_not_collision_tested",
+    "rule": "各設備室の中央付近。room rect_cellsの中央x、中央y+2を使い、既存の復活床(y=7/57)と室ラベル下端から分離する。",
+    "cell_convention": "integer floor-design cell inside the half-open room rect_cells"
+  },
+  "operator_mapping": {
+    "home_castle": {
+      "scope": "home_player_and_support_only",
+      "actor_ids": [
+        "P1",
+        "P2",
+        "P3"
+      ],
+      "dedicated_per_turret": false,
+      "operator_npc_id_field_applies": false
+    },
+    "enemy_castle": {
+      "scope": "enemy_castle_dedicated_shooter_only",
+      "actor_ids": [
+        "E01",
+        "E02",
+        "E03",
+        "E04"
+      ],
+      "dedicated_per_turret": true,
+      "operator_npc_id_field_applies": true
+    },
+    "operator_npc_id_scope": "enemy_castle_only"
+  }
 }

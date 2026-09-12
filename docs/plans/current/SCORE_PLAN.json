@@ -1,0 +1,41 @@
+{
+  "version": "5.0",
+  "ruleset_id": "semekome-prototype-0.4-facing-castles",
+  "status": "proposal_not_approved",
+  "required_for_initial_public_release": true,
+  "source_document": "RESULTS_SCORE_RANKING.md",
+  "formula": {
+    "winner_base_points": 100000,
+    "exterior_part_destroyed_points": 1000,
+    "first_defeated_enemy_slot_points": 20,
+    "winner_remaining_second_points": 10,
+    "player_death_penalty": 100,
+    "time_limit_seconds": 420,
+    "remaining_seconds": "max(0, floor(time_limit_seconds - elapsed_battle_seconds))",
+    "score": "winner_base_points_if_win + exterior_part_destroyed * exterior_part_destroyed_points + first_defeated_enemy_slot_count * first_defeated_enemy_slot_points + winner_remaining_seconds * winner_remaining_second_points - player_death_count * player_death_penalty",
+    "non_winner_time_points": 0
+  },
+  "counting_rules": {
+    "exterior_parts_max": 7,
+    "first_defeated_enemy_slot_max": 30,
+    "repeat_defeats_after_respawn": "detail_only_no_score",
+    "duplicate_damage_or_destruction_notifications": "no_score",
+    "equipment_recovery": "no_score",
+    "draw_and_loss": "save_result_no_time_points",
+    "cancelled_match_and_practice": "no_ranking_submission"
+  },
+  "ranking_scope_proposal": {
+    "initial_standard_match_only": true,
+    "other_difficulties": "not_selected",
+    "other_loadouts": "not_selected",
+    "score_version": "semekome-score-v5-proposal",
+    "requires_approval_and_playtest": true
+  },
+  "unresolved": [
+    "本番固定式としての承認",
+    "同率順位の表示契約",
+    "別難易度・別編成の公開範囲",
+    "再生検証なしのクライアント得点に対する不正耐性"
+  ],
+  "implementation_status_ja": "計画値のみ。R1では資料と仮画面の入力として扱い、ランキングへ送信可能な確定式・接続値・実装完了とは扱わない。"
+}

@@ -1,0 +1,60 @@
+{
+  "version": "5.0",
+  "ruleset_id": "semekome-prototype-0.4-facing-castles",
+  "status": "unconnected_null_configuration",
+  "required_for_initial_public_release": true,
+  "source_document": "RESULTS_SCORE_RANKING.md",
+  "standard_reference": {
+    "url": "https://github.com/chameleonjp-lab/chameleonjp_lab/blob/main/docs/chameleonjp-lab/11_ranking_integration_standard.md",
+    "checked_at": "2026-09-12",
+    "verification": "接続直前に最新版と実登録を再確認する。今回の資料同期ではSupabase・公開登録を変更しない。"
+  },
+  "connection": {
+    "game_id": null,
+    "game_slug": null,
+    "public_game_url": null,
+    "start_endpoint": null,
+    "result_endpoint": null,
+    "fetch_endpoint": null,
+    "auth_mode": null,
+    "public_key": null,
+    "database_registration": null
+  },
+  "events": {
+    "start": {
+      "send_policy": "automatic_after_name_confirm_and_start_success",
+      "idempotency_key": null,
+      "payload_contract": null,
+      "retry_policy": "same_identifier_and_same_payload_only"
+    },
+    "result": {
+      "send_policy": "automatic_for_eligible_terminal_result",
+      "idempotency_key": null,
+      "payload_contract": null,
+      "retry_policy": "same_identifier_and_same_payload_only"
+    }
+  },
+  "client_states": [
+    "idle",
+    "submitting",
+    "submitted",
+    "retryable_failed",
+    "permanent_failed"
+  ],
+  "display": {
+    "initial_ranking": "best_top_10",
+    "same_rank_policy": null,
+    "zero_rows": "show_empty_state",
+    "fetch_failure": "show_failure_state_without_fabricated_rows",
+    "loading": "show_loading_state",
+    "local_history_is_not_world_ranking": true
+  },
+  "security_and_validation": {
+    "secret_key_in_browser": false,
+    "server_validates_input_limits": null,
+    "server_validates_ruleset_version": null,
+    "server_deduplicates_start_and_result": null,
+    "client_score_is_not_tamper_proof_without_replay_validation": true
+  },
+  "unresolved_null_values_ja": "null は未確定値であり送信可能な設定ではない。接続先の規約、実ゲームの登録値、受付・取得処理、認証、同率順位を確認するまでgame_id・game_slug・URL・エンドポイントを推測しない。"
+}

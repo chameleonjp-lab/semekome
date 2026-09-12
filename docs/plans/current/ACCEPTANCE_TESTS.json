@@ -1,5 +1,5 @@
 {
-  "version": "4.0",
+  "version": "5.0",
   "execution_status": "not_run",
   "tests": [
     {
@@ -994,7 +994,7 @@
       ],
       "given_ja": "標準編成と人物名簿・砲台一覧がある。",
       "when_ja": "通常戦を開始し所属・役割・部屋・総数を照合する。",
-      "expected_ja": "敵30人＝射手6＋護衛6＋運び手8＋内部兵10。砲台6基と自車の3人は別集計。敵班長を足さない。",
+      "expected_ja": "敵30人＝射手4＋護衛4＋運び手8＋内部兵14。両城の砲台4基・補給口4本と自車のP1〜P3は別集計。敵専任射手E01〜E04を自車側へ割り当てず、敵班長を足さない。",
       "test_type": "data",
       "phase": "R1",
       "execution_status": "not_run"
@@ -1008,7 +1008,7 @@
       ],
       "given_ja": "基準の複数室と30人の担当室が定義されている。",
       "when_ja": "初期配置と復活床の参照を確認する。",
-      "expected_ja": "敵7室に4・4・4・4・4・4・6人が配置され、コア室の割当は0人。未完成の座標は未実装と示す。",
+      "expected_ja": "敵12非核室に、砲撃室A〜Dと弾薬庫A〜Dは各2人、中央通路8人、修理室3人、指令室3人が配置され、合計30人。復活室と核室の割当は0人。未検査の床判定は未実施と示す。",
       "test_type": "data",
       "phase": "R1",
       "execution_status": "not_run"
@@ -1020,9 +1020,9 @@
         "REQ-50",
         "REQ-60"
       ],
-      "given_ja": "各敵室からコアへつながる部屋接続がある。",
+      "given_ja": "中央通路・復活室・7門・核室へつながる部屋接続と実セルpassageがある。",
       "when_ja": "G1〜G7を一つずつ単独で閉じ、全初期室・復活床からの到達を調べる。",
-      "expected_ja": "どの一門が閉じてもコアへ到達不可。全開では到達可能。実際の床でも別途確認する。",
+      "expected_ja": "どの一門が閉じても核へ到達不可。全開では到達可能。実際の床の壁・当たり判定は別途確認する。",
       "test_type": "data_and_geometry",
       "phase": "R1",
       "execution_status": "not_run"
@@ -1374,9 +1374,9 @@
         "REQ-10",
         "REQ-56"
       ],
-      "given_ja": "敵6砲台すべてに生存射手と装填済みケースがある。",
+      "given_ja": "敵4砲台すべてに生存射手と装填済みケースがある。",
       "when_ja": "96更新以上の発射を記録する。",
-      "expected_ja": "共有の発射間隔は48更新以上。1枠で6発撃たず、準備できた砲台を順送りして特定番号だけ優遇しない。",
+      "expected_ja": "共有の発射間隔は48更新以上。1枠で4発撃たず、準備できた砲台を順送りして特定番号だけ優遇しない。",
       "test_type": "rule",
       "phase": "R2",
       "execution_status": "not_run"
@@ -1446,9 +1446,9 @@
         "REQ-49",
         "REQ-65"
       ],
-      "given_ja": "第3版3人・5秒設定の戦闘記録とユーザー設定がある。",
-      "when_ja": "第4版へ読み込む。",
-      "expected_ja": "旧戦闘は理由付きで拒否し、30人や20秒へ推測変換しない。設定や新規戦闘は壊さない。",
+      "given_ja": "第3版・第4版の旧人数・旧配置・5秒共有設定を含む戦闘記録とユーザー設定がある。",
+      "when_ja": "第5版へ読み込む。",
+      "expected_ja": "旧戦闘は理由付きで拒否し、30人・20秒・採用配置へ推測変換しない。設定や新規戦闘は壊さない。",
       "test_type": "data",
       "phase": "R1",
       "execution_status": "not_run"
@@ -1459,7 +1459,7 @@
         "REQ-34",
         "REQ-64"
       ],
-      "given_ja": "敵30人＋自車3人、6砲台、多数のケース、最大96飛行物体。",
+      "given_ja": "敵30人＋自車3人、4砲台、4補給口、多数のケース、最大96飛行物体。",
       "when_ja": "同時復活・集中・部屋移動・20戦連続再戦を実機で測る。",
       "expected_ja": "描画と入力の目標値を計測記録する。未測定は未確認のまま。人数や復活時刻を変えて合格にしない。",
       "test_type": "performance_and_device",
@@ -1491,6 +1491,254 @@
       "expected_ja": "討伐・射撃停止・20秒復活は次の重い判断待ちへ繰り越さず、規定の更新で処理する。",
       "test_type": "rule",
       "phase": "R6",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-116",
+      "requirement_ids": [
+        "REQ-66"
+      ],
+      "given_ja": "採用図の方向・主要配置の記録がある。",
+      "when_ja": "自陣・広場・敵陣の左右、正面入口の向き、上下画面の扱いを照合する。",
+      "expected_ja": "自陣左・正面右、敵陣右・正面左、中央広場で一致し、画面ごとの方向反転がない。",
+      "test_type": "document",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-117",
+      "requirement_ids": [
+        "REQ-67"
+      ],
+      "given_ja": "v5の部屋・砲台・弾薬庫一覧がある。",
+      "when_ja": "A〜Dの設備と修理・指令・中央通路・復活室・核室、補給口数を数える。",
+      "expected_ja": "各城に砲台4基、弾薬庫4室、補給口4本があり、核室を復活室や設備室と兼用しない。4砲台と4補給口にはroom_id内のR1表示用cell座標があり、設備位置を図面へ置ける。自陣はP1〜P3、敵陣はE01〜E04を操作主体とする。",
+      "test_type": "data",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-118",
+      "requirement_ids": [
+        "REQ-68"
+      ],
+      "given_ja": "自陣の部屋矩形と敵側生成規則がある。",
+      "when_ja": "点、矩形、向き、文字、操作の反転規則を適用して敵側を生成する。",
+      "expected_ja": "点は(125-x,y)、矩形は(126-x1,y0,126-x0,y1)、向きは(-dx,dy)となり、文字と操作は正立・非反転である。",
+      "test_type": "data_and_geometry",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-119",
+      "requirement_ids": [
+        "REQ-69"
+      ],
+      "given_ja": "INTERIOR_LAYOUTS.jsonのグリッド、rect_cells、passagesがある。",
+      "when_ja": "全座標、passage参照、7ゲート辺を検査する。",
+      "expected_ja": "126×70の範囲内で参照切れがなく、半開矩形として読める。実機衝突は未検査のまま記録する。",
+      "test_type": "data_and_geometry",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-120",
+      "requirement_ids": [
+        "REQ-70"
+      ],
+      "given_ja": "中央通路の正面入口、後方復活室、直列G1〜G7、核室がある。",
+      "when_ja": "敵と主人公の初期・復活床、核室への接続を照合する。",
+      "expected_ja": "敵の担当床と主人公側P1〜P3の各player_respawn_pad_P1〜P3は復活室・核室から分離され、核室に復活床がない。",
+      "test_type": "data_and_geometry",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-121",
+      "requirement_ids": [
+        "REQ-71"
+      ],
+      "given_ja": "敵名簿30人と役割欄がある。",
+      "when_ja": "役割を集計し、砲台・広場任務を別集計する。",
+      "expected_ja": "射手4、護衛4、運び手8、内部兵14の合計30で、役割重複による31人目がない。",
+      "test_type": "data",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-122",
+      "requirement_ids": [
+        "REQ-72"
+      ],
+      "given_ja": "主人公班が中央広場へ入り、E25〜E27のうち少なくとも一人が生存している。",
+      "when_ja": "警備者を無視する、突進ですり抜ける、別画面へ切り替える操作を試す。",
+      "expected_ja": "いずれでも敵城通常室へ進めず、対象警備者を同じ更新で討伐した次更新から突破できる。",
+      "test_type": "scenario",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-123",
+      "requirement_ids": [
+        "REQ-73"
+      ],
+      "given_ja": "E25〜E27の広場警備とE29・E30の侵入任務が名簿にある。",
+      "when_ja": "担当室から歩いて派遣し、討伐・20秒復活・再派遣を行う。",
+      "expected_ja": "人物番号、生存世代、所属、担当床を保ち、追加NPCを生成しない。",
+      "test_type": "scenario",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-124",
+      "requirement_ids": [
+        "REQ-74"
+      ],
+      "given_ja": "主人公側P1〜P3のいずれかが更新dに体力0となり、戦闘が継続している。",
+      "when_ja": "d＋299とd＋300で表示・入力・復活室を確認する。",
+      "expected_ja": "d＋299は観戦中、d＋300で対象actorが対応するplayer_respawn_pad_P1〜P3へ一度だけ自陣復活。敵は同時刻に復活せず、荷物は複製されない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-125",
+      "requirement_ids": [
+        "REQ-75"
+      ],
+      "given_ja": "主人公が5秒観戦中で、広場と両城に砲撃・人物・復活予定がある。",
+      "when_ja": "観戦中の世界更新、移動・攻撃・装填・命令入力、コア勝敗を確認する。",
+      "expected_ja": "世界は同じ試合として進み、主人公入力だけが拒否され、コア結果が先なら復活せず結果へ移る。",
+      "test_type": "scenario",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-126",
+      "requirement_ids": [
+        "REQ-76"
+      ],
+      "given_ja": "ホーム、名前入力、カウントダウン、戦闘、結果の状態がある。",
+      "when_ja": "ゲーム開始、名前確定、カウントダウン、準備中止、二重押下を順に操作する。",
+      "expected_ja": "指定順に一つのmatch_idで遷移し、中止・失敗・二重押下で開始記録や試合を重複生成しない。",
+      "test_type": "browser",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-127",
+      "requirement_ids": [
+        "REQ-77"
+      ],
+      "given_ja": "名前欄に空白、前後空白、1文字、20文字、21文字の入力がある。",
+      "when_ja": "開始成立時に正規化と長さ検証を行う。",
+      "expected_ja": "前後空白を除いた1〜20文字だけが通り、空白のみと21文字は開始しない。",
+      "test_type": "browser",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-128",
+      "requirement_ids": [
+        "REQ-78"
+      ],
+      "given_ja": "同じ試合で自陣・広場・敵陣・観戦・結果の画面を切り替える。",
+      "when_ja": "切替前後の人物、物体、外装・門・核、復活時計、開始記録を比較する。",
+      "expected_ja": "match_idと状態が連続し、新しい人物・弾・復活時計や開始記録を画面ごとに生成しない。",
+      "test_type": "scenario",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-129",
+      "requirement_ids": [
+        "REQ-79"
+      ],
+      "given_ja": "コア命中で終局し、スコアと詳細が確定している。",
+      "when_ja": "結果画面、共有、上位10位、実験場リンク、再戦、ホームを表示・操作する。",
+      "expected_ja": "必須の全項目を同じ結果から表示し、内部スクロールしても再戦・ホーム・共有が利用できる。",
+      "test_type": "browser",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-130",
+      "requirement_ids": [
+        "REQ-80"
+      ],
+      "given_ja": "初期公開用の標準戦が終局し、ランキング取得が0件・読込中・失敗・成功の各状態になる。",
+      "when_ja": "結果送信と上位10位取得を各状態で確認する。",
+      "expected_ja": "ランキング必須の設計を保ち、0件・失敗・読込中を区別し、ローカル履歴や架空行を世界順位として表示しない。",
+      "test_type": "integration",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-131",
+      "requirement_ids": [
+        "REQ-81"
+      ],
+      "given_ja": "開始成立と終局結果の送信がタイムアウト後に再送される。",
+      "when_ja": "同じ識別子・同じ内容で再送し、結果画面を開き直して再戦する。",
+      "expected_ja": "開始・結果は各一件に留まり、送信状態と結果・共有・ホーム・再戦を失わない。",
+      "test_type": "integration",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-132",
+      "requirement_ids": [
+        "REQ-82"
+      ],
+      "given_ja": "SCORE_PLAN.jsonとRANKING_INTEGRATION_PLAN.jsonがある。",
+      "when_ja": "式の状態、null接続値、標準規約参照、Supabase変更履歴を照合する。",
+      "expected_ja": "式は未承認、game_id・game_slug・URL・エンドポイントはnull、接続や登録を実施済みと主張しない。",
+      "test_type": "document",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-133",
+      "requirement_ids": [
+        "REQ-65",
+        "REQ-66",
+        "REQ-67",
+        "REQ-71"
+      ],
+      "given_ja": "第5版の全JSONと引き継ぎ資料がある。",
+      "when_ja": "document_version、ruleset_id、採用配置、設備数、役割数を横断照合する。",
+      "expected_ja": "v5、semekome-prototype-0.4-facing-castles、両城4砲台・4庫・4補給口・4/4/8/14が一致し、自陣操作主体P1〜P3と敵専任射手E01〜E04を混用せず、旧値を現行入力として採らない。",
+      "test_type": "document",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-134",
+      "requirement_ids": [
+        "REQ-40",
+        "REQ-78",
+        "REQ-82"
+      ],
+      "given_ja": "資料検査の実施計画と実行結果の記録がある。",
+      "when_ja": "資料検査、ゲーム検査、実機、試遊、接続の状態を比較する。",
+      "expected_ja": "未実施はnot_run/未実施として残り、資料検査だけでゲーム・実機・接続を合格扱いにしない。",
+      "test_type": "document",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-135",
+      "requirement_ids": [
+        "REQ-26",
+        "REQ-63",
+        "REQ-79",
+        "REQ-80"
+      ],
+      "given_ja": "画面幅360・390・402・430で広場観戦と結果画面を表示する。",
+      "when_ja": "現在室・役割・復活予告、スコア詳細、上位10位、リンク、主要操作の表示領域を確認する。",
+      "expected_ja": "30本のバーで操作面を埋めず、必須結果情報とランキング状態を読み取れて主要操作が画面外へ追い出されない。",
+      "test_type": "browser",
+      "phase": "R5",
       "execution_status": "not_run"
     }
   ]

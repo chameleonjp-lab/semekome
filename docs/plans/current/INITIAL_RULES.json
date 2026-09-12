@@ -1,8 +1,8 @@
 {
-  "document_version": "4.0",
-  "ruleset_id": "workshop-tank-prototype-0.3-npc30",
+  "document_version": "5.0",
+  "ruleset_id": "semekome-prototype-0.4-facing-castles",
   "status": "proposed_unplaytested",
-  "notice_ja": "独自ゲーム用の初期調整値。原作の解析値ではない。ゲーム実装・プレイ検査・権利調査の完了を示さない。",
+  "notice_ja": "第5版の採用対向配置・画面状態・広場・結果表示を含む独自ゲーム用の初期調整値。ゲーム実装・プレイ検査・ランキング接続・権利調査の完了を示さない。",
   "simulation": {
     "ticks_per_second": 60,
     "integer_subunits_per_floor_unit": 1000,
@@ -36,17 +36,26 @@
     "weight_max": 3,
     "weight_sum": 8,
     "selection": "seeded_shuffled_bag",
-    "ports": 2,
+    "ports": 4,
     "period_ticks_each_port": 210,
     "first_spawn_delay_ticks_by_port": [
       30,
-      135
+      82,
+      135,
+      187
     ],
     "port_full_floor_limit": 16,
     "advance_bag_only_on_success": true,
     "blocked_port_retry_ticks": 30,
     "disruption_duration_ticks": 360,
-    "disruption_immunity_after_end_ticks": 240
+    "disruption_immunity_after_end_ticks": 240,
+    "port_room_ids": [
+      "ammo_a",
+      "ammo_b",
+      "ammo_c",
+      "ammo_d"
+    ],
+    "notice_ja": "補給口4か所（弾薬庫A〜D）は採用配置に合わせた初期提案。間隔・遅延は未試遊。"
   },
   "cannon": {
     "routes": [
@@ -64,14 +73,25 @@
     "split_child_target": "inherit_parent_preferred_part_id",
     "team_profiles": {
       "player": {
-        "loading_stations": 1,
+        "loading_stations": 4,
         "queue_capacity_per_station": 2,
         "vehicle_launch_cooldown_ticks": 48,
         "requires_live_operator_at_launch": false,
-        "launch_mode": "legacy_loaded_auto_eject"
+        "launch_mode": "player_or_support_commanded_per_turret",
+        "turrets": 4,
+        "supply_ports": 4,
+        "operator_assignment": {
+          "scope": "home_player_and_support_only",
+          "actor_ids": [
+            "P1",
+            "P2",
+            "P3"
+          ],
+          "dedicated_per_turret": false
+        }
       },
       "enemy": {
-        "turrets": 6,
+        "turrets": 4,
         "queue_capacity_per_turret": 2,
         "vehicle_launch_cooldown_ticks": 48,
         "requires_live_operator_at_launch": true,
@@ -79,10 +99,20 @@
         "no_free_role_takeover": true,
         "scheduling": "round_robin_ready_turrets",
         "bank_unused_launch_slots": false,
-        "floor_staging_capacity_per_turret": 2
+        "floor_staging_capacity_per_turret": 2,
+        "operator_assignment": {
+          "scope": "enemy_castle_dedicated_shooter_only",
+          "actor_ids": [
+            "E01",
+            "E02",
+            "E03",
+            "E04"
+          ],
+          "dedicated_per_turret": true
+        }
       }
     },
-    "notice_ja": "砲台6基・2待ち列・0.8秒の車両共有射出枠は補足案。射手6人と砲台は別の対象。"
+    "notice_ja": "両城は4砲台・4補給口・各砲台2待ち列を持つ。自陣はP1〜P3が運用し、敵陣はE01〜E04が各砲台を専任する。各車全体の0.8秒共有射出枠は採用配置に合わせた補足案。"
   },
   "equipment": {
     "health": 60,
@@ -159,7 +189,12 @@
       "ammo_carrier",
       "internal_soldier"
     ],
-    "enemy_turrets_present": true
+    "enemy_turrets_present": true,
+    "player_respawn_seconds": 5,
+    "player_spectator_world_continues": true,
+    "facing_castles_layout": true,
+    "result_screen_required": true,
+    "ranking_initial_public_required": true
   },
   "design_proposal_notice_ja": "user_confirmed_requirements以外の耐久・照準・門の順番・修理・攻撃種・同時判定・数値は補足案。ユーザーが個別承認した条件ではない。",
   "exterior": {
@@ -247,7 +282,9 @@
       "support_units": 2,
       "total_actors": 3,
       "respawn_ticks": 300,
-      "basis": "carried_forward_unconfirmed_proposal"
+      "basis": "user_confirmed_five_second_spectator_respawn",
+      "respawn_seconds": 5,
+      "respawn_mode": "spectator_world_then_home_respawn"
     },
     "enemy": {
       "human_commanders": 0,
@@ -287,23 +324,103 @@
       "supply_order",
       "repair_budget"
     ],
-    "match_end": "cancel_all_pending_no_due_respawn_this_tick"
+    "match_end": "cancel_all_pending_no_due_respawn_this_tick",
+    "player_spectator_ticks": 300,
+    "player_spectator_seconds": 5,
+    "player_respawn_room_id": "respawn",
+    "player_input_policy_during_spectator": "disabled_move_attack_load_command",
+    "player_spectator_view": "plaza_and_both_castles_same_world",
+    "player_respawn_state": "health_full_empty_cargo_after_300_battle_ticks",
+    "player_respawn_pad_ids": [
+      "player_respawn_pad_P1",
+      "player_respawn_pad_P2",
+      "player_respawn_pad_P3"
+    ]
   },
   "enemy_interior": {
-    "standard_layout": "enemy_compartment_v1",
-    "non_core_rooms": 7,
+    "standard_layout": "facing_castles_v1",
+    "non_core_rooms": 12,
     "core_rooms": 1,
     "role_counts": {
-      "shooter": 6,
-      "shooter_guard": 6,
+      "shooter": 4,
+      "shooter_guard": 4,
       "ammo_carrier": 8,
-      "internal_soldier": 10
+      "internal_soldier": 14
     },
-    "turrets": 6,
+    "turrets": 4,
     "turrets_count_as_npc": false,
     "additional_kill_requirement_for_gates_or_victory": false,
     "npc_initial_or_respawn_in_core": false,
     "max_assault_soldiers_from_roster_proposal": 2,
-    "notice_ja": "30人と複数室はユーザー指定。内訳・7室・6砲台・出撃2人・復活床は初期提案。"
+    "notice_ja": "30人・各人20秒はユーザー指定。4砲台・4弾薬庫、4/4/8/14の内訳、12非核室、広場警備3人・侵入2人、復活床と寸法は第5版の採用配置に合わせた初期提案。",
+    "plaza_guard_npc_ids": [
+      "E25",
+      "E26",
+      "E27"
+    ],
+    "invasion_npc_ids": [
+      "E29",
+      "E30"
+    ],
+    "layout_file": "INTERIOR_LAYOUTS.json"
+  },
+  "screen_flow": {
+    "states": [
+      "home",
+      "name_entry",
+      "countdown",
+      "battle_player",
+      "battle_plaza",
+      "battle_enemy",
+      "spectator",
+      "result"
+    ],
+    "initial_state": "home",
+    "start_sequence": [
+      "name_entry",
+      "countdown",
+      "battle_player"
+    ],
+    "countdown_ticks": 180,
+    "countdown_pauses_battle_clock": true,
+    "countdown_accepts_battle_input": false,
+    "name_normalization": "trim_surrounding_whitespace",
+    "name_length_min": 1,
+    "name_length_max": 20,
+    "battle_world_instance_per_match": true,
+    "area_transition_preserves_world": true,
+    "screen_control_not_mirrored": true,
+    "battle_views": [
+      "player_castle",
+      "plaza",
+      "enemy_castle"
+    ],
+    "spectator_view": "plaza_and_both_castles",
+    "result_transition_on_core_outcome": true
+  },
+  "results": {
+    "required_initial_release_sections": [
+      "outcome",
+      "score",
+      "score_detail",
+      "share",
+      "ranking_top_10",
+      "experiment_link",
+      "rematch",
+      "home"
+    ],
+    "ranking_initial_public_required": true,
+    "score_plan_file": "SCORE_PLAN.json",
+    "ranking_integration_plan_file": "RANKING_INTEGRATION_PLAN.json",
+    "score_formula_status": "proposal_not_approved",
+    "connection_status_values": [
+      "idle",
+      "submitting",
+      "submitted",
+      "retryable_failed",
+      "permanent_failed"
+    ],
+    "ranking_display_default": "best_top_10",
+    "start_and_result_idempotency_required": true
   }
 }

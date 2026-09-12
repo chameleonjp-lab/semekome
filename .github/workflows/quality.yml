@@ -1,0 +1,45 @@
+name: Quality
+
+on:
+  pull_request:
+  push:
+    branches: [main, 'feat/**']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: quality-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci
+      - run: npm run check:docs
+      - run: npm run test
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium webkit
+      - run: sudo apt-get install -y fonts-noto-cjk
+      - run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: browser-report
+          path: playwright-report/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        with:
+          name: semekome-r1-preview
+          path: dist/
+          retention-days: 14
