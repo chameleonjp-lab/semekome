@@ -15,9 +15,9 @@ INTERIOR_LAYOUTS.jsonは126×70セルの自陣側の設計座標。セルは床�
 採用図の部屋の相対位置を保つ一方、壁厚・通路幅・砲台占有床・復活床の安全性は実ゲームで確かめる。添付図が承認されたことを、当たり判定や実機性能の合格にしない。裏側の砲台も上空の共通砲撃経路へ発射するので、城内や復活室へ直接弾を飛ばす描写にはしない。
 
 ## 保存形式
-approved/ADOPTION_RECORD.jsonで今回の添付JPEGの名前・寸法・SHA-256を特定する。GitHubには採用した原寸JPEGと縮小プレビューの両方を保存し、用途を区別する。採用の根拠は元の添付で、縮小画像から微細な当たり判定を推測しない。
-drawings/01_SCREEN_FLOW.svg、02_THREE_GAME_VIEWS.svg、03_HOME_MOVEMENT_MAP.svg、04_CASTLES_FACE_EACH_OTHER.svgは文字を読める構造図。描画用のゲーム素材ではなく、配置の補助説明である。旧案の6砲台図や向きの異なる画像を現行の基準へ混ぜない。
+approved/ADOPTION_RECORD.jsonで今回の添付JPEGの名前・寸法・SHA-256を特定する。GitHubには縮小プレビューを保存し、原寸JPEGは会話添付の原本として識別値だけを記録する。縮小画像から微細な当たり判定を推測しない。
+drawings/04_CASTLES_FACE_EACH_OTHER.svgは、採用した向きと核室・7門を併記した文字を読める構造図。描画用のゲーム素材ではなく、配置の補助説明である。旧案の6砲台図や向きの異なる画像を現行の基準へ混ぜない。
 
 ## 採用した添付の縮小プレビュー
 ![採用した配置（縮小プレビュー）](approved/CASTLES_FACE_EACH_OTHER.preview.webp)
-縮小プレビューです。採用した原寸JPEGは `approved/CASTLES_FACE_EACH_OTHER.original.jpeg` に保存し、SHA-256をADOPTION_RECORDに記録しています。
+原寸JPEGとは別ファイルです。方向と構成の確認用に保存し、原本の識別値はADOPTION_RECORDに記録しています。
