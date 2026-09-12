@@ -1,0 +1,33 @@
+{
+  "checked_at": "2026-09-08",
+  "scope_ja": "資料ファイルの構造・参照・一部数値の整合性のみ。ゲームは実装していない。",
+  "document_checks": {
+    "json_parsed": true,
+    "unique_requirement_ids": true,
+    "unique_test_ids": true,
+    "all_requirements_have_planned_tests": true,
+    "case_catalog_count": 8,
+    "requirement_count": 42,
+    "planned_test_count": 53,
+    "initial_loadout_valid": true,
+    "key_seconds_ticks_agree": true,
+    "old_candidate_data_excluded": true,
+    "source_game_names_not_in_new_runtime_candidates": true
+  },
+  "not_performed": [
+    "game_implementation",
+    "game_test_execution",
+    "iphone_device_test",
+    "human_playtest",
+    "trademark_clearance",
+    "patent_clearance",
+    "completed_asset_rights_review"
+  ],
+  "pdf_visual_check": {
+    "renderer": "pdfium via render_pdf.py",
+    "rendered_pages": 26,
+    "review_ja": "26ページの一覧画像と、表紙・目次・ケース一覧・要件と検査の表・出典ページの原寸画像を確認。文字欠けや重なりは確認されなかった。",
+    "text_outside_page_bounds": 0
+  },
+  "pdf_page_count": 26
+}

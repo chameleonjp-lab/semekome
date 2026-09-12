@@ -1,0 +1,1040 @@
+{
+  "title": "スラもり2 資材候補60件（実測値ではない）",
+  "version": "1.0",
+  "date": "2026-09-08",
+  "status": "research_candidates_not_production_config",
+  "scope": "日本語攻略表5ページに掲載された資材。全派生物・戦車固有弾・キャラクター発射を網羅する証明ではない。",
+  "notice": "名称と記載攻撃力を照合用に収録。nullは未確認または直接攻撃力表記なし。0の通常弾へ変換しない。説明文は転載していない。",
+  "sources_file": "SOURCES.json",
+  "items": [
+    {
+      "id": "candidate_ammo_01",
+      "source_label_ja": "木の実",
+      "reported_attack": 1,
+      "reported_attack_notation": "1",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_02",
+      "source_label_ja": "たからばこ",
+      "reported_attack": 5,
+      "reported_attack_notation": "5",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_03",
+      "source_label_ja": "ねこじゃらし",
+      "reported_attack": 1,
+      "reported_attack_notation": "1",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_04",
+      "source_label_ja": "ばくだんいわ",
+      "reported_attack": 14,
+      "reported_attack_notation": "14",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_05",
+      "source_label_ja": "オバケだん岩",
+      "reported_attack": 13,
+      "reported_attack_notation": "13",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_06",
+      "source_label_ja": "ほうだん",
+      "reported_attack": 8,
+      "reported_attack_notation": "8",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_07",
+      "source_label_ja": "こわれたはしら",
+      "reported_attack": 10,
+      "reported_attack_notation": "10",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_08",
+      "source_label_ja": "木の矢",
+      "reported_attack": 3,
+      "reported_attack_notation": "3",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_09",
+      "source_label_ja": "鉄の矢",
+      "reported_attack": 12,
+      "reported_attack_notation": "12",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_10",
+      "source_label_ja": "金の矢",
+      "reported_attack": 48,
+      "reported_attack_notation": "48",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_11",
+      "source_label_ja": "ちいさな岩",
+      "reported_attack": 3,
+      "reported_attack_notation": "3",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_12",
+      "source_label_ja": "トゲトゲこんぼう",
+      "reported_attack": 15,
+      "reported_attack_notation": "15",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S10"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_13",
+      "source_label_ja": "鉄球",
+      "reported_attack": 26,
+      "reported_attack_notation": "26",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_14",
+      "source_label_ja": "いかりの鉄球",
+      "reported_attack": 55,
+      "reported_attack_notation": "55",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_15",
+      "source_label_ja": "はかいの鉄球",
+      "reported_attack": 110,
+      "reported_attack_notation": "110",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_16",
+      "source_label_ja": "鉄くず",
+      "reported_attack": 10,
+      "reported_attack_notation": "10",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_17",
+      "source_label_ja": "せいすい",
+      "reported_attack": 18,
+      "reported_attack_notation": "18",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_18",
+      "source_label_ja": "ブーメラン",
+      "reported_attack": 3,
+      "reported_attack_notation": "3",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_19",
+      "source_label_ja": "やいばのブーメラン",
+      "reported_attack": 10,
+      "reported_attack_notation": "10",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_20",
+      "source_label_ja": "ミサイル1",
+      "reported_attack": 24,
+      "reported_attack_notation": "24",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_21",
+      "source_label_ja": "ミサイル2",
+      "reported_attack": 50,
+      "reported_attack_notation": "50",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_22",
+      "source_label_ja": "ミサイル3",
+      "reported_attack": 100,
+      "reported_attack_notation": "100",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_23",
+      "source_label_ja": "もえる水",
+      "reported_attack": null,
+      "reported_attack_notation": "-",
+      "attack_status": "source_dash_not_direct_attack_value",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_24",
+      "source_label_ja": "1000tおもり",
+      "reported_attack": 22,
+      "reported_attack_notation": "22",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S11"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false,
+      "conflicting_reports": [
+        {
+          "source_id": "S07",
+          "source_label": "Thousandweight",
+          "reported_attack": 20
+        }
+      ],
+      "status": "conflicting_reports_region_or_typo_unresolved"
+    },
+    {
+      "id": "candidate_ammo_25",
+      "source_label_ja": "キメラのつばさ",
+      "reported_attack": 8,
+      "reported_attack_notation": "8",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_26",
+      "source_label_ja": "しゅりけん",
+      "reported_attack": 20,
+      "reported_attack_notation": "20",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_27",
+      "source_label_ja": "スライムナイト",
+      "reported_attack": 10,
+      "reported_attack_notation": "10",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_28",
+      "source_label_ja": "はがねの剣",
+      "reported_attack": 28,
+      "reported_attack_notation": "28",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_29",
+      "source_label_ja": "きせきの剣",
+      "reported_attack": 35,
+      "reported_attack_notation": "35",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_30",
+      "source_label_ja": "バスタードソード",
+      "reported_attack": 60,
+      "reported_attack_notation": "60",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_31",
+      "source_label_ja": "メタルキングの剣",
+      "reported_attack": 80,
+      "reported_attack_notation": "80",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_32",
+      "source_label_ja": "鉄のたて",
+      "reported_attack": 1,
+      "reported_attack_notation": "1",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_33",
+      "source_label_ja": "ミラーシールド",
+      "reported_attack": 1,
+      "reported_attack_notation": "1",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_34",
+      "source_label_ja": "メタルキングのたて",
+      "reported_attack": 1,
+      "reported_attack_notation": "1",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_35",
+      "source_label_ja": "やくそう",
+      "reported_attack": null,
+      "reported_attack_notation": "-",
+      "attack_status": "source_dash_not_direct_attack_value",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_36",
+      "source_label_ja": "上やくそう",
+      "reported_attack": null,
+      "reported_attack_notation": "-",
+      "attack_status": "source_dash_not_direct_attack_value",
+      "source_ids": [
+        "S12"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_37",
+      "source_label_ja": "特やくそう",
+      "reported_attack": null,
+      "reported_attack_notation": "-",
+      "attack_status": "source_dash_not_direct_attack_value",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_38",
+      "source_label_ja": "メガミ像",
+      "reported_attack": 7,
+      "reported_attack_notation": "7",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_39",
+      "source_label_ja": "バルカン砲",
+      "reported_attack": 10,
+      "reported_attack_notation": "10",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_40",
+      "source_label_ja": "バルカンだま",
+      "reported_attack": 5,
+      "reported_attack_notation": "5",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_41",
+      "source_label_ja": "上バルカンだま",
+      "reported_attack": 5,
+      "reported_attack_notation": "5",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_42",
+      "source_label_ja": "特バルカンだま",
+      "reported_attack": 5,
+      "reported_attack_notation": "5",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_43",
+      "source_label_ja": "いかずちの杖",
+      "reported_attack": 40,
+      "reported_attack_notation": "40",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_44",
+      "source_label_ja": "じごくのおおかま",
+      "reported_attack": 40,
+      "reported_attack_notation": "40",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_45",
+      "source_label_ja": "とうがらし",
+      "reported_attack": null,
+      "reported_attack_notation": "-",
+      "attack_status": "source_dash_not_direct_attack_value",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_46",
+      "source_label_ja": "聖なる石",
+      "reported_attack": 3,
+      "reported_attack_notation": "3",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_47",
+      "source_label_ja": "あくまのしっぽ",
+      "reported_attack": 1,
+      "reported_attack_notation": "1",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_48",
+      "source_label_ja": "きんかい",
+      "reported_attack": 10,
+      "reported_attack_notation": "10",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S13"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_49",
+      "source_label_ja": "ぬいぐるみ",
+      "reported_attack": 1,
+      "reported_attack_notation": "1",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_50",
+      "source_label_ja": "トラばさみ",
+      "reported_attack": null,
+      "reported_attack_notation": "-",
+      "attack_status": "source_dash_not_direct_attack_value",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_51",
+      "source_label_ja": "かくれみの",
+      "reported_attack": 1,
+      "reported_attack_notation": "1",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_52",
+      "source_label_ja": "イオナマイト",
+      "reported_attack": 20,
+      "reported_attack_notation": "20",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_53",
+      "source_label_ja": "ドの字の石版",
+      "reported_attack": 8,
+      "reported_attack_notation": "8",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_54",
+      "source_label_ja": "リの字の石版",
+      "reported_attack": 8,
+      "reported_attack_notation": "8",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_55",
+      "source_label_ja": "ルの字の石版",
+      "reported_attack": 8,
+      "reported_attack_notation": "8",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_56",
+      "source_label_ja": "オリハルコン",
+      "reported_attack": 30,
+      "reported_attack_notation": "30",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_57",
+      "source_label_ja": "スラハルコン",
+      "reported_attack": 40,
+      "reported_attack_notation": "40",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_58",
+      "source_label_ja": "いんせき",
+      "reported_attack": 70,
+      "reported_attack_notation": "70",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_59",
+      "source_label_ja": "メラゾーマ",
+      "reported_attack": 90,
+      "reported_attack_notation": "90",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false
+    },
+    {
+      "id": "candidate_ammo_60",
+      "source_label_ja": "勇者の剣",
+      "reported_attack": 120,
+      "reported_attack_notation": "120",
+      "attack_status": "reported_unverified",
+      "source_ids": [
+        "S14"
+      ],
+      "game_ui_name_verified": false,
+      "jp_gameplay_measured": false,
+      "flight_duration_ms": null,
+      "projectile_durability": null,
+      "activation_timing": null,
+      "collision_exceptions": null,
+      "production_approved": false,
+      "name_note": "一部資料の表記「勇車の剣」と異なる。ゲーム内の正式表記は要照合。"
+    }
+  ]
+}

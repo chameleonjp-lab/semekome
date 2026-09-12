@@ -1,0 +1,988 @@
+{
+  "version": "3.0",
+  "execution_status": "not_run",
+  "tests": [
+    {
+      "id": "AT-001",
+      "requirement_ids": [
+        "REQ-01",
+        "REQ-38"
+      ],
+      "given_ja": "公開対象のコードと素材がそろっている。",
+      "when_ja": "名称・素材由来・コード・文章・全体画面を確認する。",
+      "expected_ja": "旧原作候補の転記、未許諾の素材、原作画面の写し取りが見つからず、由来の不明点が解消されている。",
+      "test_type": "human_rights_review",
+      "phase": "R6",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-002",
+      "requirement_ids": [
+        "REQ-02"
+      ],
+      "given_ja": "初期版の実装一覧がある。",
+      "when_ja": "本文の対象外一覧と照合する。",
+      "expected_ja": "船、探索、原作キャラクターの再現が混入していない。",
+      "test_type": "document",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-003",
+      "requirement_ids": [
+        "REQ-03",
+        "REQ-22"
+      ],
+      "given_ja": "主人公の自車で補助員がケースを運び、飛行弾がある。",
+      "when_ja": "主人公を敵車へ移動させて10秒経過させる。",
+      "expected_ja": "自車の補給・運搬・発射・砲撃が同じ時計で進み、画面外だから停止しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-004",
+      "requirement_ids": [
+        "REQ-04",
+        "REQ-23"
+      ],
+      "given_ja": "両陣営の物体と発射履歴が取得できる。",
+      "when_ja": "一戦を再生して全通常射撃を照合する。",
+      "expected_ja": "各発射へ一つの装填元ケースがあり、そのケースは同時に床・所持・待ち列に存在しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-005",
+      "requirement_ids": [
+        "REQ-05"
+      ],
+      "given_ja": "作業員が重量2のケースを一つ持っている。",
+      "when_ja": "重量2を追加で拾い、その後重量1を拾う。",
+      "expected_ja": "前者は取得不可、後者は取得可。合計重量3となり速度が85%になる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-006",
+      "requirement_ids": [
+        "REQ-05"
+      ],
+      "given_ja": "左右枠に異なるケースを持ち、右枠を選択している。",
+      "when_ja": "選択したケースを装填する。",
+      "expected_ja": "右枠のケースだけが消費され、左枠と表示順が維持される。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-007",
+      "requirement_ids": [
+        "REQ-06",
+        "REQ-28"
+      ],
+      "given_ja": "スマートフォン幅の画面と複数指入力がある。",
+      "when_ja": "左指で移動し、右指で扱う操作を行う。",
+      "expected_ja": "移動が中断せず、指の役割が混ざらず、扱うが1回だけ実行される。",
+      "test_type": "browser",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-008",
+      "requirement_ids": [
+        "REQ-07"
+      ],
+      "given_ja": "補給配分が標準3、重量2、防護2、高速1。",
+      "when_ja": "上限に達しない条件で8回の補給を3巡行う。",
+      "expected_ja": "各巡の成功した8回の内訳が配分と一致する。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-009",
+      "requirement_ids": [
+        "REQ-07"
+      ],
+      "given_ja": "次の補給が決まっており、補給先が満杯。",
+      "when_ja": "補給の時刻を過ぎた後に空きを作る。",
+      "expected_ja": "停止中に順番を消費せず、再開してもまとめて複数個を出さない。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-010",
+      "requirement_ids": [
+        "REQ-08"
+      ],
+      "given_ja": "直通としてケースを投入済み。",
+      "when_ja": "装填口を迂回へ切り替える。",
+      "expected_ja": "投入済みは直通、新規投入は迂回になる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-011",
+      "requirement_ids": [
+        "REQ-09"
+      ],
+      "given_ja": "防護板（耐久3）と重量弾（耐久2）が同一経路で接触する。",
+      "when_ja": "接触を1回解決する。",
+      "expected_ja": "防護板2、重量弾1となり、装甲損傷値は接触計算に使わない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-012",
+      "requirement_ids": [
+        "REQ-09"
+      ],
+      "given_ja": "敵味方の2弾が異なる経路にある。",
+      "when_ja": "見た目上の近い位置を同時に通過する。",
+      "expected_ja": "接触を発生させず、表示にも交差したような誤解を生む装飾を置かない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-013",
+      "requirement_ids": [
+        "REQ-09",
+        "REQ-33"
+      ],
+      "given_ja": "同じ2弾が一度接触した後も短時間重なっている。",
+      "when_ja": "複数更新を進める。",
+      "expected_ja": "同じ組の接触を離れるまで再適用しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-014",
+      "requirement_ids": [
+        "REQ-10"
+      ],
+      "given_ja": "共通待ち列2個が埋まっている。",
+      "when_ja": "作業員が3個目を投入しようとする。",
+      "expected_ja": "そのケースは手元に残り、発射音・成功表示・消費を発生させない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-015",
+      "requirement_ids": [
+        "REQ-10",
+        "REQ-16"
+      ],
+      "given_ja": "待ち列が2個あり、装填装置が停止している。",
+      "when_ja": "8秒の停止と復帰を進める。",
+      "expected_ja": "待ち列が保持され、復帰した更新ではまとめて発射しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-016",
+      "requirement_ids": [
+        "REQ-11"
+      ],
+      "given_ja": "分割弾が中央を通過する直前。",
+      "when_ja": "接触せず中央を越える。",
+      "expected_ja": "親を消し損傷4の子弾3個を作る。子は再分割せず総損傷量は12。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-017",
+      "requirement_ids": [
+        "REQ-11",
+        "REQ-33"
+      ],
+      "given_ja": "分割弾の中央通過と敵弾との接触が同時。",
+      "when_ja": "同じ更新を処理する。",
+      "expected_ja": "接触を先に行い、親が消えた場合は子を生成しない。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-018",
+      "requirement_ids": [
+        "REQ-11",
+        "REQ-34"
+      ],
+      "given_ja": "飛行物体の空きが分割に不足する。",
+      "when_ja": "親弾が分割地点を越える。",
+      "expected_ja": "親のまま進め、他の弾を消さない。その親は再分割しない。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-019",
+      "requirement_ids": [
+        "REQ-11"
+      ],
+      "given_ja": "補給妨害が発動し6秒停止中。",
+      "when_ja": "同効果を重ね、停止終了後4秒以内にも命中させる。",
+      "expected_ja": "停止は延長せず、終了後4秒は再停止しない。損傷は通常通り処理する。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-020",
+      "requirement_ids": [
+        "REQ-11"
+      ],
+      "given_ja": "補給妨害と補給設備破壊が同時に有効。",
+      "when_ja": "片方だけの停止を解除する。",
+      "expected_ja": "他方の理由が残る限り補給は再開しない。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-021",
+      "requirement_ids": [
+        "REQ-11"
+      ],
+      "given_ja": "通路妨害領域内に両陣営の作業員がおり、一人は重量3。",
+      "when_ja": "移動させる。",
+      "expected_ja": "両陣営へ65%の速度効果が付き、重量3は0.85×0.65になる。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-022",
+      "requirement_ids": [
+        "REQ-12",
+        "REQ-31"
+      ],
+      "given_ja": "一つのケースが装甲修理用に予約されている。",
+      "when_ja": "同じケースを同時に装填しようとする。",
+      "expected_ja": "同時の発射と修理消費を拒否し、物体は一つの状態にだけ存在する。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-023",
+      "requirement_ids": [
+        "REQ-13"
+      ],
+      "given_ja": "未破壊の対象部位の回復余地10、共通回復予算の残り5。",
+      "when_ja": "ケース1個で対象部位の修理を完了する。",
+      "expected_ja": "その部位を5だけ回復し、予算0、ケース1個消費。他部位へ回復を移さない。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-024",
+      "requirement_ids": [
+        "REQ-13",
+        "REQ-46"
+      ],
+      "given_ja": "P3の耐久1で修理が完了する更新に、その部位へ損傷1以上が着弾する。他部位は健全。",
+      "when_ja": "損傷・破壊と修理完了を処理する。",
+      "expected_ja": "P3破壊と1門の開放を先に確定。P3の修理は不成立でケースと回復予算を消費しない。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-025",
+      "requirement_ids": [
+        "REQ-14",
+        "REQ-44"
+      ],
+      "given_ja": "双方とも外装が7部位残っている。",
+      "when_ja": "連絡区画から敵の作業区画へ侵入し帰還する。さらにコア室へ進もうとする。",
+      "expected_ja": "作業区画への往復はできるが、閉じたG1がコア室への進行を阻む。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-026",
+      "requirement_ids": [
+        "REQ-15",
+        "REQ-16"
+      ],
+      "given_ja": "補給駆動部の耐久が10で、補給直前。",
+      "when_ja": "突進で破壊する。",
+      "expected_ja": "補給が止まり、停止解除後に残り待ち時間から再開する。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-027",
+      "requirement_ids": [
+        "REQ-16",
+        "REQ-31"
+      ],
+      "given_ja": "手動修理完了と設備の自動復帰が同じ更新。",
+      "when_ja": "両方を処理する。",
+      "expected_ja": "手動完了を先に処理する。修理有効ならケース1個だけを消費し、復帰は1回。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-028",
+      "requirement_ids": [
+        "REQ-17",
+        "REQ-43"
+      ],
+      "given_ja": "自車は6部位破壊済み、最後の部位の耐久が1。",
+      "when_ja": "その部位へ弾を命中させる。",
+      "expected_ja": "全7門が開き、即敗北にしない。設備が有効な限り補給・砲撃・移動・防衛を続ける。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-029",
+      "requirement_ids": [
+        "REQ-18",
+        "REQ-19",
+        "REQ-44"
+      ],
+      "given_ja": "敵外装を6部位破壊し、6門が開き、攻撃者はG7の手前にいる。",
+      "when_ja": "移動・突進・扱う・押し退けによる進入を試みる。",
+      "expected_ja": "G7を越えずコアへ当てられない。侵入できない理由を表示し勝敗は継続する。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-030",
+      "requirement_ids": [
+        "REQ-18",
+        "REQ-47"
+      ],
+      "given_ja": "更新開始時点で全7門が開き、荷物を持つ行動可能な敵対作業員がコア室にいる。",
+      "when_ja": "コアへ突進を命中させる。",
+      "expected_ja": "有効な1回の命中で攻撃側の勝利。空手や長押しや追加攻撃を要求しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-031",
+      "requirement_ids": [
+        "REQ-18",
+        "REQ-22",
+        "REQ-48"
+      ],
+      "given_ja": "敵の全7門が開き、味方補助員へ侵入命令を出す。",
+      "when_ja": "守備者がいない経路を進ませ、コアへ攻撃させる。",
+      "expected_ja": "補助員も正しい門の通路を通り、主人公と同条件でコア攻撃により勝利できる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-032",
+      "requirement_ids": [
+        "REQ-19"
+      ],
+      "given_ja": "敵全7門が開き、攻撃者とコアの間に守備者がいる。",
+      "when_ja": "コア方向へ突進する。",
+      "expected_ja": "最初の守備者に当たって突進が止まる。背後のコアへ同じ突進を通さない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-033",
+      "requirement_ids": [
+        "REQ-18",
+        "REQ-19"
+      ],
+      "given_ja": "全7門が開き、敵対作業員がコアへ隣接している。",
+      "when_ja": "歩行で触れる、静止して接触し続ける、扱うを押す。",
+      "expected_ja": "いずれも勝利にならない。コアの近距離攻撃が必要である。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-034",
+      "requirement_ids": [
+        "REQ-18",
+        "REQ-20"
+      ],
+      "given_ja": "全7門開放済みの敵コアへ味方2体が同更新に突進命中する。",
+      "when_ja": "両方の命中候補を確定する。",
+      "expected_ja": "攻撃側の勝利を1回だけ確定し、結果表示・報酬・音を二重に開始しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-035",
+      "requirement_ids": [
+        "REQ-20"
+      ],
+      "given_ja": "両側とも全7門開放済みで、双方の攻撃者が敵コアへ届く位置にいる。",
+      "when_ja": "同じ更新で両コアへ有効な突進を命中させ、陣営の配列順を反転して再検査する。",
+      "expected_ja": "どちらの配列順でも引き分けになり、プレイヤー優遇をしない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-036",
+      "requirement_ids": [
+        "REQ-20"
+      ],
+      "given_ja": "時間上限の更新に、片側だけが敵コアへ有効命中する条件を作る。",
+      "when_ja": "更新末を確定する。さらにどちらも命中しない条件も検査する。",
+      "expected_ja": "片側だけの有効命中はその攻撃側勝利。両方未命中なら時間切れ引き分け。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-037",
+      "requirement_ids": [
+        "REQ-21"
+      ],
+      "given_ja": "体力1で荷物2個を持つ作業員が作業中。",
+      "when_ja": "損傷1を与える。",
+      "expected_ja": "作業を中断し、荷物を2個とも床へ置き、300更新後に復帰する。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-038",
+      "requirement_ids": [
+        "REQ-21",
+        "REQ-47"
+      ],
+      "given_ja": "復帰保護60更新中の作業員。",
+      "when_ja": "攻撃、取得、装填、修理、コア攻撃、被弾、押し退けを試す。",
+      "expected_ja": "どれも成立しない。移動のみ可能。保護終了後は通常行動に戻る。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-039",
+      "requirement_ids": [
+        "REQ-24"
+      ],
+      "given_ja": "補助員がケースを予約して移動中。",
+      "when_ja": "主人公が先に取得するか、補助員の命令を変える。",
+      "expected_ja": "予約を解放し、有効な別対象を選び直す。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-040",
+      "requirement_ids": [
+        "REQ-25"
+      ],
+      "given_ja": "同じ敵編成で易しいと難しいを比較する。",
+      "when_ja": "初期状態と設定を記録する。",
+      "expected_ja": "7部位の耐久・門数・コア判定・体力・弾性能・補給量に隠れた差がなく、判断間隔と作戦だけ異なる。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-041",
+      "requirement_ids": [
+        "REQ-26",
+        "REQ-28"
+      ],
+      "given_ja": "縦横各画面幅360〜430の操作画面。",
+      "when_ja": "外装7部位、開放門数、コア危険、砲撃、仲間命令、荷物、部位選択を表示する。",
+      "expected_ja": "重要表示と操作領域が隠れず、数値の意味が読める。横スクロールや小さすぎる7分割タップを要求しない。",
+      "test_type": "browser",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-042",
+      "requirement_ids": [
+        "REQ-27"
+      ],
+      "given_ja": "床ケースと設備が近くにある。",
+      "when_ja": "扱うを押し始めた後、対象が消失する。",
+      "expected_ja": "同じ押下のまま他の対象へ行動を変更しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-043",
+      "requirement_ids": [
+        "REQ-29"
+      ],
+      "given_ja": "移動と扱うを押し続けている。",
+      "when_ja": "アプリを非表示にして復帰する。",
+      "expected_ja": "戦闘は停止し、入力はすべて解除され、再開操作なしには進まない。",
+      "test_type": "device",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-044",
+      "requirement_ids": [
+        "REQ-30",
+        "REQ-32"
+      ],
+      "given_ja": "同じルール版、開始状態、入力列を用意する。",
+      "when_ja": "描画を毎秒30・60・120回に変えて再生する。",
+      "expected_ja": "同じ実行条件で状態要約と勝敗が一致する。",
+      "test_type": "rule",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-045",
+      "requirement_ids": [
+        "REQ-31"
+      ],
+      "given_ja": "供給から消費までの全物体履歴を取得できる。",
+      "when_ja": "全更新で所在の不変条件を検査する。",
+      "expected_ja": "一物体の重複所有、消費後の再利用、根拠のない生成が0件。",
+      "test_type": "rule",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-046",
+      "requirement_ids": [
+        "REQ-33"
+      ],
+      "given_ja": "高速弾が1更新で相手の位置を越える。",
+      "when_ja": "移動区間による接触検査を行う。",
+      "expected_ja": "接触を1回検出し、すり抜けや二重命中を起こさない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-047",
+      "requirement_ids": [
+        "REQ-34"
+      ],
+      "given_ja": "標準表示と軽量表示で同じ戦闘記録を再生する。",
+      "when_ja": "状態と描画時間を記録する。",
+      "expected_ja": "戦闘結果が一致する。描画目標は計測結果で判断し未計測を合格にしない。",
+      "test_type": "performance",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-048",
+      "requirement_ids": [
+        "REQ-35",
+        "REQ-46"
+      ],
+      "given_ja": "外装・門・コアに変更が生じる一戦を終える。",
+      "when_ja": "20戦を連続で開始し終了する。",
+      "expected_ja": "毎戦、全7外装が初期耐久、全7門閉鎖、コア未命中へ戻る。前戦の弾、入力、予約、タイマー、音が残らない。",
+      "test_type": "browser",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-049",
+      "requirement_ids": [
+        "REQ-36"
+      ],
+      "given_ja": "原作を知らない参加者を含む小規模試遊を行う。",
+      "when_ja": "3練習後に運搬・迎撃・7部位7門コア攻撃の説明と実操作を依頼する。",
+      "expected_ja": "5人中4人を初期目安に要点を説明・実行できる。外装全壊だけを勝利と誤認する場合は説明と表示を修正する。",
+      "test_type": "playtest",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-050",
+      "requirement_ids": [
+        "REQ-37"
+      ],
+      "given_ja": "初期版の内容目録がある。",
+      "when_ja": "ケース8、補助型3、配置3、通常設定6、練習3を照合する。",
+      "expected_ja": "未実装や見た目だけの差を完成件数へ含めない。",
+      "test_type": "document",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-051",
+      "requirement_ids": [
+        "REQ-38",
+        "REQ-39"
+      ],
+      "given_ja": "正式名称と公開素材一式がある。",
+      "when_ja": "素材由来、名称、全体表現、公開説明、必要な個別権利調査を行う。",
+      "expected_ja": "各項目の確認結果と未解決事項が記録され、未確認を問題なしとしない。",
+      "test_type": "human_rights_review",
+      "phase": "R6",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-052",
+      "requirement_ids": [
+        "REQ-40",
+        "REQ-42"
+      ],
+      "given_ja": "公開前の報告書がある。",
+      "when_ja": "自動検査、実機、試遊、権利確認、通信機能を照合する。",
+      "expected_ja": "未実施は未実施と表示し、通信対戦は初期版の完成範囲に含めない。",
+      "test_type": "document",
+      "phase": "R6",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-053",
+      "requirement_ids": [
+        "REQ-41"
+      ],
+      "given_ja": "実装先が決まり変更を行う。",
+      "when_ja": "変更履歴と取り込み依頼を確認する。",
+      "expected_ja": "専用の作業枝と取り込み依頼があり、main直変更・無断マージがない。",
+      "test_type": "workflow",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-054",
+      "requirement_ids": [
+        "REQ-43"
+      ],
+      "given_ja": "新規戦闘を開始する。",
+      "when_ja": "両側の外装・門・コアを列挙する。",
+      "expected_ja": "両側それぞれ一意なP1〜P7・G1〜G7・コア1つを持ち、状態を共有しない。",
+      "test_type": "rule",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-055",
+      "requirement_ids": [
+        "REQ-43",
+        "REQ-44"
+      ],
+      "given_ja": "外装全7部位が健全。",
+      "when_ja": "P5、P2、P7など任意の順で全7部位を一つずつ破壊する。",
+      "expected_ja": "最初はG1、次はG2という入口順に開く。各段階で開放門数と一意な破壊部位数が一致する。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-056",
+      "requirement_ids": [
+        "REQ-43"
+      ],
+      "given_ja": "P3の初回破壊を処理済み。",
+      "when_ja": "同じ破壊通知を再送し、P3へさらに弾を当てる。",
+      "expected_ja": "P3由来の追加開門を発生させない。代替目標への損傷が起きる場合はその別部位の破壊だけ数える。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-057",
+      "requirement_ids": [
+        "REQ-43"
+      ],
+      "given_ja": "外装3部位の残耐久が低く、他は健全。",
+      "when_ja": "別々の部位へ同更新で致死損傷を与える。",
+      "expected_ja": "3部位を破壊して3門が開く。陣営や部位の処理順で個数が変わらない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-058",
+      "requirement_ids": [
+        "REQ-43"
+      ],
+      "given_ja": "残耐久の配列A=[0,0,0,50,50,50,50]、B=[20,30,30,30,30,30,30]を用意する。",
+      "when_ja": "どちらも合計200であることを確認し、開放門数を計算する。",
+      "expected_ja": "Aは3門、Bは0門。単一耐久のしきい値による開門ではない。",
+      "test_type": "rule",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-059",
+      "requirement_ids": [
+        "REQ-44"
+      ],
+      "given_ja": "車内配置3種と作業区画入口を用意する。",
+      "when_ja": "全開でコアへの経路を調べ、さらに任意の1門だけを閉じる検査状態を7通り作る。",
+      "expected_ja": "全開なら到達でき、どの1門が閉じても迂回経路はない。通常移動・突進・押し退けも同条件。",
+      "test_type": "rule",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-060",
+      "requirement_ids": [
+        "REQ-13",
+        "REQ-46"
+      ],
+      "given_ja": "P2は破壊済みだが、ほかの部位と外装修理予算は残っている。",
+      "when_ja": "P2を修理対象に選ぶ。",
+      "expected_ja": "受け付けずケースと予算を消費しない。別部位が残っていることを理由にP2を復元しない。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-061",
+      "requirement_ids": [
+        "REQ-46"
+      ],
+      "given_ja": "3部位破壊・3門開放済み。設備は停止している。",
+      "when_ja": "未破壊部位の修理、設備修理、自動設備復帰、状態の保存と復元を順に行う。",
+      "expected_ja": "破壊済み外装と開門状態は変わらず、3門開放を維持する。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-062",
+      "requirement_ids": [
+        "REQ-45"
+      ],
+      "given_ja": "P1の耐久1、P2〜P7は健全。",
+      "when_ja": "P1へ損傷30の単一弾を当てる。",
+      "expected_ja": "P1だけを破壊して1門を開く。余剰29はP2やコアへ与えない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-063",
+      "requirement_ids": [
+        "REQ-08",
+        "REQ-45"
+      ],
+      "given_ja": "P4・直通を指定してケースを装填済み。",
+      "when_ja": "装填後に設定をP6・迂回へ変更する。",
+      "expected_ja": "投入済みはP4・直通のまま。新しく装填する分だけP6・迂回となる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-064",
+      "requirement_ids": [
+        "REQ-45"
+      ],
+      "given_ja": "P4が目標の弾が飛行中で、着弾更新の前にP4が壊れる。残る最小番号はP2。",
+      "when_ja": "その弾を着弾させる。",
+      "expected_ja": "P2を代替目標とする。古いP4の再破壊として門を増やさない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-065",
+      "requirement_ids": [
+        "REQ-45"
+      ],
+      "given_ja": "更新開始時にP1耐久10、2弾が同更新にP1へ損傷14ずつ着弾する。",
+      "when_ja": "着弾をまとめて解決する。",
+      "expected_ja": "P1へ合計28を適用して一度だけ破壊。後の弾を同更新内でP2へ転送しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-066",
+      "requirement_ids": [
+        "REQ-17",
+        "REQ-45",
+        "REQ-47"
+      ],
+      "given_ja": "全7外装破壊・全7門開放、コア未命中。",
+      "when_ja": "通常弾と補給妨害を敵車へ着弾させる。",
+      "expected_ja": "外装への追加損傷は0。補給妨害は定義どおり働くが、コア命中や勝利にはならない。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-067",
+      "requirement_ids": [
+        "REQ-18",
+        "REQ-47"
+      ],
+      "given_ja": "全7門開放のコアと、味方・無効な敵・復帰保護中の敵・車外弾を用意する。",
+      "when_ja": "味方攻撃、保護中攻撃、開始時戦闘不能、車外弾、床ケースでコア命中を試す。",
+      "expected_ja": "いずれも有効なコア命中にならず、状態を変更しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-068",
+      "requirement_ids": [
+        "REQ-44",
+        "REQ-47"
+      ],
+      "given_ja": "更新開始時はG7が閉じ、その更新で最後の外装が壊れる。",
+      "when_ja": "同更新にG7を越えてコアを攻撃する入力を与える。",
+      "expected_ja": "その更新は閉門で遮断され、コア命中なし。次更新から通行できる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-069",
+      "requirement_ids": [
+        "REQ-30",
+        "REQ-43",
+        "REQ-47"
+      ],
+      "given_ja": "最後の門が開く状態を用意し、開放演出の時間と表示設定を変える。",
+      "when_ja": "同じ記録を標準・軽量・音なしで再生する。",
+      "expected_ja": "門の論理開放は同じ更新、通行は同じ次更新から。演出の遅れが勝敗へ影響しない。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-070",
+      "requirement_ids": [
+        "REQ-20",
+        "REQ-47"
+      ],
+      "given_ja": "開始時に行動可能な敵対作業員が、全門開放のコアへ届く位置にいる。",
+      "when_ja": "有効なコア命中とその攻撃者への致死損傷を同更新に成立させる。",
+      "expected_ja": "有効なコア命中は維持し、その攻撃側が勝つ。両コア命中なら引き分けになる。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-071",
+      "requirement_ids": [
+        "REQ-24",
+        "REQ-48"
+      ],
+      "given_ja": "敵車への侵入命令を持つ補助員と閉門がある。",
+      "when_ja": "閉門前まで進ませ、その後門を順に開く。",
+      "expected_ja": "閉門への空振りや瞬間移動をせず、新しく通れる範囲へ経路を再計算する。全開後はコアを狙える。",
+      "test_type": "rule",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-072",
+      "requirement_ids": [
+        "REQ-18",
+        "REQ-23",
+        "REQ-43"
+      ],
+      "given_ja": "一方が敵コアへ有効命中する戦闘状態を作る。",
+      "when_ja": "プレイヤーと敵の所属を反転して同じ操作記録を検査する。",
+      "expected_ja": "攻撃を受けたコアの所属側が負け、どちらにも同じ7部位・7門・一撃条件が作用する。",
+      "test_type": "rule",
+      "phase": "R2",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-073",
+      "requirement_ids": [
+        "REQ-35",
+        "REQ-49"
+      ],
+      "given_ja": "第2版のルール番号を持つ旧戦闘記録とユーザー設定がある。",
+      "when_ja": "旧記録の再生を試み、その後新規戦闘を始める。",
+      "expected_ja": "旧記録は未対応と説明し暗黙変換しない。ユーザー設定は維持し新ルールの戦闘を開始できる。",
+      "test_type": "rule",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-074",
+      "requirement_ids": [
+        "REQ-49"
+      ],
+      "given_ja": "候補設定・要件・引き継ぎ文一式がある。",
+      "when_ja": "旧control_panels、work_ticks_each、単一armor_maxと旧2盤作業の現行指示を検索する。",
+      "expected_ja": "有効設定や現在の勝敗指示にはない。撤回履歴としての記載と区別する。",
+      "test_type": "document",
+      "phase": "R1",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-075",
+      "requirement_ids": [
+        "REQ-13",
+        "REQ-31",
+        "REQ-46"
+      ],
+      "given_ja": "異なる2部位が各12以上損傷し、残り共通予算12、修理が同更新に終わる。",
+      "when_ja": "作業開始更新、同値なら作業員番号順で完了処理を行う。",
+      "expected_ja": "先の作業だけ12回復してケースを消費する。後の作業は予算0で消費しない。共通予算は負にならない。",
+      "test_type": "rule",
+      "phase": "R3",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-076",
+      "requirement_ids": [
+        "REQ-17",
+        "REQ-48"
+      ],
+      "given_ja": "自車全7門開放、設備正常、敵侵入者が接近している。",
+      "when_ja": "補助員へ砲撃と防衛を分担させる。",
+      "expected_ja": "射撃担当は装填を続け、防衛担当はコアへの通路を守る。外装全壊で戦闘や敵判断を停止しない。",
+      "test_type": "scenario",
+      "phase": "R4",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-077",
+      "requirement_ids": [
+        "REQ-26",
+        "REQ-43"
+      ],
+      "given_ja": "敵外装を1部位破壊する。",
+      "when_ja": "外側の部位表示と車内の門表示を同時に確認する。",
+      "expected_ja": "破壊部位は1増え、開放門数も1増える。外装の損傷だけでは破壊扱いにしない。音なしでも進捗が読める。",
+      "test_type": "browser",
+      "phase": "R5",
+      "execution_status": "not_run"
+    },
+    {
+      "id": "AT-078",
+      "requirement_ids": [
+        "REQ-44",
+        "REQ-47"
+      ],
+      "given_ja": "侵入口、全7門、コア室、作業区画側の復帰地点がある。",
+      "when_ja": "死亡復帰、詰まりからの戻し、入力中断・再開、ロードを各開門段階で試す。",
+      "expected_ja": "コア室側へ不正移動しない。異常位置からの復帰先も自車作業区画とし、コア命中候補を生成しない。",
+      "test_type": "scenario",
+      "phase": "R5",
+      "execution_status": "not_run"
+    }
+  ]
+}

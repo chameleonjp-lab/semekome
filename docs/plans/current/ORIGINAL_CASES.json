@@ -1,0 +1,101 @@
+{
+  "version": "4.0",
+  "status": "original_proposal_unplaytested",
+  "cases": [
+    {
+      "id": "standard_slug",
+      "name_ja": "標準弾ケース",
+      "weight": 1,
+      "intercept_hits": 1,
+      "flight_speed": 20,
+      "effect": "none",
+      "purpose_ja": "攻撃と迎撃の基準にする",
+      "part_damage": 14
+    },
+    {
+      "id": "dense_payload",
+      "name_ja": "重量弾ケース",
+      "weight": 2,
+      "intercept_hits": 2,
+      "flight_speed": 12,
+      "effect": "none",
+      "purpose_ja": "運搬負担と引き換えに大きな損傷を狙う",
+      "part_damage": 30
+    },
+    {
+      "id": "screen_panel",
+      "name_ja": "防護板ケース",
+      "weight": 1,
+      "intercept_hits": 3,
+      "flight_speed": 9,
+      "effect": "none",
+      "purpose_ja": "同じ経路の敵弾を複数回受け止める",
+      "part_damage": 0
+    },
+    {
+      "id": "fast_dart",
+      "name_ja": "高速杭ケース",
+      "weight": 1,
+      "intercept_hits": 1,
+      "flight_speed": 28,
+      "effect": "none",
+      "purpose_ja": "短い待ち時間で迎撃と牽制を行う",
+      "part_damage": 8
+    },
+    {
+      "id": "split_payload",
+      "name_ja": "分割弾ケース",
+      "weight": 1,
+      "intercept_hits": 1,
+      "flight_speed": 16,
+      "effect": "split_once_after_midpoint",
+      "split": {
+        "children": 3,
+        "child_intercept_hits": 1,
+        "child_speed": 16,
+        "spacing_route_units": 2,
+        "child_part_damage": 4
+      },
+      "purpose_ja": "同じ経路に複数の小弾を並べる。総損傷量は増やさない",
+      "part_damage": 12
+    },
+    {
+      "id": "disruption_pack",
+      "name_ja": "補給妨害ケース",
+      "weight": 1,
+      "intercept_hits": 1,
+      "flight_speed": 18,
+      "effect": "disable_enemy_supply_6s_then_immunity_4s",
+      "purpose_ja": "着弾後に短時間だけ補給を止める",
+      "part_damage": 6
+    },
+    {
+      "id": "breach_lance",
+      "name_ja": "貫通杭ケース",
+      "weight": 2,
+      "intercept_hits": 3,
+      "flight_speed": 10,
+      "effect": "none",
+      "purpose_ja": "低速だが迎撃を抜けやすい弾を用意する",
+      "part_damage": 18
+    },
+    {
+      "id": "adhesive_pod",
+      "name_ja": "通路妨害ケース",
+      "weight": 1,
+      "intercept_hits": 1,
+      "flight_speed": 14,
+      "effect": "slow_zone_at_enemy_entry",
+      "zone": {
+        "duration_ticks": 240,
+        "speed_multiplier": 0.65,
+        "radius_floor_units": 1.0,
+        "affects": "all_actors",
+        "max_per_team": 1,
+        "refresh_policy": "replace_previous"
+      },
+      "purpose_ja": "侵入口付近の移動を遅くする。味方の侵入者も影響を受ける",
+      "part_damage": 4
+    }
+  ]
+}
