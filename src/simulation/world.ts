@@ -442,6 +442,27 @@ function discardPendingRespawns(world: WorldState): void {
   }
 }
 
+function plazaCrossingIsCurrent(
+  world: WorldState,
+  actor: ActorState,
+  targetTeam: TeamId,
+  crossing: WorldState["plaza"]["playerCrossings"][string],
+): boolean {
+  // A clearance is a same-generation snapshot, not a permanent teleport
+  // token. A guard's respawn generation invalidates every older crossing.
+  for (const [guardId, generation] of Object.entries(crossing.guardGenerations)) {
+    const guard = world.actors[guardId];
+    if (!guard || guard.generation !== generation) return false;
+    if (guard.alive && guard.location.area === "plaza") return false;
+  }
+  // A guard that enters the plaza after the clearance also closes the gate;
+  // the next physical snapshot must defeat it and issue a fresh crossing.
+  return !Object.values(world.actors).some((candidate) =>
+    candidate.id !== actor.id && candidate.team === targetTeam && candidate.canGuardPlaza === true &&
+    candidate.alive && candidate.location.area === "plaza" &&
+    crossing.guardGenerations[String(candidate.id)] === undefined);
+}
+
 function addCoreCandidate(
   world: WorldState,
   actor: ActorState,
@@ -491,7 +512,8 @@ function processMove(
     // generation checks.
     const crossings = castleTeam === PLAYER_TEAM ? world.plaza.playerCrossings : world.plaza.enemyCrossings;
     const key = `${actor.id}:${actor.generation}`;
-    if (!crossings[key]?.allowed) {
+    const crossing = crossings[key];
+    if (!crossing?.allowed || !plazaCrossingIsCurrent(world, actor, castleTeam, crossing)) {
       reject(report, index, "invalid_transition", "plaza crossing has not been cleared");
       return;
     }

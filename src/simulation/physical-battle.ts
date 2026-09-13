@@ -391,24 +391,39 @@ function roomForCell(state: BattleState, team: TeamId, cell: Point, preferred?: 
   return passageId ? `passage:${passageId}` : undefined;
 }
 
-function syncActorProjection(state: BattleState, actor: ActorState): void {
+function syncActorProjection(state: BattleState, actor: ActorState, previousPosition?: FixedPoint): void {
   const fixed = actorFixed(state, actor.id);
   const cell = readCell(fixed);
   actor.position = cell;
   if (actor.location.area !== "castle" || !actor.location.castleTeam) return;
+  const layout = teamLayout(state, actor.location.castleTeam);
+  const previousCell = previousPosition ? readCell(previousPosition) : undefined;
+  if (previousCell && (previousCell.x !== cell.x || previousCell.y !== cell.y)) {
+    const crossedGate = GATE_IDS.find((gateId) => (layout.gateCells[gateId] ?? []).some((gateCell) =>
+      (gateCell.x === previousCell.x && gateCell.y === previousCell.y) ||
+      (gateCell.x === cell.x && gateCell.y === cell.y)));
+    if (crossedGate && !actor.location.pathGates.includes(crossedGate)) {
+      actor.location.pathGates = [...actor.location.pathGates, crossedGate];
+    }
+  }
   const roomId = roomForCell(state, actor.location.castleTeam, cell, actor.currentRoomId);
   if (!roomId) return;
   if (actor.currentRoomId !== roomId) {
     actor.currentRoomId = roomId;
     actor.location.roomId = roomId;
-    actor.location.pathRooms = [...actor.location.pathRooms, roomId];
+    // Passage ids describe the floor geometry but are not rooms in the core
+    // route proof. Keep them as the current physical projection while the
+    // route history records authored rooms only.
+    if (layout.rooms.some((room) => room.id === roomId)) {
+      actor.location.pathRooms = [...actor.location.pathRooms, roomId];
+    }
   }
 }
 
 function setActorFixed(state: BattleState, actor: ActorState, point: FixedPoint): void {
   const previous = state.fixedActors[actor.id];
   state.fixedActors[actor.id] = { position: copyPoint(point), remainder: previous?.remainder ?? { x: 0, y: 0 } };
-  syncActorProjection(state, actor);
+  syncActorProjection(state, actor, previous?.position);
 }
 
 function furthestWalkablePoint(state: BattleState, team: TeamId, from: FixedPoint, to: FixedPoint): FixedPoint {
