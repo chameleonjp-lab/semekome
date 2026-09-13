@@ -1,4 +1,4 @@
-import { createWorld } from "./world.ts";
+import { createWorld, stepWorld } from "./world.ts";
 import { caseDefinition, CASE_TYPES, SUPPLY_BAG, type CaseType } from "../content/cases.ts";
 import { padById } from "../domain/layout.ts";
 import { assertObjectLocationsUnique } from "../domain/objects.ts";
@@ -46,6 +46,10 @@ import {
 } from "../artillery/artillery.ts";
 import { getHandoffPosition, getTurretOperatorPosition } from "../artillery/positions.ts";
 import type { CrewAssignment, CrewTask } from "../crew/crew.ts";
+import {
+  prepareR2bWorldInput,
+  type R2bBridgeRequest,
+} from "./r2b-bridge.ts";
 
 const PLAYER_TEAM: TeamId = "player";
 const ENEMY_TEAM: TeamId = "enemy";
@@ -102,6 +106,12 @@ export interface BattleIntent {
   part?: PartId;
   /** Candidate snapshot token returned by getInteraction. */
   contextToken?: string;
+  /**
+   * Physical first-contact evidence.  It is evaluated after this tick's
+   * physical movement and consumed by the same authoritative world tick; it
+   * is never treated as a direct common-world command.
+   */
+  bridge?: R2bBridgeRequest;
 }
 
 export type BattleCaseLocation = "floor" | "carried" | "handoff" | "queue" | "flying" | "consumed";
@@ -1680,6 +1690,91 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
   }
 }
 
+function bridgeRejectionReason(kind: R2bBridgeRequest["kind"], reason: string): RejectedInput["reason"] {
+  if (reason === "wrong_match") return "wrong_match";
+  if (reason === "missing_generation") return "missing_generation";
+  if (reason === "stale_generation") return "stale_generation";
+  if (reason === "unknown_actor") return "unknown_actor";
+  if (reason === "dead_actor") return "dead_actor";
+  if (kind === "core_contact" && ["invalid_target", "invalid_contact", "closed_route"].includes(reason)) {
+    return "invalid_core_attack";
+  }
+  return "invalid_transition";
+}
+
+/**
+ * Consume one validated R2b boundary in the current physical tick.
+ *
+ * `stepWorld` is intentionally called on a snapshot and its clock fields are
+ * not copied back.  The physical coordinator owns the one shared tick and
+ * advances it once below, after logistics and artillery have run.  Only the
+ * world-owned fields and events produced by the bridge input are merged.
+ */
+function applyR2bBridge(
+  state: BattleState,
+  intent: BattleIntent | undefined,
+  report: StepReport,
+  events: WorldEvent[],
+): void {
+  const request = intent?.bridge;
+  if (!request) return;
+  // The bridge is part of the same public intent. If its match, actor, or
+  // ordinary physical fields were rejected above, do not let a separately
+  // valid-looking evidence envelope bypass that rejection.
+  if (report.rejected.length > 0) return;
+  if (request.evidence.actorId !== intent.actorId || request.evidence.generation !== intent.generation) {
+    addRejection(report, 0, "stale_generation", "bridge evidence is not bound to the public actor snapshot");
+    return;
+  }
+
+  const prepared = prepareR2bWorldInput(state, request);
+  if (!prepared.ok) {
+    addRejection(report, 0, bridgeRejectionReason(request.kind, prepared.reason), `bridge:${request.kind}: ${prepared.detail ?? prepared.reason}`);
+    return;
+  }
+
+  const bridged = stepWorld(prepared.value.state, prepared.value.input);
+  const bridgedReport = bridged.lastStep;
+  if (bridgedReport.rejected.length > 0 || !bridgedReport.advanced) {
+    for (const rejection of bridgedReport.rejected) {
+      addRejection(report, 0, rejection.reason, `bridge:${request.kind}: ${rejection.detail ?? rejection.reason}`);
+    }
+    if (bridgedReport.rejected.length === 0) {
+      addRejection(report, 0, "invalid_transition", `bridge:${request.kind}: common world did not advance`);
+    }
+    return;
+  }
+
+  events.push(...bridgedReport.events);
+  report.acceptedInputKinds.push(`bridge:${request.kind}`);
+
+  // The physical state extends WorldState. Merge only common-world authority;
+  // tick, randomState, lastStep, and eventLog remain owned by this coordinator.
+  state.rulesetId = bridged.rulesetId;
+  state.rules = bridged.rules;
+  state.phase = bridged.phase;
+  state.pauseReasons = bridged.pauseReasons;
+  state.visibility = bridged.visibility;
+  state.outcome = bridged.outcome;
+  state.castles = bridged.castles;
+  state.actors = bridged.actors;
+  state.objects = bridged.objects;
+  state.projectiles = bridged.projectiles;
+  state.reservations = bridged.reservations;
+  state.plaza = bridged.plaza;
+  for (const bridgedEvent of bridgedReport.events) {
+    if (bridgedEvent.type !== "actor_respawned") continue;
+    const actor = state.actors[bridgedEvent.actorId];
+    if (!actor) continue;
+    // Common respawn uses the authored cell pad. Keep the physical projection
+    // aligned without replaying a route-crossing side effect in this tick.
+    state.fixedActors[actor.id] = {
+      position: { x: cellCenter(actor.position.x), y: cellCenter(actor.position.y) },
+      remainder: { x: 0, y: 0 },
+    };
+  }
+}
+
 function updateCaseCarriedPositions(state: BattleState): void {
   for (const caseState of Object.values(state.battleCases)) if (caseState.location === "carried" && caseState.ownerActorId) {
     caseState.currentPosition = copyPoint(actorFixed(state, caseState.ownerActorId));
@@ -1712,14 +1807,17 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   resolveFlights(next, events);
   spawnSupply(next, events);
   markDeathIfNeeded(next, events);
+  applyR2bBridge(next, intent, report, events);
 
-  let finalOutcome: BattleState["outcome"] = "ongoing";
-  if (currentTick >= next.matchLimitTicks - 1) finalOutcome = "draw";
+  let finalOutcome: BattleState["outcome"] = next.outcome;
+  if (finalOutcome === "ongoing" && currentTick >= next.matchLimitTicks - 1) finalOutcome = "draw";
   if (finalOutcome !== "ongoing") {
     next.outcome = finalOutcome;
     next.phase = "ended";
     for (const actor of Object.values(next.actors)) if (!actor.alive) actor.respawnAtTick = null;
-    events.push(event("outcome", { outcome: finalOutcome, tick: currentTick }));
+    if (!events.some((candidate) => candidate.type === "outcome")) {
+      events.push(event("outcome", { outcome: finalOutcome, tick: currentTick }));
+    }
   } else finishRespawns(next, events);
 
   next.tick = currentTick + 1;

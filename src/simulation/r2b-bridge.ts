@@ -43,6 +43,28 @@ export interface PlazaEntryEvidence {
   guardGenerations: Readonly<Record<string, number>>;
 }
 
+/**
+ * A renderer or physical simulation may submit one of these two evidence
+ * envelopes.  The envelope is deliberately separate from `CoreAttackInput`
+ * and `MoveActorInput`: those are the common-world commands produced only
+ * after this module has checked the physical snapshot.
+ */
+export type R2bBridgeRequest =
+  | { kind: "core_contact"; evidence: PhysicalFirstContactEvidence }
+  | { kind: "plaza_entry"; evidence: PlazaEntryEvidence };
+
+export interface PreparedR2bWorldInput {
+  kind: R2bBridgeRequest["kind"];
+  /** The validated command to consume in the current world tick. */
+  input: CoreAttackInput | MoveActorInput;
+  /**
+   * A prepared snapshot is returned for plaza entry because the crossing
+   * permission is generation-bound.  Core contact can reuse the caller's
+   * snapshot because it has no extra permission state to install.
+   */
+  state: WorldState;
+}
+
 export type R2bBridgeReason =
   | "wrong_match"
   | "stale_snapshot"
@@ -250,6 +272,40 @@ export function preparePlazaEntry(
         castleTeam: evidence.targetTeam,
         toRoomId: "entry",
       },
+    },
+  };
+}
+
+/**
+ * Convert one physical evidence envelope into exactly one common-world input.
+ * No clock is advanced and no caller-owned state is mutated here.  The caller
+ * must consume the returned input once in its authoritative tick.
+ */
+export function prepareR2bWorldInput(
+  state: BattleState,
+  request: R2bBridgeRequest,
+): R2bBridgeResult<PreparedR2bWorldInput> {
+  if (request.kind === "core_contact") {
+    const result = bridgeCoreFirstContact(state, request.evidence);
+    if (!result.ok) return result;
+    return {
+      ok: true,
+      value: {
+        kind: request.kind,
+        input: result.value,
+        state,
+      },
+    };
+  }
+
+  const result = preparePlazaEntry(state, request.evidence);
+  if (!result.ok) return result;
+  return {
+    ok: true,
+    value: {
+      kind: request.kind,
+      input: result.value.input,
+      state: result.value.state,
     },
   };
 }
