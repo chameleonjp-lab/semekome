@@ -150,6 +150,7 @@
     "full_capacity_policy": "pause_producer_never_delete_active_object",
     "floor_crates_supply_pause_threshold_per_room": 16,
     "supply_groups_total_per_origin": 48,
+    "supply_group_origin_scope": "source_vehicle_all_four_ports",
     "drop_over_floor_threshold": "allow_drop_pause_supply_until_below_threshold",
     "split_group_count": "all_children_share_one_origin_group_until_all_retired"
   },

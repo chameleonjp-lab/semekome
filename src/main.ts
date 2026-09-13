@@ -2,6 +2,7 @@ import blueprint from '../docs/plans/current/INTERIOR_LAYOUTS.json' with { type:
 import roster from '../docs/plans/current/ENEMY_ROSTER.json' with { type: 'json' };
 import './presentation/style.css';
 import { createWorld } from './simulation/world.ts';
+import { openBattleSetup } from './presentation/battle-screen.ts';
 
 type Area = 'player' | 'plaza' | 'enemy';
 type Rect = readonly number[];
@@ -47,8 +48,8 @@ function home(): void {
         <path d="M178 98H282" stroke="#cfbd8d" stroke-width="3"/>
         <text x="86" y="136" text-anchor="middle">自陣</text><text x="230" y="136" text-anchor="middle">広場</text><text x="374" y="136" text-anchor="middle">敵陣</text>
       </svg>
-      <div class="home-actions"><button class="primary" id="open-preview">配置を確認する</button><button id="open-rules">ルール説明</button></div>
-      <p class="home-notice">配置確認版です。城と広場を見渡せます。<br>対戦はまだ遊べません。</p>
+      <div class="home-actions"><button class="primary" id="open-battle">運搬・砲撃を試す</button><button id="open-preview">配置を確認する</button><button id="open-rules">ルール説明</button></div>
+      <p class="home-notice">運搬・砲撃の操作確認版です。<br>核攻撃までの通常対戦はまだ遊べません。</p>
     </section>
     <dialog aria-labelledby="rules-title"><div class="dialog-head"><h2 id="rules-title">セメコメのルール</h2><button id="close-rules">閉じる</button></div>
       <div class="rules-body"><ol>
@@ -58,6 +59,7 @@ function home(): void {
       </ol><p class="rules-note">敵は30人。それぞれ倒されてから20秒後に復活します。主人公は5秒間、進行中の戦場を見た後に自陣で復活します。<br><br>外装をすべて壊しただけでは決着しません。</p></div>
     </dialog>`;
   document.querySelector('#open-preview')!.addEventListener('click', preview);
+  document.querySelector('#open-battle')!.addEventListener('click', () => { disposePreview(); disposePreview = openBattleSetup(app, home); });
   const dialog = document.querySelector('dialog')!;
   document.querySelector('#open-rules')!.addEventListener('click', () => dialog.showModal());
   document.querySelector('#close-rules')!.addEventListener('click', () => dialog.close());

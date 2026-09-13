@@ -85,6 +85,8 @@ export interface CastleLayout {
   floorCells: Point[];
   /** Cells occupied by each gate passage when that gate is closed. */
   gateCells: Record<GateId, Point[]>;
+  /** Authored non-room passage cells, retained for deterministic room projection. */
+  passageCells?: Record<string, Point[]>;
   coreRouteRooms: string[];
   coreRouteGates: GateId[];
   turrets: TurretDefinition[];
@@ -281,7 +283,21 @@ export type WorldEvent =
   | { type: "core_hit_candidate"; attackerId: ActorId; targetTeam: TeamId }
   | { type: "outcome"; outcome: Exclude<Outcome, "ongoing">; tick: number }
   | { type: "object_moved"; objectId: string; location: ObjectLocation }
-  | { type: "object_consumed"; objectId: string; reason: string };
+  | { type: "object_consumed"; objectId: string; reason: string }
+  | { type: "case_spawned"; objectId: string; team: TeamId; portId: string; caseType: string }
+  | {
+    type: "projectile_launched";
+    projectileId: string;
+    objectId: string;
+    sourceActorId: ActorId;
+    sourceGeneration: number;
+    team: TeamId;
+    turretId: string;
+    route: "direct" | "detour";
+    targetPart?: PartId;
+  }
+  | { type: "projectile_intercepted"; firstProjectileId: string; secondProjectileId: string }
+  | { type: "projectile_impacted"; projectileId: string; objectId: string; targetTeam: TeamId; targetPart?: PartId };
 
 export interface StepReport {
   processedTick: number | null;

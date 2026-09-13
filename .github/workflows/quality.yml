@@ -40,6 +40,6 @@ jobs:
           retention-days: 7
       - uses: actions/upload-artifact@v4
         with:
-          name: semekome-r1-preview
+          name: semekome-r2a-preview
           path: dist/
           retention-days: 14
