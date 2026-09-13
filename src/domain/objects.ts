@@ -160,6 +160,7 @@ export function createFloorObject(
   if (next.objects[object.id]) throw new Error(`object ${object.id} already exists`);
   next.objects[object.id] = {
     id: object.id,
+    weaponId: object.weaponId,
     sourceTeam: object.sourceTeam,
     weight: object.weight,
     originGroupId: object.originGroupId,

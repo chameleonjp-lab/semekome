@@ -1,4 +1,5 @@
 # 実装担当への引き継ぎ / 第5版
+R2aで8武器の共通砲撃ルール・検証済み操作入口・敵4役割の判断基盤を追加した。次の接続時は ../../RULE_ENGINE.md を全文読み、未実装の連続移動・突進・配送予約・補給生成と区別する。画面は配置確認用のままであり、R2全体の完了ではない。
 対象はchameleonjp-lab/semekome。第5版R1の基礎実装と採用配置確認は実装済み。検査の実施範囲は ../../TEST_REPORT.md、次段階は ../../IMPLEMENTATION_PROGRESS.md を参照する。通常戦の完成挙動、実機検査、外部接続・公開登録は未実施である。まずPRODUCT_REQUIREMENTS.md、MAP_ADOPTION.md、SCREEN_FLOW_AND_BATTLEFIELD.md、RESULTS_SCORE_RANKING.md、INITIAL_RULES.json、REQUIREMENTS.json、ENEMY_ROSTER.json、INTERIOR_LAYOUTS.json、ACCEPTANCE_TESTS.jsonを全文読む。核と門の補足はSEVEN_PART_CORE_RULES.md、人物はNPC_ROOMS_AND_RESPAWN.mdを読む。
 自陣左で正面右、敵陣右で正面左、中央広場。自陣を90度右回転した採用配置とその左右反転を使う。文字・操作・世界状態を反転共有しない。図にない核と7門を消さず、復活室と分ける。
 外装7部位→7門→有効な核一撃、敵30人20秒、広場の敵を倒して前進、相互侵入、主人公5秒観戦復活、名前とカウントダウン、結果のスコア詳細・共有・上位10位・実験場リンクを省かない。外装は城同士の攻撃だけで壊す。

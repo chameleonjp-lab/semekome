@@ -70,6 +70,9 @@ test("explicit pause and visibility pause stop the world without wall-clock catc
   assert.equal(world.phase, "paused");
   assert.equal(world.tick, 1);
   world = stepWorld(world, { kind: "visibility", matchId: "pause", visible: true });
+  assert.equal(world.phase, "paused");
+  assert.equal(world.tick, 1);
+  world = stepWorld(world, { kind: "resume", matchId: "pause" });
   assert.equal(world.phase, "running");
   assert.equal(world.tick, 2);
 });

@@ -38,6 +38,7 @@ import type {
   WorldState,
 } from "../domain/types.ts";
 import { GATE_IDS, PART_IDS } from "../domain/types.ts";
+import { applyClockCommand, type ClockCommand } from "./clock.ts";
 
 const PLAYER_TEAM: TeamId = "player";
 const ENEMY_TEAM: TeamId = "enemy";
@@ -741,17 +742,12 @@ function controlInput(world: WorldState, kind: string, input: WorldInput, report
     return true;
   }
   if (kind === "resume") {
-    world.pauseReasons = world.pauseReasons.filter((reason) => reason !== "explicit");
-    world.phase = world.pauseReasons.length ? "paused" : "running";
+    applyClockCommand(world, input as ClockCommand);
     report.acceptedInputKinds.push(kind);
     return true;
   }
   if (kind === "visibility") {
-    const visible = (input as { visible?: unknown }).visible === true;
-    world.visibility = visible ? "visible" : "hidden";
-    if (visible) world.pauseReasons = world.pauseReasons.filter((reason) => reason !== "visibility");
-    else if (!world.pauseReasons.includes("visibility")) world.pauseReasons.push("visibility");
-    world.phase = world.pauseReasons.length ? "paused" : "running";
+    applyClockCommand(world, { kind: "visibility", matchId: world.matchId, visible: (input as { visible?: unknown }).visible === true });
     report.acceptedInputKinds.push(kind);
     return true;
   }
