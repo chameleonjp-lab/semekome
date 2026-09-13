@@ -1,4 +1,4 @@
-import type { BattleState, FixedPoint } from "../simulation/battle.ts";
+import type { BattleState, FixedPoint } from "../simulation/physical-battle.ts";
 import { GATE_IDS, type CastleLayout, type GateId, type Point, type TeamId } from "../domain/types.ts";
 import { ACTOR_RADIUS_SUBUNITS, FLOOR_SUBUNITS } from "./movement.ts";
 

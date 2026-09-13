@@ -1,4 +1,4 @@
-import type { BattleDirection } from '../simulation/battle.ts';
+import type { BattleDirection } from '../simulation/physical-battle.ts';
 
 /** One movement pointer; action pointers never replace it. */
 export function bindMovement(pad: HTMLElement): { direction: () => BattleDirection; clear: () => void; dispose: () => void } {

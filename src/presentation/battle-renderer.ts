@@ -1,5 +1,5 @@
-import { getInteraction } from '../simulation/battle.ts';
-import type { BattleState } from '../simulation/battle.ts';
+import { getInteraction } from '../simulation/physical-battle.ts';
+import type { BattleState } from '../simulation/physical-battle.ts';
 import type { PartId } from '../domain/types.ts';
 import { EQUIPMENT_BODY_SIZE_SUBUNITS } from '../actors/geometry.ts';
 import { getHandoffPosition } from '../artillery/positions.ts';

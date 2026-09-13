@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { createBattle } from "../../src/simulation/battle.ts";
+import { createBattle } from "../../src/simulation/physical-battle.ts";
 import { getHandoffPosition, getTurretOperatorPosition } from "../../src/artillery/positions.ts";
 import { GATE_IDS, type CastleLayout, type GateId, type Point } from "../../src/domain/types.ts";
 import {
@@ -13,7 +13,7 @@ import {
   walkableApproachCells,
   walkableApproachSubpoints,
 } from "../../src/actors/geometry.ts";
-import type { BattleState, FixedPoint } from "../../src/simulation/battle.ts";
+import type { BattleState, FixedPoint } from "../../src/simulation/physical-battle.ts";
 
 interface GeometryOptions {
   widthCells: number;

@@ -7,7 +7,7 @@ import {
   resumeBattle,
   setBattleVisibility,
   stepBattle,
-} from "../../src/simulation/battle.ts";
+} from "../../src/simulation/physical-battle.ts";
 import type { WorldEvent } from "../../src/domain/types.ts";
 
 test("R2a exposes all 33 actors on fixed cell-centre coordinates and rejects public actor/id generations", () => {

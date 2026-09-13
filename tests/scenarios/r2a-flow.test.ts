@@ -9,7 +9,7 @@ import {
   type BattleDirection,
   type BattleIntent,
   type BattleState,
-} from "../../src/simulation/battle.ts";
+} from "../../src/simulation/physical-battle.ts";
 import { GATE_IDS, PART_IDS, type ActorId, type ObjectLocation, type TeamId, type WorldEvent } from "../../src/domain/types.ts";
 
 const ENEMY_SHOOTERS = ["E01", "E02", "E03", "E04"] as const;

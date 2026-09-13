@@ -212,6 +212,8 @@ export type ObjectLocation =
 
 export interface WorldObject {
   id: string;
+  /** R2 cases require a catalog ID; legacy R1 fixtures may omit it. */
+  weaponId?: string;
   sourceTeam: TeamId;
   weight: number;
   location: ObjectLocation;

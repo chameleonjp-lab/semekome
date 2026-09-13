@@ -1,5 +1,5 @@
-import { createBattle, getInteraction, pauseBattle, resumeBattle, setBattleVisibility, stepBattle } from '../simulation/battle.ts';
-import type { BattleHandle, BattleIntent, BattleRoute } from '../simulation/battle.ts';
+import { createBattle, getInteraction, pauseBattle, resumeBattle, setBattleVisibility, stepBattle } from '../simulation/physical-battle.ts';
+import type { BattleHandle, BattleIntent, BattleRoute } from '../simulation/physical-battle.ts';
 import { PART_IDS } from '../domain/types.ts';
 import type { PartId } from '../domain/types.ts';
 import { bindMovement } from '../input/battle-input.ts';

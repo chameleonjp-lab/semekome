@@ -1,5 +1,5 @@
 import type { TeamId } from "../domain/types.ts";
-import type { FixedPoint } from "../simulation/battle.ts";
+import type { FixedPoint } from "../simulation/physical-battle.ts";
 
 export interface TurretPositionSource {
   team: TeamId;
@@ -40,4 +40,3 @@ export function getTurretOperatorPosition(turret: TurretPositionSource): FixedPo
     y: turret.position.y,
   };
 }
-
