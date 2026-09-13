@@ -4,7 +4,12 @@ import type { RulesConfig } from "../domain/types.ts";
 type InitialRulesShape = {
   ruleset_id?: string;
   simulation?: { ticks_per_second?: number; match_limit_ticks?: number };
-  actor?: { health?: number; spawn_protection_ticks?: number; carry_slots?: number };
+  actor?: {
+    health?: number;
+    damage_invulnerability_ticks?: number;
+    spawn_protection_ticks?: number;
+    carry_slots?: number;
+  };
   exterior?: { parts?: Array<{ max_health?: number }> };
   team_profiles?: {
     player?: { respawn_ticks?: number };
@@ -32,6 +37,7 @@ export const DEFAULT_RULES: RulesConfig = {
   playerRespawnTicks: positiveInteger(source.team_profiles?.player?.respawn_ticks, 300),
   enemyRespawnTicks: positiveInteger(source.team_profiles?.enemy?.respawn_ticks, 1_200),
   spawnProtectionTicks: positiveInteger(source.actor?.spawn_protection_ticks, 60),
+  damageInvulnerabilityTicks: positiveInteger(source.actor?.damage_invulnerability_ticks, 36),
   exteriorPartHealth: positiveNumber(source.exterior?.parts?.[0]?.max_health, 50),
   maxCarrySlots: positiveInteger(source.actor?.carry_slots, 2),
 };

@@ -3,7 +3,7 @@ import test from "node:test";
 import { cellCenter, floorCell } from "../../src/actors/movement.ts";
 import { PART_IDS } from "../../src/domain/types.ts";
 import { createWorld, stepWorld } from "../../src/simulation/world.ts";
-import { bridgeCoreFirstContact, preparePlazaEntry } from "../../src/simulation/r2b-bridge.ts";
+import { bridgeActorFirstContact, bridgeCoreFirstContact, preparePlazaEntry } from "../../src/simulation/r2b-bridge.ts";
 import { createBattle, stepBattle as stepPhysicalBattle } from "../../src/simulation/physical-battle.ts";
 import type { BattleState } from "../../src/simulation/physical-battle.ts";
 
@@ -30,6 +30,21 @@ function coreState(matchId: string): { state: BattleState; from: { x: number; y:
   state.fixedActors.P1.position = { ...from };
   state.fixedActors.P1.remainder = { x: 0, y: 0 };
   return { state, from, to };
+}
+
+function actorContactState(matchId: string): { state: BattleState; from: { x: number; y: number }; target: { x: number; y: number } } {
+  const state = createBattle({ matchId, seed: 79 });
+  const from = { x: 49_500, y: 57_500 };
+  const target = { x: 50_000, y: 57_500 };
+  for (const [actorId, point] of [["P1", from], ["E29", target]] as const) {
+    const actor = state.actors[actorId];
+    actor.location = { area: "castle", castleTeam: "enemy", roomId: "command", pathRooms: ["command"], pathGates: [] };
+    actor.currentRoomId = "command";
+    actor.position = { x: floorCell(point.x), y: floorCell(point.y) };
+    state.fixedActors[actorId].position = { ...point };
+    state.fixedActors[actorId].remainder = { x: 0, y: 0 };
+  }
+  return { state, from, target };
 }
 
 test("R2b core bridge accepts only a current physical dash first-contact envelope", () => {
@@ -144,6 +159,110 @@ test("R2b evidence cannot bypass a rejected physical intent envelope", () => {
   assert.equal(next.outcome, "ongoing");
   assert.equal(next.lastStep.rejected.some((rejection) => rejection.reason === "wrong_match"), true);
   assert.equal(next.tick, 1);
+});
+
+test("R2b actor contact applies one common-world damage and physical knockback", () => {
+  const { state, from, target } = actorContactState("r2b-actor-contact");
+  const evidence = {
+    matchId: state.matchId,
+    tick: state.tick,
+    actorId: "P1" as const,
+    generation: state.actors.P1.generation,
+    targetActorId: "E29" as const,
+    targetGeneration: state.actors.E29.generation,
+    attackType: "dash" as const,
+    firstContact: "actor" as const,
+    from,
+    to: target,
+    targetPosition: target,
+  };
+
+  const prepared = bridgeActorFirstContact(state, evidence);
+  assert.equal(prepared.ok, true);
+  if (!prepared.ok) return;
+  assert.equal(prepared.value.amount, 1);
+  assert.equal(prepared.value.actorId, "E29");
+
+  const next = stepPhysicalBattle(state, {
+    matchId: state.matchId,
+    actorId: "P1",
+    generation: state.actors.P1.generation,
+    bridge: { kind: "actor_contact", evidence },
+  });
+  assert.equal(next.tick, 1);
+  assert.equal(next.actors.E29.health, 3);
+  assert.equal(next.actors.E29.damageImmuneUntilTick, 36);
+  assert.deepEqual(next.fixedActors.E29.position, { x: 50_600, y: 57_500 });
+  assert.equal(next.lastStep.acceptedInputKinds.includes("bridge:actor_contact"), true);
+  assert.deepEqual(next.lastStep.events.filter((event) => event.type === "actor_damaged"), [
+    { type: "actor_damaged", actorId: "E29", amount: 1 },
+  ]);
+});
+
+test("R2b actor contact drops the target's selected cargo and blocks repeat damage", () => {
+  const { state, from, target } = actorContactState("r2b-actor-drop");
+  const caseId = "case-contact-drop";
+  state.actors.E29.cargoIds = [caseId];
+  state.cargoSlots.E29 = [caseId, null];
+  state.battleCases[caseId] = {
+    id: caseId,
+    type: "standard_slug",
+    sourceTeam: "enemy",
+    currentTeam: "enemy",
+    weight: 1,
+    location: "carried",
+    currentPosition: { ...target },
+    ownerActorId: "E29",
+    ownerGeneration: state.actors.E29.generation,
+    originGroupId: "group-contact-drop",
+    sourcePortId: "enemy-port-a",
+    createdTick: state.tick,
+    roomId: "command",
+  };
+  state.objects[caseId] = {
+    id: caseId,
+    sourceTeam: "enemy",
+    weight: 1,
+    originGroupId: "group-contact-drop",
+    location: { kind: "carried", actorId: "E29", slot: 0 },
+  };
+  const evidence = {
+    matchId: state.matchId,
+    tick: state.tick,
+    actorId: "P1" as const,
+    generation: state.actors.P1.generation,
+    targetActorId: "E29" as const,
+    targetGeneration: state.actors.E29.generation,
+    attackType: "dash" as const,
+    firstContact: "actor" as const,
+    from,
+    to: target,
+    targetPosition: target,
+    targetCargoId: caseId,
+  };
+
+  const next = stepPhysicalBattle(state, {
+    matchId: state.matchId,
+    actorId: "P1",
+    generation: state.actors.P1.generation,
+    bridge: { kind: "actor_contact", evidence },
+  });
+  assert.equal(next.actors.E29.health, 3);
+  assert.deepEqual(next.actors.E29.cargoIds, []);
+  assert.deepEqual(next.cargoSlots.E29, [null, null]);
+  assert.equal(next.battleCases[caseId].location, "floor");
+  assert.deepEqual(next.battleCases[caseId].currentPosition, target);
+  assert.equal(next.lastStep.events.some((event) => event.type === "object_moved" && event.objectId === caseId), true);
+
+  const repeat = stepWorld(next, {
+    kind: "damage_actor",
+    matchId: next.matchId,
+    actorId: "E29",
+    generation: next.actors.E29.generation,
+    amount: 1,
+  });
+  assert.equal(repeat.actors.E29.health, 3);
+  assert.equal(repeat.lastStep.rejected[0]?.reason, "invulnerable_actor");
 });
 
 test("R2b plaza evidence enters the castle through the physical coordinator", () => {

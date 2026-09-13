@@ -48,6 +48,7 @@ import { getHandoffPosition, getTurretOperatorPosition } from "../artillery/posi
 import type { CrewAssignment, CrewTask } from "../crew/crew.ts";
 import {
   prepareR2bWorldInput,
+  type PhysicalActorContactEvidence,
   type R2bBridgeRequest,
 } from "./r2b-bridge.ts";
 
@@ -55,6 +56,7 @@ const PLAYER_TEAM: TeamId = "player";
 const ENEMY_TEAM: TeamId = "enemy";
 const ALL_TEAMS: readonly TeamId[] = [PLAYER_TEAM, ENEMY_TEAM];
 const ACTION_RANGE_SUBUNITS = GEOMETRY_ACTION_RANGE_SUBUNITS;
+const ACTOR_KNOCKBACK_SUBUNITS = 600;
 const EVENT_LOG_LIMIT = 512;
 const ROUTE_COLLISION_EPSILON = 0.012;
 const AI_REPLAN_TICKS = 120;
@@ -682,6 +684,26 @@ function setCaseFloor(state: BattleState, caseState: BattleCaseState, position: 
   caseState.stagingSlot = undefined;
   caseRoomPosition(state, caseState);
   syncWorldObject(state, caseState);
+}
+
+function applyActorKnockback(state: BattleState, attackerId: ActorId, targetId: ActorId): void {
+  const attacker = state.actors[attackerId];
+  const target = state.actors[targetId];
+  if (!attacker || !target || !attacker.alive || !target.alive || target.location.area !== "castle" || !target.location.castleTeam) return;
+  const attackerPosition = actorFixed(state, attacker.id);
+  const targetPosition = actorFixed(state, target.id);
+  const dx = targetPosition.x - attackerPosition.x;
+  const dy = targetPosition.y - attackerPosition.y;
+  const distance = Math.hypot(dx, dy);
+  if (distance === 0) return;
+  const desired = {
+    x: Math.round(targetPosition.x + (dx / distance) * ACTOR_KNOCKBACK_SUBUNITS),
+    y: Math.round(targetPosition.y + (dy / distance) * ACTOR_KNOCKBACK_SUBUNITS),
+  };
+  const destination = canOccupy(state, target.location.castleTeam, desired)
+    ? desired
+    : furthestWalkablePoint(state, target.location.castleTeam, targetPosition, desired);
+  setActorFixed(state, target, destination);
 }
 
 function setCaseCarried(state: BattleState, caseState: BattleCaseState, actor: ActorState, slot: number): void {
@@ -1507,6 +1529,7 @@ function markDeathIfNeeded(state: BattleState, events: WorldEvent[]): void {
     actor.deathCount += 1;
     actor.lastDeathTick = state.tick;
     actor.respawnAtTick = state.tick + (actor.team === PLAYER_TEAM ? state.rules.playerRespawnTicks : state.rules.enemyRespawnTicks);
+    actor.damageImmuneUntilTick = null;
     actor.turretControlIds = [];
     resetAssignment(state, actor.id);
     events.push(event("actor_died", { actorId: actor.id, generation: actor.generation, respawnAtTick: actor.respawnAtTick }));
@@ -1523,6 +1546,7 @@ function finishRespawns(state: BattleState, events: WorldEvent[]): void {
     actor.generation += 1;
     actor.respawnAtTick = null;
     actor.protectedUntilTick = state.tick + state.rules.spawnProtectionTicks;
+    actor.damageImmuneUntilTick = null;
     actor.currentRoomId = actor.respawnRoomId;
     actor.location = { area: "castle", castleTeam: actor.team, roomId: actor.respawnRoomId, pathRooms: [actor.respawnRoomId], pathGates: [] };
     actor.cargoIds = [];
@@ -1707,8 +1731,9 @@ function bridgeRejectionReason(kind: R2bBridgeRequest["kind"], reason: string): 
  *
  * `stepWorld` is intentionally called on a snapshot and its clock fields are
  * not copied back.  The physical coordinator owns the one shared tick and
- * advances it once below, after logistics and artillery have run.  Only the
- * world-owned fields and events produced by the bridge input are merged.
+ * advances it once below, before the remaining logistics and artillery work.
+ * Only the world-owned fields and events produced by the bridge input are
+ * merged.
  */
 function applyR2bBridge(
   state: BattleState,
@@ -1733,6 +1758,11 @@ function applyR2bBridge(
     return;
   }
 
+  const contactEvidence: PhysicalActorContactEvidence | undefined = request.kind === "actor_contact" ? request.evidence : undefined;
+  const contactTarget = contactEvidence ? state.actors[contactEvidence.targetActorId] : undefined;
+  const contactTargetPosition = contactEvidence ? copyPoint(actorFixed(state, contactEvidence.targetActorId)) : undefined;
+  const contactCargoBefore = contactTarget ? new Set(contactTarget.cargoIds) : undefined;
+  const contactSlotsBefore = contactTarget ? [...(state.cargoSlots[contactTarget.id] ?? [null, null])] as [string | null, string | null] : undefined;
   const bridged = stepWorld(prepared.value.state, prepared.value.input);
   const bridgedReport = bridged.lastStep;
   if (bridgedReport.rejected.length > 0 || !bridgedReport.advanced) {
@@ -1762,6 +1792,22 @@ function applyR2bBridge(
   state.projectiles = bridged.projectiles;
   state.reservations = bridged.reservations;
   state.plaza = bridged.plaza;
+  if (contactEvidence && contactTargetPosition && contactCargoBefore) {
+    const mergedTarget = state.actors[contactEvidence.targetActorId];
+    if (mergedTarget && contactSlotsBefore) {
+      state.cargoSlots[mergedTarget.id] = contactSlotsBefore.map((objectId) =>
+        objectId !== null && mergedTarget.cargoIds.includes(objectId) ? objectId : null,
+      ) as [string | null, string | null];
+    }
+    for (const bridgedEvent of bridgedReport.events) {
+      if (bridgedEvent.type !== "object_moved" || !contactCargoBefore.has(bridgedEvent.objectId)) continue;
+      const caseState = state.battleCases[bridgedEvent.objectId];
+      if (!caseState || bridgedEvent.location.kind !== "floor") continue;
+      clearCargoSlot(state, contactEvidence.targetActorId, bridgedEvent.objectId);
+      setCaseFloor(state, caseState, contactTargetPosition, bridgedEvent.location.team);
+    }
+    applyActorKnockback(state, contactEvidence.actorId, contactEvidence.targetActorId);
+  }
   for (const bridgedEvent of bridgedReport.events) {
     if (bridgedEvent.type !== "actor_respawned") continue;
     const actor = state.actors[bridgedEvent.actorId];
@@ -1802,12 +1848,17 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   markDeathIfNeeded(next, events);
   processCrewAI(next, events);
   updateCaseCarriedPositions(next);
-  autoLoadAtTurrets(next, events);
-  autoLaunch(next, startActors, events);
-  resolveFlights(next, events);
-  spawnSupply(next, events);
-  markDeathIfNeeded(next, events);
   applyR2bBridge(next, intent, report, events);
+  // A validated actor hit must be visible to the common world before launch
+  // selection.  A terminal core contact ends the tick without creating new
+  // logistics/artillery side effects.
+  if ((next.phase as string) !== "ended") {
+    autoLoadAtTurrets(next, events);
+    autoLaunch(next, startActors, events);
+    resolveFlights(next, events);
+    spawnSupply(next, events);
+    markDeathIfNeeded(next, events);
+  }
 
   let finalOutcome: BattleState["outcome"] = next.outcome;
   if (finalOutcome === "ongoing" && currentTick >= next.matchLimitTicks - 1) finalOutcome = "draw";
