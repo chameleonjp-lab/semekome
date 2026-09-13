@@ -272,6 +272,11 @@ function makeCastle(side: TeamId, playerSide: boolean): CastleLayout {
     const rect = rectFromCells(passage.rect_cells);
     return side === "enemy" ? mirrorRect(rect, source.grid.width_cells) : rect;
   });
+  const passageCells = Object.fromEntries((source.passages ?? []).map((passage) => {
+    const rect = rectFromCells(passage.rect_cells);
+    const mirrored = side === "enemy" ? mirrorRect(rect, source.grid.width_cells) : rect;
+    return [passage.id, cellsInRect(mirrored)];
+  }));
   return {
     side,
     widthCells: width,
@@ -281,6 +286,7 @@ function makeCastle(side: TeamId, playerSide: boolean): CastleLayout {
     links,
     floorCells: buildFloorCells(rooms, links, explicitPassages),
     gateCells: makeGateCells(side, links),
+    passageCells,
     coreRouteRooms: [...source.gate_route.from_work_to_core],
     coreRouteGates: source.gate_route.gates_in_order.map((gate) => gate as GateId),
     turrets,
@@ -327,6 +333,12 @@ export function mirrorCastleGeometry(castle: CastleLayout, side: TeamId): Castle
       gateId,
       castle.gateCells[gateId].map((cell) => mirrored ? mirrorPoint(cell, width) : { ...cell }),
     ])) as CastleLayout["gateCells"],
+    passageCells: castle.passageCells
+      ? Object.fromEntries(Object.entries(castle.passageCells).map(([id, cells]) => [
+        id,
+        cells.map((cell) => mirrored ? mirrorPoint(cell, width) : { ...cell }),
+      ]))
+      : undefined,
     coreRouteRooms: [...castle.coreRouteRooms],
     coreRouteGates: [...castle.coreRouteGates],
     turrets: castle.turrets.map((turret) => ({ ...turret, cell: mirrored ? mirrorPoint(turret.cell, width) : { ...turret.cell } })),
