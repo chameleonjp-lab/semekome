@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createBattle } from "../../src/simulation/battle.ts";
+import { getHandoffPosition, getTurretOperatorPosition } from "../../src/artillery/positions.ts";
 import { GATE_IDS, type CastleLayout, type GateId, type Point } from "../../src/domain/types.ts";
 import {
   ACTION_RANGE_SUBUNITS,
@@ -188,4 +189,33 @@ test("geometry does not decide cross-team interaction ownership", () => {
   // Callers must compare actor.location.castleTeam and case.currentTeam before
   // using geometry; this module intentionally has no case ownership input.
   assert.equal(canOccupyFixed(state, "player", state.fixedActors.P1.position), true);
+});
+
+test("all eight turrets have fixed walkable LOS-valid operator and handoff points", () => {
+  const state = createBattle({ matchId: "geometry-turret-positions", seed: 7 });
+  const turrets = Object.values(state.artillery.turrets).sort((left, right) => `${left.team}:${left.id}`.localeCompare(`${right.team}:${right.id}`));
+  assert.equal(turrets.length, 8);
+
+  const distanceSquared = (left: FixedPoint, right: FixedPoint): number => {
+    const dx = left.x - right.x;
+    const dy = left.y - right.y;
+    return dx * dx + dy * dy;
+  };
+  for (const turret of turrets) {
+    const operator = getTurretOperatorPosition(turret);
+    const slot0 = getHandoffPosition(turret, 0);
+    const slot1 = getHandoffPosition(turret, 1);
+    const points = [operator, slot0, slot1];
+    for (const point of points) {
+      assert.equal(canOccupyFixed(state, turret.team, point), true, `${turret.team}:${turret.id} point is walkable`);
+      assert.equal(hasFloorLineOfSight(state, turret.team, point, turret.position), true, `${turret.team}:${turret.id} point sees turret`);
+    }
+    assert.equal(distanceSquared(operator, turret.position), 650 * 650);
+    assert.equal(distanceSquared(operator, slot0), 350 * 350);
+    assert.equal(distanceSquared(operator, slot1), 350 * 350);
+    assert.equal(slot0.x, operator.x);
+    assert.equal(slot1.x, operator.x);
+    assert.equal(slot0.y, operator.y - 350);
+    assert.equal(slot1.y, operator.y + 350);
+  }
 });

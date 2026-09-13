@@ -179,6 +179,52 @@ test("empty cargo slots do not expose drop or deliver and never compact a later 
   assert.equal(getInteraction(state, "P1", 0).handles.includes("drop"), true);
 });
 
+test("pickup interaction and execution skip an overweight nearest case", () => {
+  let state = createBattle({ matchId: "r2a-pickup-candidate", seed: 48 });
+  for (const port of Object.values(state.logistics.ports)) if (port.team === "player") port.nextSpawnTick = 0;
+  state = stepBattle(state);
+  const [heavy, light] = Object.values(state.battleCases).filter((item) => item.currentTeam === "player").slice(0, 2);
+  assert.ok(heavy && light);
+  const actorPosition = { x: 92_500, y: 33_500 };
+  state.fixedActors.P1.position = actorPosition;
+  state.actors.P1.position = { x: 92, y: 33 };
+  for (const actor of Object.values(state.actors)) {
+    actor.cargoIds = actor.cargoIds.filter((id) => id !== heavy.id && id !== light.id);
+    state.cargoSlots[actor.id] = state.cargoSlots[actor.id].map((id) => id === heavy.id || id === light.id ? null : id) as [string | null, string | null];
+  }
+  heavy.location = "carried";
+  heavy.currentTeam = "player";
+  heavy.weight = 2;
+  heavy.position = undefined;
+  heavy.currentPosition = { ...actorPosition };
+  heavy.ownerActorId = "P1";
+  heavy.ownerGeneration = state.actors.P1.generation;
+  state.actors.P1.cargoIds = [heavy.id];
+  state.cargoSlots.P1 = [heavy.id, null];
+  light.location = "floor";
+  light.currentTeam = "player";
+  light.weight = 1;
+  light.position = { x: actorPosition.x + 200, y: actorPosition.y };
+  light.currentPosition = { ...light.position };
+  light.ownerActorId = undefined;
+  light.ownerGeneration = undefined;
+  light.roomId = "central_corridor";
+
+  const interaction = getInteraction(state, "P1", 1);
+  assert.equal(interaction.pickupCaseId, light.id);
+  assert.equal(interaction.handles.includes("pickup"), true);
+  state = stepBattle(state, {
+    matchId: state.matchId,
+    actorId: "P1",
+    generation: state.actors.P1.generation,
+    handle: "pickup",
+    slot: 1,
+    contextToken: interaction.contextToken,
+  });
+  assert.equal(state.lastStep.rejected.length, 0);
+  assert.deepEqual(state.cargoSlots.P1, [heavy.id, light.id]);
+});
+
 test("automatic loading skips a full first operator and hands off to P2 without spinning", () => {
   let state = createBattle({ matchId: "r2a-loader-capacity", seed: 49 });
   for (const port of Object.values(state.logistics.ports)) if (port.team === "player") port.nextSpawnTick = 0;
@@ -190,8 +236,8 @@ test("automatic loading skips a full first operator and hands off to P2 without 
   assert.ok(turret);
 
   const placeAtTurret = (actorId: "P1" | "P2"): void => {
-    state.fixedActors[actorId].position = { ...turret!.position };
-    state.actors[actorId].position = { x: Math.floor(turret!.position.x / 1000), y: Math.floor(turret!.position.y / 1000) };
+    state.fixedActors[actorId].position = { ...turret!.operatorPosition };
+    state.actors[actorId].position = { x: Math.floor(turret!.operatorPosition.x / 1000), y: Math.floor(turret!.operatorPosition.y / 1000) };
   };
   placeAtTurret("P1");
   placeAtTurret("P2");
@@ -211,14 +257,16 @@ test("automatic loading skips a full first operator and hands off to P2 without 
   }
   handoff.location = "handoff";
   handoff.currentTeam = "player";
-  handoff.position = { ...turret!.position };
-  handoff.currentPosition = { ...turret!.position };
+  handoff.position = { ...turret!.stagingPositions[0] };
+  handoff.currentPosition = { ...turret!.stagingPositions[0] };
   handoff.ownerActorId = undefined;
   handoff.ownerGeneration = undefined;
   handoff.turretId = turret!.id;
   handoff.queueIndex = undefined;
   handoff.flightId = undefined;
+  handoff.stagingSlot = 0;
   turret!.handoffIds = [handoff.id];
+  turret!.stagingSlots = [handoff.id, null];
   turret!.queueIds = [];
   state.artillery.nextLaunchTick.player = state.tick + 1000;
   state.nextLaunchTick.player = state.artillery.nextLaunchTick.player;
@@ -229,6 +277,117 @@ test("automatic loading skips a full first operator and hands off to P2 without 
   assert.deepEqual(next.cargoSlots.P1, [first.id, second.id]);
   assert.deepEqual(next.cargoSlots.P2, [null, null]);
   assert.deepEqual(next.actors.P2.cargoIds, []);
+});
+
+test("handoff uses two physical slots and captures the latest selection at enqueue", () => {
+  let state = createBattle({ matchId: "r2a-staging-capture", seed: 51 });
+  for (const port of Object.values(state.logistics.ports)) if (port.team === "player") port.nextSpawnTick = 0;
+  state = stepBattle(state);
+  for (const port of Object.values(state.logistics.ports)) if (port.team === "player") port.nextSpawnTick = state.tick;
+  state = stepBattle(state);
+  const playerCases = Object.values(state.battleCases).filter((item) => item.currentTeam === "player");
+  assert.ok(playerCases.length >= 6);
+  const [first, second, queueA, queueB] = playerCases;
+  const turret = state.artillery.turrets["player:T1"];
+  assert.ok(turret);
+  const selectedIds = new Set([first.id, second.id, queueA.id, queueB.id]);
+  for (const actor of Object.values(state.actors)) {
+    actor.cargoIds = actor.cargoIds.filter((id) => !selectedIds.has(id));
+    state.cargoSlots[actor.id] = state.cargoSlots[actor.id].map((id) => id && selectedIds.has(id) ? null : id) as [string | null, string | null];
+  }
+  state.fixedActors.P1.position = { ...turret.operatorPosition };
+  state.actors.P1.position = { x: Math.floor(turret.operatorPosition.x / 1000), y: Math.floor(turret.operatorPosition.y / 1000) };
+  state.actors.P1.cargoIds = [first.id, second.id];
+  state.cargoSlots.P1 = [first.id, second.id];
+  for (const carried of [first, second]) {
+    carried.location = "carried";
+    carried.currentTeam = "player";
+    carried.position = undefined;
+    carried.currentPosition = { ...turret.operatorPosition };
+    carried.ownerActorId = "P1";
+    carried.ownerGeneration = state.actors.P1.generation;
+    carried.turretId = undefined;
+    carried.queueIndex = undefined;
+    carried.flightId = undefined;
+    carried.stagingSlot = undefined;
+  }
+  for (const [queueCase, index] of [[queueA, 0], [queueB, 1]] as const) {
+    queueCase.location = "queue";
+    queueCase.currentTeam = "player";
+    queueCase.position = { ...turret.position };
+    queueCase.currentPosition = { ...turret.position };
+    queueCase.ownerActorId = undefined;
+    queueCase.ownerGeneration = undefined;
+    queueCase.turretId = turret.id;
+    queueCase.queueIndex = index;
+    queueCase.flightId = undefined;
+    queueCase.stagingSlot = undefined;
+  }
+  turret.queueIds = [queueA.id, queueB.id];
+  turret.handoffIds = [];
+  turret.stagingSlots = [null, null];
+  state.artillery.nextLaunchTick.player = state.tick + 1000;
+  state.nextLaunchTick.player = state.artillery.nextLaunchTick.player;
+
+  let interaction = getInteraction(state, "P1", 0);
+  assert.equal(interaction.handles.includes("deliver"), true);
+  state = stepBattle(state, {
+    matchId: state.matchId,
+    actorId: "P1",
+    generation: state.actors.P1.generation,
+    handle: "deliver",
+    slot: 0,
+    route: "detour",
+    part: "P4",
+    contextToken: interaction.contextToken,
+  });
+  assert.deepEqual(state.artillery.turrets["player:T1"].stagingSlots, [first.id, null]);
+  assert.deepEqual(state.battleCases[first.id].currentPosition, turret.stagingPositions[0]);
+
+  interaction = getInteraction(state, "P1", 1);
+  assert.equal(interaction.handles.includes("deliver"), true);
+  state = stepBattle(state, {
+    matchId: state.matchId,
+    actorId: "P1",
+    generation: state.actors.P1.generation,
+    handle: "deliver",
+    slot: 1,
+    route: "detour",
+    part: "P4",
+    contextToken: interaction.contextToken,
+  });
+  const staged = state.artillery.turrets["player:T1"];
+  assert.deepEqual(staged.stagingSlots, [first.id, second.id]);
+  assert.deepEqual(state.battleCases[first.id].currentPosition, turret.stagingPositions[0]);
+  assert.deepEqual(state.battleCases[second.id].currentPosition, turret.stagingPositions[1]);
+  assert.notDeepEqual(state.battleCases[first.id].currentPosition, state.battleCases[second.id].currentPosition);
+
+  // Free one queue slot. The next tick carries the latest UI selection and
+  // auto-loads slot 0, leaving slot 1 in place rather than re-packing it.
+  const currentQueueA = state.battleCases[queueA.id];
+  const currentQueueB = state.battleCases[queueB.id];
+  staged.queueIds = [currentQueueA.id];
+  currentQueueA.queueIndex = 0;
+  currentQueueB.location = "floor";
+  currentQueueB.currentTeam = "player";
+  currentQueueB.position = { x: 90_500, y: 33_500 };
+  currentQueueB.currentPosition = { ...currentQueueB.position };
+  currentQueueB.turretId = undefined;
+  currentQueueB.queueIndex = undefined;
+  state = stepBattle(state, {
+    matchId: state.matchId,
+    actorId: "P1",
+    generation: state.actors.P1.generation,
+    direction: { x: 0, y: 0 },
+    route: "direct",
+    part: "P5",
+  });
+  assert.equal(state.lastStep.rejected.length, 0);
+  assert.equal(state.battleCases[first.id].route, "direct");
+  assert.equal(state.battleCases[first.id].targetPart, "P5");
+  assert.deepEqual(state.artillery.turrets["player:T1"].stagingSlots, [null, second.id]);
+  assert.equal(state.battleCases[second.id].stagingSlot, 1);
+  assert.deepEqual(state.battleCases[second.id].currentPosition, turret.stagingPositions[1]);
 });
 
 test("gate event numbering follows newly destroyed prefix count, not part id order", () => {

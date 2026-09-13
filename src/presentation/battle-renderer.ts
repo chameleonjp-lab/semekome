@@ -2,6 +2,7 @@ import { getInteraction } from '../simulation/battle.ts';
 import type { BattleState } from '../simulation/battle.ts';
 import type { PartId } from '../domain/types.ts';
 import { EQUIPMENT_BODY_SIZE_SUBUNITS } from '../actors/geometry.ts';
+import { getHandoffPosition } from '../artillery/positions.ts';
 
 export const caseLabels: Record<string, string> = {
   standard_slug: '標準弾', dense_payload: '重量弾', screen_panel: '防護板', fast_dart: '高速杭',
@@ -90,6 +91,13 @@ export function createBattleRenderer(canvas: HTMLCanvasElement, initial: BattleS
       context.textAlign = 'center'; context.fillStyle = '#ecdfb7'; context.fillText('補給', x(port.cell.x + .5), y(port.cell.y - .7));
     }
     for (const turret of layout.turrets) {
+      const liveTurret = state.artillery.turrets[`player:${turret.id}`];
+      if (liveTurret) for (const slot of [0, 1] as const) {
+        const point = getHandoffPosition(liveTurret, slot);
+        const frameSize = Math.max(4, scale * .45);
+        context.strokeStyle = '#799b99'; context.lineWidth = 1;
+        context.strokeRect(x(point.x / 1000) - frameSize / 2, y(point.y / 1000) - frameSize / 2, frameSize, frameSize);
+      }
       const size = EQUIPMENT_BODY_SIZE_SUBUNITS / 1000;
       const inset = (1 - size) / 2;
       context.fillStyle = '#80b9b1'; context.fillRect(x(turret.cell.x + inset), y(turret.cell.y + inset), scale * size, scale * size);
@@ -104,18 +112,29 @@ export function createBattleRenderer(canvas: HTMLCanvasElement, initial: BattleS
       context.fillStyle = '#c7e8e1'; context.textAlign = 'center'; context.fillText(`${turret.label} ${queued}/2`, x(turret.cell.x + .5), y(turret.cell.y - .7));
     }
     const highlighted = interaction.handles.includes('pickup') && !interaction.handles.includes('deliver') && !interaction.handles.includes('load')
-      ? interaction.cases.find(item => item.location === 'floor' || item.location === 'handoff') : undefined;
+      ? interaction.cases.find(item => item.id === interaction.pickupCaseId) : undefined;
     for (const item of Object.values(state.battleCases)) {
       const object = state.objects[item.id];
       if (!item.currentPosition || object?.location.kind !== 'floor' || object.location.team !== 'player') continue;
       const p = item.currentPosition;
       context.fillStyle = caseColors[item.type] ?? '#eddaae';
       const size = Math.max(5, scale * .65);
-      context.fillRect(x(p.x / 1000) - size / 2, y(p.y / 1000) - size / 2, size, size);
-      context.strokeStyle = '#142631'; context.strokeRect(x(p.x / 1000) - size / 2, y(p.y / 1000) - size / 2, size, size);
-      context.textAlign = 'center'; context.font = '10px -apple-system, "Noto Sans JP", sans-serif'; context.fillStyle = '#f2efdb';
-      context.fillText(({ standard_slug: '標', dense_payload: '重', screen_panel: '防', fast_dart: '速' } as const)[item.type], x(p.x / 1000), y(p.y / 1000) - size / 2 - 3);
+      const cx = x(p.x / 1000), cy = y(p.y / 1000);
+      context.beginPath();
+      if (item.type === 'dense_payload') {
+        context.moveTo(cx, cy - size / 2); context.lineTo(cx + size / 2, cy);
+        context.lineTo(cx, cy + size / 2); context.lineTo(cx - size / 2, cy); context.closePath();
+      } else if (item.type === 'fast_dart') {
+        context.moveTo(cx + size / 2, cy); context.lineTo(cx - size / 2, cy - size / 2);
+        context.lineTo(cx - size / 2, cy + size / 2); context.closePath();
+      } else if (item.type === 'screen_panel') context.rect(cx - size * .6, cy - size * .25, size * 1.2, size * .5);
+      else context.rect(cx - size / 2, cy - size / 2, size, size);
+      context.fill(); context.strokeStyle = '#142631'; context.lineWidth = 1; context.stroke();
       if (item.id === highlighted?.id) {
+        // Name only the actionable case; sixteen stacked labels obscure the
+        // supply floor. All four types remain distinguishable by silhouette.
+        context.textAlign = 'center'; context.font = '10px -apple-system, "Noto Sans JP", sans-serif'; context.fillStyle = '#f2efdb';
+        context.fillText(caseLabels[item.type], cx, cy - size / 2 - 6);
         context.strokeStyle = '#fff4b0'; context.lineWidth = 2;
         context.strokeRect(x(p.x / 1000) - size / 2 - 3, y(p.y / 1000) - size / 2 - 3, size + 6, size + 6);
       }

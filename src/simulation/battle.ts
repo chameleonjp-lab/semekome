@@ -44,6 +44,7 @@ import {
   SHARED_LAUNCH_COOLDOWN_TICKS,
   type ArtilleryRoute,
 } from "../artillery/artillery.ts";
+import { getHandoffPosition, getTurretOperatorPosition } from "../artillery/positions.ts";
 import type { CrewAssignment, CrewTask } from "../crew/crew.ts";
 
 const PLAYER_TEAM: TeamId = "player";
@@ -120,6 +121,8 @@ export interface BattleCaseView {
   queueIndex?: number;
   route?: BattleRoute;
   targetPart?: PartId;
+  /** Fixed physical handoff floor slot, retained while staged. */
+  stagingSlot?: 0 | 1;
   originGroupId: string;
   sourcePortId: string;
   interceptRemaining?: number;
@@ -132,6 +135,10 @@ export interface BattleCaseState extends BattleCaseView {
   roomId: string;
   position?: FixedPoint;
   flightId?: string;
+  /** Route/part selected before loading; captured into route/targetPart at enqueue. */
+  pendingRoute?: BattleRoute;
+  pendingTargetPart?: PartId;
+  pendingSelectionActorId?: ActorId;
 }
 
 export interface BattleFlightView {
@@ -174,6 +181,10 @@ export interface BattleTurretState {
   roomId: string;
   queueIds: string[];
   handoffIds: string[];
+  /** Two physical staging slots; null is an empty slot and never re-packed. */
+  stagingSlots: [string | null, string | null];
+  stagingPositions: [FixedPoint, FixedPoint];
+  operatorPosition: FixedPoint;
   stoppedUntilTick: number | null;
   operatorActorIds: ActorId[];
 }
@@ -211,6 +222,8 @@ export interface BattleInteraction {
   turretIds: string[];
   /** Only actions that have a valid target in this snapshot. */
   handles: BattleHandle[];
+  /** The exact nearest pickup target accepted for the selected empty slot. */
+  pickupCaseId?: string;
   contextToken: string;
   selectedSlot?: 0 | 1;
 }
@@ -238,6 +251,8 @@ export interface BattleState extends WorldState {
   logistics: BattleLogisticsState;
   artillery: BattleArtilleryState;
   crew: BattleCrewState;
+  /** Latest UI route/part selection; read at the actual enqueue tick. */
+  launchSelections: Record<string, { route?: BattleRoute; part?: PartId }>;
   nextLaunchTick: Record<TeamId, number>;
   eventLogLimit: number;
 }
@@ -308,6 +323,7 @@ function caseView(caseState: BattleCaseState, token?: string): BattleCaseView {
     queueIndex: caseState.queueIndex,
     route: caseState.route,
     targetPart: caseState.targetPart,
+    stagingSlot: caseState.stagingSlot,
     originGroupId: caseState.originGroupId,
     sourcePortId: caseState.sourcePortId,
     interceptRemaining: caseState.interceptRemaining,
@@ -638,6 +654,7 @@ function setCaseFloor(state: BattleState, caseState: BattleCaseState, position: 
   caseState.turretId = undefined;
   caseState.queueIndex = undefined;
   caseState.flightId = undefined;
+  caseState.stagingSlot = undefined;
   caseRoomPosition(state, caseState);
   syncWorldObject(state, caseState);
 }
@@ -652,23 +669,26 @@ function setCaseCarried(state: BattleState, caseState: BattleCaseState, actor: A
   caseState.turretId = undefined;
   caseState.queueIndex = undefined;
   caseState.flightId = undefined;
+  caseState.stagingSlot = undefined;
   const slots = state.cargoSlots[actor.id] ?? [null, null];
   slots[slot] = caseState.id;
   state.cargoSlots[actor.id] = slots;
   syncWorldObject(state, caseState);
 }
 
-function setCaseHandoff(state: BattleState, caseState: BattleCaseState, turret: BattleTurretState): void {
+function setCaseHandoff(state: BattleState, caseState: BattleCaseState, turret: BattleTurretState, stagingSlot: 0 | 1): void {
   caseState.location = "handoff";
   caseState.currentTeam = turret.team;
-  caseState.position = copyPoint(turret.position);
-  caseState.currentPosition = copyPoint(turret.position);
+  caseState.position = copyPoint(turret.stagingPositions[stagingSlot]);
+  caseState.currentPosition = copyPoint(turret.stagingPositions[stagingSlot]);
   caseState.ownerActorId = undefined;
   caseState.ownerGeneration = undefined;
   caseState.turretId = turret.id;
   caseState.queueIndex = undefined;
   caseState.flightId = undefined;
+  caseState.stagingSlot = stagingSlot;
   caseState.roomId = turret.roomId;
+  turret.stagingSlots[stagingSlot] = caseState.id;
   syncWorldObject(state, caseState);
 }
 
@@ -682,6 +702,7 @@ function setCaseQueue(state: BattleState, caseState: BattleCaseState, turret: Ba
   caseState.turretId = turret.id;
   caseState.queueIndex = turret.queueIds.indexOf(caseState.id);
   caseState.flightId = undefined;
+  caseState.stagingSlot = undefined;
   caseState.roomId = turret.roomId;
   syncWorldObject(state, caseState);
 }
@@ -695,6 +716,7 @@ function setCaseConsumed(state: BattleState, caseState: BattleCaseState, reason:
   caseState.turretId = undefined;
   caseState.queueIndex = undefined;
   caseState.flightId = undefined;
+  caseState.stagingSlot = undefined;
   syncWorldObject(state, caseState);
   state.objects[caseState.id].location = { kind: "consumed", reason, tick: state.tick };
   const group = state.logistics.groups[caseState.originGroupId];
@@ -829,13 +851,18 @@ function pickCase(state: BattleState, actor: ActorState, caseState: BattleCaseSt
   if (!caseState.position || !withinActionRange(actorFixed(state, actor.id), caseState.position)) return false;
   if (!hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), caseState.position)) return false;
   if (!canCarry(carryWeight(state, actor), caseState.weight, actor.cargoIds.length)) return false;
-  if (caseState.location === "handoff" && caseState.turretId) {
-    const turret = state.artillery.turrets[turretKey(caseState.currentTeam, caseState.turretId)];
-    if (turret) removeFromArray(turret.handoffIds, caseState.id);
-  }
   const slots = state.cargoSlots[actor.id] ?? [null, null];
   const slot = requestedSlot === undefined ? slots.findIndex((entry) => entry === null) : requestedSlot;
   if (slot < 0 || slot > 1 || slots[slot] !== null) return false;
+  // Validate the requested cargo slot before mutating the physical handoff
+  // registry. A rejected press must not make a staged case disappear.
+  if (caseState.location === "handoff" && caseState.turretId) {
+    const turret = state.artillery.turrets[turretKey(caseState.currentTeam, caseState.turretId)];
+    const stagingSlot = caseState.stagingSlot;
+    if (!turret || stagingSlot === undefined || turret.stagingSlots[stagingSlot] !== caseState.id) return false;
+    removeFromArray(turret.handoffIds, caseState.id);
+    turret.stagingSlots[stagingSlot] = null;
+  }
   actor.cargoIds.push(caseState.id);
   setCaseCarried(state, caseState, actor, slot);
   events.push(event("object_moved", { objectId: caseState.id, location: state.objects[caseState.id].location }));
@@ -846,31 +873,62 @@ function lowestAlivePart(castle: BattleState["castles"][TeamId]): PartId | undef
   return PART_IDS.find((id) => !castle.exterior[id].destroyed);
 }
 
+function availableStagingSlot(state: BattleState, actor: ActorState, turret: BattleTurretState): 0 | 1 | undefined {
+  const actorPosition = actorFixed(state, actor.id);
+  for (const slot of [0, 1] as const) {
+    if (turret.stagingSlots[slot] !== null) continue;
+    const stagingPosition = turret.stagingPositions[slot];
+    if (withinActionRange(actorPosition, stagingPosition) && hasFloorLineOfSight(state, actor.team, actorPosition, stagingPosition)) return slot;
+  }
+  return undefined;
+}
+
+function firstHandoffCase(state: BattleState, turret: BattleTurretState): { caseState: BattleCaseState; slot: 0 | 1 } | undefined {
+  for (const slot of [0, 1] as const) {
+    const caseId = turret.stagingSlots[slot];
+    if (!caseId) continue;
+    const caseState = state.battleCases[caseId];
+    if (caseState?.location === "handoff") return { caseState, slot };
+  }
+  // Keep public fixtures and old snapshots readable while all newly created
+  // turrets use stagingSlots as the physical source of truth.
+  const legacyId = turret.handoffIds[0];
+  const legacyCase = legacyId ? state.battleCases[legacyId] : undefined;
+  if (legacyCase?.location === "handoff" && legacyCase.stagingSlot !== undefined) return { caseState: legacyCase, slot: legacyCase.stagingSlot };
+  return undefined;
+}
+
 function deliverCase(state: BattleState, actor: ActorState, caseState: BattleCaseState, route: BattleRoute | undefined, part: PartId | undefined, events: WorldEvent[]): boolean {
   if (!actor.cargoIds.includes(caseState.id)) return false;
   if (route !== undefined && !isBattleRoute(route)) return false;
   if (part !== undefined && !isPartId(part)) return false;
   const turret = turretAtActor(state, actor);
-  if (!turret || turret.team !== actor.team || turret.handoffIds.length >= STAGING_SLOTS_PER_TURRET) return false;
-  caseState.route = route ?? caseState.route ?? "direct";
-  // Route/aim are held on the physical case until queueing. The preferred
-  // part is captured at enqueue time, while a supplied explicit part remains
-  // the player's choice even if the castle changes during handoff.
-  if (part !== undefined) caseState.targetPart = part;
+  if (!turret || turret.team !== actor.team) return false;
+  const stagingSlot = availableStagingSlot(state, actor, turret);
+  if (stagingSlot === undefined) return false;
+  // Route/aim selection is held separately while the case waits on the floor;
+  // route/targetPart themselves are captured only when load enqueues it.
+  caseState.pendingRoute = route;
+  caseState.pendingTargetPart = part;
+  caseState.pendingSelectionActorId = actor.id;
   removeFromArray(actor.cargoIds, caseState.id);
   clearCargoSlot(state, actor.id, caseState.id);
   turret.handoffIds.push(caseState.id);
-  setCaseHandoff(state, caseState, turret);
+  setCaseHandoff(state, caseState, turret, stagingSlot);
   events.push(event("object_moved", { objectId: caseState.id, location: state.objects[caseState.id].location }));
   return true;
 }
 
-function loadHandoff(state: BattleState, actor: ActorState, turret: BattleTurretState, events: WorldEvent[]): boolean {
-  if (!withinActionRange(actorFixed(state, actor.id), turret.position) || turret.team !== actor.team || turret.queueIds.length >= QUEUE_CAPACITY_PER_TURRET) return false;
-  const caseId = turret.handoffIds[0];
-  if (!caseId) return false;
-  const caseState = state.battleCases[caseId];
-  if (!caseState) return false;
+function loadHandoff(state: BattleState, actor: ActorState, turret: BattleTurretState, route: BattleRoute | undefined, part: PartId | undefined, events: WorldEvent[]): boolean {
+  if (turret.team !== actor.team || turret.queueIds.length >= QUEUE_CAPACITY_PER_TURRET) return false;
+  if (route !== undefined && !isBattleRoute(route)) return false;
+  if (part !== undefined && !isPartId(part)) return false;
+  const handoffSelection = firstHandoffCase(state, turret);
+  if (!handoffSelection) return false;
+  const { caseState } = handoffSelection;
+  const caseId = caseState.id;
+  if (!withinActionRange(actorFixed(state, actor.id), caseState.position ?? turret.position) ||
+      !hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), caseState.position ?? turret.position)) return false;
   // A handoff is not a teleport into the queue: the live operator first picks
   // the physical case up, then places that same case into the turret queue.
   if (!pickCase(state, actor, caseState, events)) return false;
@@ -878,7 +936,15 @@ function loadHandoff(state: BattleState, actor: ActorState, turret: BattleTurret
   if (cargoSlot < 0) return false;
   removeFromArray(actor.cargoIds, caseId);
   clearCargoSlot(state, actor.id, caseId);
-  caseState.targetPart = caseState.targetPart ?? lowestAlivePart(state.castles[actor.team === PLAYER_TEAM ? ENEMY_TEAM : PLAYER_TEAM]);
+  // Explicit load intent wins over a previously held handoff selection. This
+  // is the authoritative enqueue capture point for both route and target.
+  const operatorSelection = state.launchSelections[actor.id] ??
+    (caseState.pendingSelectionActorId ? state.launchSelections[caseState.pendingSelectionActorId] : undefined);
+  caseState.route = route ?? operatorSelection?.route ?? caseState.pendingRoute ?? caseState.route ?? "direct";
+  caseState.targetPart = part ?? operatorSelection?.part ?? caseState.pendingTargetPart ?? caseState.targetPart ?? lowestAlivePart(state.castles[actor.team === PLAYER_TEAM ? ENEMY_TEAM : PLAYER_TEAM]);
+  caseState.pendingRoute = undefined;
+  caseState.pendingTargetPart = undefined;
+  caseState.pendingSelectionActorId = undefined;
   turret.queueIds.push(caseId);
   setCaseQueue(state, caseState, turret);
   events.push(event("object_moved", { objectId: caseId, location: state.objects[caseId].location }));
@@ -902,6 +968,16 @@ function interactionCandidates(state: BattleState, actor: ActorState): BattleCas
     if (actor.location.area !== "castle" || actor.location.castleTeam !== actor.team || candidate.currentTeam !== actor.team) return false;
     return !!candidate.position && withinActionRange(actorPosition, candidate.position) && hasFloorLineOfSight(state, actor.team, actorPosition, candidate.position);
   }).sort((left, right) => left.id.localeCompare(right.id));
+}
+
+function validPickupCandidate(state: BattleState, actor: ActorState, slot: number, candidates: BattleCaseState[]): BattleCaseState | undefined {
+  if (slot !== 0 && slot !== 1) return undefined;
+  if ((state.cargoSlots[actor.id] ?? [null, null])[slot] !== null) return undefined;
+  return candidates
+    .filter((candidate) => (candidate.location === "floor" || candidate.location === "handoff") &&
+      canCarry(carryWeight(state, actor), candidate.weight, actor.cargoIds.length))
+    .sort((left, right) => distanceSquared(actorFixed(state, actor.id), left.position ?? actorFixed(state, actor.id)) -
+      distanceSquared(actorFixed(state, actor.id), right.position ?? actorFixed(state, actor.id)) || left.id.localeCompare(right.id))[0];
 }
 
 function handleIntent(
@@ -946,10 +1022,9 @@ function handleIntent(
   }
   let candidate: BattleCaseState | undefined;
   if (intent.handle === "pickup") {
-    // Pickup chooses the single nearest valid floor/handoff candidate. The
-    // slot field is reserved for the actor's stable cargo slot on drop/deliver.
-    candidate = all.filter((item) => item.location === "floor" || item.location === "handoff")
-      .sort((left, right) => distanceSquared(actorFixed(state, actor.id), left.position ?? actorFixed(state, actor.id)) - distanceSquared(actorFixed(state, actor.id), right.position ?? actorFixed(state, actor.id)) || left.id.localeCompare(right.id))[0];
+    // Pickup and getInteraction share the same nearest *carryable* candidate;
+    // an overweight nearby case must not mask a valid lighter one.
+    candidate = validPickupCandidate(state, actor, slot, all);
     if (intent.slot !== undefined && (intent.slot !== 0 && intent.slot !== 1)) {
       addRejection(report, 0, "invalid_object_transition", "slot must be 0 or 1");
       return;
@@ -978,7 +1053,7 @@ function handleIntent(
     }
   } else if (intent.handle === "load") {
     const turret = turretAtActor(state, actor);
-    if (!turret || !loadHandoff(state, actor, turret, events)) {
+    if (!turret || !loadHandoff(state, actor, turret, intent.route, intent.part, events)) {
       addRejection(report, 0, "invalid_object_transition", "handoff or queue unavailable");
       return;
     }
@@ -1036,6 +1111,9 @@ function launchOne(state: BattleState, turret: BattleTurretState, startActors: R
   caseState.turretId = undefined;
   caseState.queueIndex = undefined;
   caseState.flightId = flightId;
+  caseState.stagingSlot = undefined;
+  caseState.pendingRoute = undefined;
+  caseState.pendingTargetPart = undefined;
   syncWorldObject(state, caseState);
   state.projectiles[flightId] = {
     id: flightId,
@@ -1053,11 +1131,12 @@ function launchOne(state: BattleState, turret: BattleTurretState, startActors: R
 function autoLoadAtTurrets(state: BattleState, events: WorldEvent[]): void {
   for (const turret of Object.values(state.artillery.turrets).sort((left, right) => `${left.team}:${left.id}`.localeCompare(`${right.team}:${right.id}`))) {
     while (turret.queueIds.length < QUEUE_CAPACITY_PER_TURRET && turret.handoffIds.length > 0) {
-      const handoff = state.battleCases[turret.handoffIds[0]];
-      if (!handoff) {
+      const selected = firstHandoffCase(state, turret);
+      if (!selected) {
         turret.handoffIds.shift();
         continue;
       }
+      const handoff = selected.caseState;
       // Pick a live, unprotected operator that can actually accept this case.
       // P1 may be the first deterministic operator but have a full/overweight
       // cargo load while P2/P3 are available at the same turret.
@@ -1066,12 +1145,14 @@ function autoLoadAtTurrets(state: BattleState, events: WorldEvent[]): void {
         .filter((actor): actor is ActorState => !!actor && actor.alive && !actorIsProtected(state, actor) &&
           withinActionRange(actorFixed(state, actor.id), turret.position) &&
           hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), turret.position) &&
+          withinActionRange(actorFixed(state, actor.id), handoff.position ?? turret.position) &&
+          hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), handoff.position ?? turret.position) &&
           canCarry(carryWeight(state, actor), handoff.weight, actor.cargoIds.length))
         .sort((left, right) => left.id.localeCompare(right.id))[0];
       if (!operator) break;
       // A failed load must make progress impossible for this handoff/operator
       // pair; break rather than spinning on an unchanged staging entry.
-      if (!loadHandoff(state, operator, turret, events)) break;
+      if (!loadHandoff(state, operator, turret, undefined, undefined, events)) break;
     }
   }
 }
@@ -1346,12 +1427,12 @@ function processCarrierAI(state: BattleState, actor: ActorState, events: WorldEv
   assignment.task = "deliver";
   if (assignment.targetTurretId !== turret.id || assignment.path.length === 0) {
     assignment.targetTurretId = turret.id;
-    assignment.path = actorTargetPath(state, actor, turret.position);
+    assignment.path = actorTargetPath(state, actor, turret.operatorPosition);
     assignment.pathIndex = 0;
     assignment.stuckTicks = 0;
   }
-  moveAIAlongPath(state, actor, assignment, turret.position);
-  if (!actorIsProtected(state, actor) && withinActionRange(actorFixed(state, actor.id), turret.position)) {
+  moveAIAlongPath(state, actor, assignment, turret.operatorPosition);
+  if (!actorIsProtected(state, actor) && availableStagingSlot(state, actor, turret) !== undefined) {
     let delivered = false;
     for (const item of [...carried]) {
       if (turret.handoffIds.length >= STAGING_SLOTS_PER_TURRET) break;
@@ -1377,11 +1458,11 @@ function processShooterAI(state: BattleState, actor: ActorState): void {
   assignment.task = "operate";
   if (assignment.targetTurretId !== turret.id || assignment.path.length === 0) {
     assignment.targetTurretId = turret.id;
-    assignment.path = actorTargetPath(state, actor, turret.position);
+    assignment.path = actorTargetPath(state, actor, turret.operatorPosition);
     assignment.pathIndex = 0;
     assignment.stuckTicks = 0;
   }
-  moveAIAlongPath(state, actor, assignment, turret.position);
+  moveAIAlongPath(state, actor, assignment, turret.operatorPosition);
   state.crew.assignments[actor.id] = assignment;
 }
 
@@ -1455,13 +1536,23 @@ function makeTurrets(state: BattleState): Record<string, BattleTurretState> {
   for (const team of ALL_TEAMS) {
     for (const definition of teamLayout(state, team).turrets) {
       const operators: ActorId[] = team === ENEMY_TEAM && definition.operatorActorId ? [definition.operatorActorId] : ["P1", "P2", "P3"];
+      const position = { x: cellCenter(definition.cell.x), y: cellCenter(definition.cell.y) };
+      const positionSource = { team, position };
+      const operatorPosition = getTurretOperatorPosition(positionSource);
+      const stagingPositions: [FixedPoint, FixedPoint] = [
+        getHandoffPosition(positionSource, 0),
+        getHandoffPosition(positionSource, 1),
+      ];
       turrets[turretKey(team, definition.id)] = {
         id: definition.id,
         team,
-        position: { x: cellCenter(definition.cell.x), y: cellCenter(definition.cell.y) },
+        position,
         roomId: definition.roomId,
         queueIds: [],
         handoffIds: [],
+        stagingSlots: [null, null],
+        stagingPositions,
+        operatorPosition,
         stoppedUntilTick: null,
         operatorActorIds: operators,
       };
@@ -1492,6 +1583,7 @@ export function createBattle(options: { matchId: string; seed: number }): Battle
     },
     artillery: { turrets: {}, flights: {}, nextLaunchTick: { player: 0, enemy: 0 }, roundRobinTurretIndex: { player: 0, enemy: 0 }, contactPairs: {} },
     crew: { assignments: {} },
+    launchSelections: {},
     nextLaunchTick: { player: 0, enemy: 0 },
     eventLogLimit: EVENT_LOG_LIMIT,
   } as BattleState;
@@ -1539,6 +1631,24 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
   }
   const actor = resolveActor(state, intent, report);
   if (!actor) return;
+  // Route/part are presentation selections, not object identifiers. Retain
+  // the latest validated values so an automatic operator load captures the
+  // selection that was current at the actual enqueue tick.
+  if (intent.route !== undefined && !isBattleRoute(intent.route)) {
+    addRejection(report, 0, "invalid_transition", "unknown artillery route");
+    return;
+  }
+  if (intent.part !== undefined && !isPartId(intent.part)) {
+    addRejection(report, 0, "invalid_transition", "unknown target part");
+    return;
+  }
+  if (intent.route !== undefined || intent.part !== undefined) {
+    const previous = state.launchSelections[actor.id] ?? {};
+    state.launchSelections[actor.id] = {
+      route: intent.route ?? previous.route,
+      part: intent.part ?? previous.part,
+    };
+  }
   // The UI obtains its opaque token from the tick-start interaction. Latch
   // that candidate set before movement so a simultaneous direction update
   // cannot invalidate a legitimate near-boundary handling action.
@@ -1653,15 +1763,18 @@ export function getInteraction(state: BattleState, actorId: ActorId = "P1", slot
   const selectedSlot = validSlot ? slot as 0 | 1 : undefined;
   const selectedCaseId = actor && selectedSlot !== undefined ? state.cargoSlots[actor.id]?.[selectedSlot] ?? null : null;
   const selectedCase = selectedCaseId ? state.battleCases[selectedCaseId] : undefined;
-  const nearbyFloor = candidates.filter((candidate) => candidate.location === "floor" || candidate.location === "handoff");
+  const pickupCandidate = actor && validSlot ? validPickupCandidate(state, actor, slot, candidates) : undefined;
   const turret = actor ? turretAtActor(state, actor) : undefined;
   const handles: BattleHandle[] = [];
   const actionable = !!actor && actor.alive && !actorIsProtected(state, actor) && validSlot;
   const selectedOwned = !!selectedCase && selectedCase.location === "carried" && selectedCase.ownerActorId === actorId && selectedCase.ownerGeneration === actor?.generation;
-  if (actionable && selectedOwned && turret && turret.handoffIds.length < STAGING_SLOTS_PER_TURRET) handles.push("deliver");
+  if (actionable && selectedOwned && turret && availableStagingSlot(state, actor!, turret) !== undefined) handles.push("deliver");
   if (actionable && selectedOwned) handles.push("drop");
-  if (actionable && turret && turret.handoffIds.length > 0 && turret.queueIds.length < QUEUE_CAPACITY_PER_TURRET) handles.push("load");
-  if (actionable && !selectedOwned && nearbyFloor.some((candidate) => canCarry(carryWeight(state, actor!), candidate.weight, actor!.cargoIds.length))) handles.push("pickup");
+  const loadCandidate = turret ? firstHandoffCase(state, turret)?.caseState : undefined;
+  if (actionable && turret && loadCandidate && turret.queueIds.length < QUEUE_CAPACITY_PER_TURRET &&
+      canCarry(carryWeight(state, actor!), loadCandidate.weight, actor!.cargoIds.length) &&
+      loadCandidate.position && withinActionRange(fixed, loadCandidate.position) && hasFloorLineOfSight(state, actor!.team, fixed, loadCandidate.position)) handles.push("load");
+  if (actionable && !selectedOwned && pickupCandidate) handles.push("pickup");
   const queue: string[] = [];
   const queueEntries: Array<{ id: string; turretId: string; slot: number }> = [];
   if (actor) for (const candidate of Object.values(state.battleCases).filter((item) => item.location === "queue" && item.currentTeam === actor.team).sort((left, right) => left.id.localeCompare(right.id))) {
@@ -1678,6 +1791,7 @@ export function getInteraction(state: BattleState, actorId: ActorId = "P1", slot
     queueEntries,
     turretIds: actor ? Object.values(state.artillery.turrets).filter((item) => item.team === actor.team).map((item) => item.id).sort() : [],
     handles,
+    pickupCaseId: pickupCandidate?.id,
     contextToken,
     selectedSlot,
   };

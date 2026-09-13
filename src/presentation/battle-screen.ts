@@ -159,7 +159,7 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     const available = (['deliver', 'load', 'pickup'] as const).find(handle => interaction.handles.includes(handle));
     const actor = state.actors.P1;
     const cargo = [0, 1].map(index => Object.values(state.objects).find(item => (item.location.kind === 'carried' || item.location.kind === 'reserved-carried') && item.location.actorId === 'P1' && item.location.slot === index));
-    const nearest = interaction.cases.find(item => item.location === 'floor' || item.location === 'handoff');
+    const nearest = interaction.cases.find(item => item.id === interaction.pickupCaseId);
     const signature = JSON.stringify([Math.floor(state.tick / 60), actor.currentRoomId, available, nearest?.id, cargo.map(item => item?.id), slot, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health])]);
     screen.dataset.tick = String(state.tick); screen.dataset.phase = countdown ? 'countdown' : paused ? 'paused' : state.phase;
     screen.dataset.playerX = String(state.fixedActors.P1.position.x); screen.dataset.playerY = String(state.fixedActors.P1.position.y);
