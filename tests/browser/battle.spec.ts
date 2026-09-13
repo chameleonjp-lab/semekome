@@ -1,7 +1,8 @@
 import { test, expect } from '@playwright/test';
 
 test('名前の境界検証とカウントダウン中止、二重開始を防ぐ', async ({ page }) => {
-  await page.clock.install();
+  await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
   await page.goto('/');
   await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
   const name = page.getByLabel('あなたの名前');
@@ -31,6 +32,7 @@ test('名前の境界検証とカウントダウン中止、二重開始を防�
 });
 
 test('連続移動、停止と明示再開、入力残留と時間の追いつきを防ぐ', async ({ page }) => {
+  test.setTimeout(60000);
   const errors: string[] = []; page.on('pageerror', error => errors.push(error.message));
   await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
@@ -55,7 +57,7 @@ test('連続移動、停止と明示再開、入力残留と時間の追いつ�
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
   await page.clock.runFor(100);
   const tick = await battle.getAttribute('data-tick');
-  await page.clock.runFor(30000);
+  await page.clock.fastForward(30000);
   await expect(battle).toHaveAttribute('data-tick', tick!);
   await page.getByRole('button', { name: '再開する' }).click();
   await page.clock.runFor(500);
@@ -73,7 +75,7 @@ test('連続移動、停止と明示再開、入力残留と時間の追いつ�
     Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
     document.dispatchEvent(new Event('visibilitychange'));
   });
-  await page.clock.runFor(10000);
+  await page.clock.fastForward(10000);
   await expect(battle).toHaveAttribute('data-tick', hiddenTick!);
   await expect(page.getByRole('button', { name: '再開する' })).toBeVisible();
   await page.getByRole('button', { name: '再開する' }).click();

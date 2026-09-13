@@ -132,7 +132,13 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     if (document.hidden || help.open || state.phase === 'ended') return;
     state = setBattleVisibility(state, true); state = resumeBattle(state); paused = state.phase === 'paused'; clearInput(); updateOverlay();
   }, options);
-  leave.addEventListener('click', goHome, options);
+  const mountedAt = performance.now();
+  leave.addEventListener('click', () => {
+    // A second tap on Start may land on this newly mounted button. Do not
+    // interpret the same double-tap gesture as a request to abandon the match.
+    if (performance.now() - mountedAt < 350) return;
+    goHome();
+  }, options);
   app.querySelector('#battle-help')!.addEventListener('click', () => { stop(); help.showModal(); updateOverlay(); }, options);
   app.querySelector('#close-battle-help')!.addEventListener('click', () => help.close(), options);
   help.addEventListener('close', () => { updateOverlay(); resume.focus({ preventScroll: true }); }, options);
@@ -207,6 +213,7 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     frame = requestAnimationFrame(loop);
   };
   if (document.hidden) { state = setBattleVisibility(state, false); stop(); }
+  updateOverlay(); updateHud(); render(state, part, slot);
   frame = requestAnimationFrame(loop);
   return () => { disposed = true; cancelAnimationFrame(frame); movement.dispose(); events.abort(); pending = undefined; };
 }
