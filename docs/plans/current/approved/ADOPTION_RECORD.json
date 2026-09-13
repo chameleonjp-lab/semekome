@@ -4,7 +4,10 @@
   "approval_text": "これ、採用です",
   "approval_date": "2026-09-12",
   "source_filename": "EB36731E-10DD-4D5B-8CFC-3DC222D9ABD1.jpeg",
-  "source_dimensions": [1536, 803],
+  "source_dimensions": [
+    1536,
+    803
+  ],
   "source_sha256": "21a0a1f5b294bbc9a6946a39d7bce5077d6939d2ba964809c18d26b0cfe55cfa",
   "scope": [
     "home_faces_right",
@@ -22,7 +25,21 @@
   ],
   "preview_notice_ja": "縮小再圧縮プレビューを保存。原寸JPEGは会話添付に保持し、この記録はGitHubへ原本保存したという主張ではない。",
   "preview_path": "CASTLES_FACE_EACH_OTHER.preview.webp",
-  "preview_dimensions": [640, 335],
+  "preview_dimensions": [
+    640,
+    335
+  ],
   "preview_sha256": "3ef04f233ff6dd550abca2a4eee5b1b13f26a6ac7b94f6c27cd8dc968db24216",
-  "original_stored_in_repository": false
+  "original_stored_in_repository": false,
+  "preview_verification": {
+    "status": "failed",
+    "checked_at": "2026-09-12",
+    "failure_ja": "取得済みプレビューのRIFFヘッダが19396バイトを主張する一方、Git上のファイルは15007バイトで、記録済みSHA-256とも一致せず、画像デコードに失敗した。",
+    "implementation_authority": [
+      "MAP_ADOPTION.md本文",
+      "drawings/04_CASTLES_FACE_EACH_OTHER.svg"
+    ],
+    "original_recheck_required": true,
+    "recreated_preview": false
+  }
 }

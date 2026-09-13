@@ -1,5 +1,5 @@
 {
-  "version": "4.0",
+  "version": "5.0",
   "requirements": [
     {
       "id": "REQ-01",
@@ -23,13 +23,13 @@
     },
     {
       "id": "REQ-03",
-      "title_ja": "両車の全部屋と砲撃を同期する",
-      "requirement_ja": "両戦車内の全室、連絡区画、砲撃、敵30人の仕事と復活を同じ戦闘時計で進める。",
-      "acceptance_ja": "別室へ移動しても人物が消えず、輸送・砲撃・20秒復活が続く。",
+      "title_ja": "両車の全状態と画面を同じ試合で同期する",
+      "requirement_ja": "両戦車内の全室、中央広場、連絡区画、砲撃、敵30人の仕事と復活を同じ戦闘時計で進め、現在地の画面を切り替えても一つの試合状態を保つ。",
+      "acceptance_ja": "自陣・広場・敵陣を移動しても人物番号、生存世代、輸送・砲撃・20秒復活、外装・門・核の状態が消えず、シーン再生成で試合を作り直さない。",
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v5_screen_state_and_scoped_proposals"
     },
     {
       "id": "REQ-04",
@@ -73,13 +73,13 @@
     },
     {
       "id": "REQ-08",
-      "title_ja": "砲撃経路を選ぶ",
-      "requirement_ja": "各装填口・砲台から直通・迂回を選び、投入時の経路と目標を固定する。",
-      "acceptance_ja": "自車1口と敵6砲台で投入済みの経路・目標は後の設定変更の影響を受けない。",
+      "title_ja": "砲撃経路と4砲台を選ぶ",
+      "requirement_ja": "自車の4補給口と敵4砲台から直通・迂回を選び、投入時の経路と目標を固定する。",
+      "acceptance_ja": "自車4補給口と敵4砲台で投入済みの経路・目標は後の設定変更の影響を受けない。",
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v5_four_turrets_and_four_ports"
     },
     {
       "id": "REQ-09",
@@ -93,13 +93,13 @@
     },
     {
       "id": "REQ-10",
-      "title_ja": "砲台別の待ち列と射出枠を管理する",
-      "requirement_ja": "自車1口・敵6基の各待ち列2個、各車全体で48更新に最大1発という初期案を使う。",
-      "acceptance_ja": "他の砲台へ待ち列を移さず、停止や混雑でケースを消さず、射手不在では新規射出しない。",
+      "title_ja": "砲台別の待ち列と車両射出枠を管理する",
+      "requirement_ja": "自車と敵車の4砲台それぞれに待ち列2個を置き、各車全体で48更新に最大1発という初期案を使う。",
+      "acceptance_ja": "他の砲台へ待ち列を移さず、停止や混雑でケースを消さず、射手不在では担当砲台の新規射出をしない。",
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v5_adopted_four_turrets_and_scoped_proposal"
     },
     {
       "id": "REQ-11",
@@ -205,12 +205,12 @@
     {
       "id": "REQ-21",
       "title_ja": "討伐と陣営別の復帰条件を定義する",
-      "requirement_ja": "全荷物を落として仕事を中断する。対象の敵30人は1200更新後に復活し、自車側の300更新は別の未確定案にする。",
-      "acceptance_ja": "敵全員の復活遅延が20秒であり、共通の5秒設定を誤適用しない。",
+      "requirement_ja": "全荷物を落として仕事を中断する。対象の敵30人は各人の討伐20秒後に復活し、主人公は5秒観戦後に復活室へ戻る。補助員の復帰条件は別の未確定案にする。",
+      "acceptance_ja": "敵全員の復活遅延が各人20秒であり、主人公へ敵の20秒や旧共有設定を誤適用せず、主人公の観戦復活は戦闘世界を継続する。",
       "phase": "R3",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v5_user_spec_and_scoped_proposals"
     },
     {
       "id": "REQ-22",
@@ -254,13 +254,13 @@
     },
     {
       "id": "REQ-26",
-      "title_ja": "戦況と敵の仕事を読めるようにする",
-      "requirement_ja": "車内、砲撃経路、外装7部位、開放門数、コア状態、現在室、接敵中の役割と復活予告を示す。",
-      "acceptance_ja": "30人の体力表示で操作領域を埋めず、色だけに頼らず人物の仕事を判別できる。",
+      "title_ja": "戦況、現在地、広場、結果を読めるようにする",
+      "requirement_ja": "車内、中央広場、砲撃経路、外装7部位、開放門数、核状態、現在室、接敵中の役割、観測した復活予告、結果とランキング状態を示す。",
+      "acceptance_ja": "30人の体力表示で操作領域を埋めず、色だけに頼らず人物の仕事・現在地・結果画面の状態を判別できる。",
       "phase": "R2",
       "category": "ui",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v5_screen_and_result_requirements"
     },
     {
       "id": "REQ-27",
@@ -284,13 +284,13 @@
     },
     {
       "id": "REQ-29",
-      "title_ja": "中断から安全に戻る",
-      "requirement_ja": "一人用で非表示時に停止し、入力を消去し、明示操作で再開する。",
-      "acceptance_ja": "復帰直後の暴走、経過時間の一括処理、音の無断開始をしない。",
+      "title_ja": "観戦・中断から安全に戻る",
+      "requirement_ja": "一人用で非表示時に停止し入力を消去する。主人公の討伐時は5秒間の観戦状態へ移り、明示操作で再開する。",
+      "acceptance_ja": "復帰直後の暴走、経過時間の一括処理、観戦中の操作、予定復活の二重適用、音の無断開始をしない。",
       "phase": "R2",
       "category": "input",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "updated_v5_spectator_state_and_carried_forward_proposal"
     },
     {
       "id": "REQ-30",
@@ -344,13 +344,13 @@
     },
     {
       "id": "REQ-35",
-      "title_ja": "新ルールで一戦から再戦できる",
-      "requirement_ja": "編成、通常戦、結果、再戦をつなぎ、外装・門・コア・30人の名簿と復活予定を各戦で分離する。",
-      "acceptance_ja": "前戦の復活・砲台操作・荷物が次戦へ混入しない。",
+      "title_ja": "新ルールで一戦から結果と再戦へ進む",
+      "requirement_ja": "採用対向配置、編成、通常戦、広場、結果、再戦をつなぎ、外装・門・コア・30人の名簿と復活予定、結果送信状態を各戦で分離する。",
+      "acceptance_ja": "前戦の復活・砲台操作・荷物・結果送信を次戦へ混入させず、標準戦の結果画面から再戦とホームへ進める。",
       "phase": "R5",
       "category": "product",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v5_product_and_screen_flow"
     },
     {
       "id": "REQ-36",
@@ -364,13 +364,13 @@
     },
     {
       "id": "REQ-37",
-      "title_ja": "新しい内容目録で完了を判定する",
-      "requirement_ja": "8ケース、味方3補助型、敵4役割30人、自車3配置・敵複数室3構成、6対戦、3練習を目録にする。",
-      "acceptance_ja": "各通常戦に30人と20秒復活があり、基準構成の接続データだけで全構成や実装完了と数えない。",
+      "title_ja": "採用配置と新しい内容目録で完了を判定する",
+      "requirement_ja": "8ケース、味方3人、両城の126×70セル・敵側反転、敵4役割30人、両城4砲台・4弾薬庫・4補給口・12非核室、対戦設定6、練習3、結果と初期公開ランキングを目録にする。",
+      "acceptance_ja": "通常戦に30人・20秒復活・採用配置・結果画面があり、古い3配置や少人数の仮画面だけで完成件数へ含めない。",
       "phase": "R5",
       "category": "product",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v5_adopted_layout_and_release_scope"
     },
     {
       "id": "REQ-38",
@@ -474,13 +474,13 @@
     },
     {
       "id": "REQ-48",
-      "title_ja": "仲間と敵が各室とコア経路を理解する",
-      "requirement_ja": "人物は役割・担当室を持ち、閉門を守り、開門後だけ正しい経路でコア防衛・攻撃へ進む。",
-      "acceptance_ja": "コア室への初期配置・復活をせず、敵も自車への侵入とコア攻撃を成立させられる。",
+      "title_ja": "仲間と敵が各室、広場、コア経路を理解する",
+      "requirement_ja": "人物は役割・担当室・広場任務を持ち、閉門を守り、広場突破後かつ全門開放後だけ正しい経路でコア防衛・攻撃へ進む。",
+      "acceptance_ja": "コア室への初期配置・復活をせず、広場の警備者を倒すまで通常室へ通過させず、敵も自車への侵入とコア攻撃を成立させられる。",
       "phase": "R4",
       "category": "ai",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v5_plaza_and_adopted_layout"
     },
     {
       "id": "REQ-49",
@@ -494,13 +494,13 @@
     },
     {
       "id": "REQ-50",
-      "title_ja": "敵車内を複数の部屋に分ける",
-      "requirement_ja": "コア室以外にも複数の敵車内部屋を設け、砲台と人物の仕事場を配置する。",
-      "acceptance_ja": "役割ごとの担当室が存在し、一つの部屋に30人を置いた構成を完成扱いにしない。",
+      "title_ja": "敵車内を採用配置の複数室に分ける",
+      "requirement_ja": "コア室以外に12室（砲撃室A〜D、弾薬庫A〜D、修理室、指令室、中央通路、復活室）を設け、砲台と人物の仕事場を配置する。",
+      "acceptance_ja": "役割ごとの担当室と正面入口、後方復活室、直列7門、核室が存在し、一つの部屋に30人を置いた構成を完成扱いにしない。",
       "phase": "R1",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "user_confirmed"
+      "design_basis": "updated_v5_adopted_layout"
     },
     {
       "id": "REQ-51",
@@ -515,12 +515,12 @@
     {
       "id": "REQ-52",
       "title_ja": "砲台と四つの役割を分ける",
-      "requirement_ja": "射手・射手護衛・弾の運び手・内部兵を設ける。人数6・6・8・10と砲台6基は初期案。",
-      "acceptance_ja": "4役割の計30人と設備6基が別の一覧にあり、関係の参照が正しい。",
+      "requirement_ja": "射手4・射手護衛4・弾の運び手8・内部兵14を設ける。砲台4基は人物と別の設備として扱い、30人の内訳に含めない。",
+      "acceptance_ja": "4役割の計30人と設備4基が別の一覧にあり、敵4砲台と担当射手・護衛・運び手の関係が敵城限定で正しく参照され、自車側はP1〜P3だけを操作主体にする。",
       "phase": "R2",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "user_confirmed_roles_proposed_distribution"
+      "design_basis": "updated_v5_adopted_distribution_and_scoped_proposal"
     },
     {
       "id": "REQ-53",
@@ -544,13 +544,13 @@
     },
     {
       "id": "REQ-55",
-      "title_ja": "担当室で予定時刻に復活する",
-      "requirement_ja": "コア室を除く担当室の専用床で復活する。初期案の1秒保護を使い、混雑で20秒を延長しない。",
-      "acceptance_ja": "壁・門を無視せず、床の占有時も人数と時刻が保たれ、室外や門奥へ不正移動しない。",
+      "title_ja": "敵は担当室、主人公は復活室へ予定時刻に戻る",
+      "requirement_ja": "敵はコア室を除く担当室の専用床で20秒後に復活し、主人公は5秒観戦後に自陣の復活室へ戻る。初期案の1秒保護を使い、混雑で期限を延長しない。",
+      "acceptance_ja": "壁・門を無視せず、敵の床占有時も人数と時刻を保ち、主人公を核室や閉門奥へ復活させない。",
       "phase": "R3",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "updated_v5_respawn_room_separation"
     },
     {
       "id": "REQ-56",
@@ -584,13 +584,13 @@
     },
     {
       "id": "REQ-59",
-      "title_ja": "内部兵に巡回と限定出撃を持たせる",
-      "requirement_ja": "内部兵10人のうち初期案の2人までを侵入担当に使い、残りは入口や通路を守る。",
-      "acceptance_ja": "出撃・討伐・復活後も30人内に収まり、相手の7門を越えず、条件成立後はコア攻撃できる。",
+      "title_ja": "内部兵に巡回、広場警備、限定出撃を持たせる",
+      "requirement_ja": "内部兵14人のうちE25〜E27を広場警備、E29・E30を侵入担当に使い、残りは中央通路・修理・指令の担当区域を守る。",
+      "acceptance_ja": "出撃・討伐・復活後も30人内に収まり、広場警備を無視して通過せず、閉門を越えず、条件成立後はコア攻撃できる。",
       "phase": "R4",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "updated_v5_plaza_assignment"
     },
     {
       "id": "REQ-60",
@@ -614,43 +614,213 @@
     },
     {
       "id": "REQ-62",
-      "title_ja": "画面外の復活時計を維持する",
-      "requirement_ja": "別室でも戦闘時計で20秒を計り、明示停止や非表示停止では時計ごと止める。",
-      "acceptance_ja": "部屋移動・描画省略で復活が早まらず遅れず、非表示時間をまとめて適用しない。",
+      "title_ja": "画面外と観戦中の復活時計を正しく維持する",
+      "requirement_ja": "別室や広場でも戦闘時計で敵20秒と主人公5秒観戦を計り、明示停止や非表示停止では時計ごと止める。",
+      "acceptance_ja": "部屋移動・描画省略で復活が早まらず遅れず、観戦中も世界が進み、非表示時間をまとめて適用しない。",
       "phase": "R2",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "updated_v5_screen_and_respawn_states"
     },
     {
       "id": "REQ-63",
-      "title_ja": "部屋と役割と復活を表示する",
-      "requirement_ja": "現在室と出口、近くの人物の役割、観測した討伐の復活予告を読めるようにする。",
-      "acceptance_ja": "スマートフォンで30本のバーを常時表示せず、未発見室の敵位置を勝手に公開しない。",
+      "title_ja": "部屋、役割、広場、復活、結果を表示する",
+      "requirement_ja": "現在室と出口、近くの人物の役割、広場の突破状態、観測した討伐の復活予告、結果のスコア詳細・ランキング状態を読めるようにする。",
+      "acceptance_ja": "スマートフォンで30本のバーを常時表示せず、未発見室の敵位置を勝手に公開せず、結果とランキングの読込中・空・失敗を区別する。",
       "phase": "R5",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "updated_v5_screen_and_result_requirements"
     },
     {
       "id": "REQ-64",
-      "title_ja": "30人が動く条件で性能と同期を測る",
-      "requirement_ja": "30人生存・30人同時復活・人物集中・6砲台・多弾・連続再戦を検査する。",
-      "acceptance_ja": "描画を減らしても同じ記録の生存・輸送・20秒復活・門・勝敗が一致し、実機未確認を合格扱いにしない。",
+      "title_ja": "30人、4砲台、広場が動く条件で性能と同期を測る",
+      "requirement_ja": "30人生存・30人同時復活・人物集中・4砲台・4補給口・多弾・広場往復・連続再戦を検査する。",
+      "acceptance_ja": "描画を減らしても同じ記録の生存・輸送・20秒復活・門・広場突破・勝敗・画面状態が一致し、実機未確認を合格扱いにしない。",
       "phase": "R6",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "updated_v5_adopted_layout_and_screen_scope"
     },
     {
       "id": "REQ-65",
-      "title_ja": "陣営別の条件と改訂範囲を明記する",
-      "requirement_ja": "敵30人・20秒という指定と、自車3人・5秒、砲台数などの未確定案を区別する。",
-      "acceptance_ja": "共有5秒設定を敵へ継承せず、自車を無断で30人に増やさず、旧戦闘を暗黙変換しない。",
+      "title_ja": "陣営別の条件と第5版の改訂範囲を明記する",
+      "requirement_ja": "敵30人・20秒、主人公1人＋補助員2体・主人公5秒観戦復活、両城4砲台・4弾薬庫・4補給口・4/4/8/14、広場、結果と初期公開ランキングを区別する。",
+      "acceptance_ja": "共有5秒設定を敵へ継承せず、自車を無断で30人に増やさず、旧第4版の構成を第5版へ暗黙変換しない。",
       "phase": "R1",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "scope_protection"
+      "design_basis": "v5_scope_protection"
+    },
+    {
+      "id": "REQ-66",
+      "title_ja": "採用した対向配置を基準にする",
+      "requirement_ja": "自陣は左で正面出入口が右、敵陣は右で正面出入口が左、中央に広場を置く。",
+      "acceptance_ja": "左右・正面・広場の位置が採用図と本文で一致し、上画面と下画面で方向を変えない。",
+      "phase": "R1",
+      "category": "layout",
+      "status": "specified_not_implemented",
+      "design_basis": "user_adopted_facing_castles"
+    },
+    {
+      "id": "REQ-67",
+      "title_ja": "採用配置の4砲台4弾薬庫を持つ",
+      "requirement_ja": "各城に砲台A〜D、弾薬庫A〜D、修理室、指令室、中央通路、復活室、核室を置き、砲台4基と補給口4本にはR1表示用のcell座標提案を持たせる。",
+      "acceptance_ja": "自陣の前方A/B・後方C/Dと敵側の正面基準A/B・後方C/D、両城の4補給口を資料上で確認でき、各設備のroom_idとcellが対応する。自陣はP1〜P3、敵側はE01〜E04を操作主体として混用しない。",
+      "phase": "R1",
+      "category": "layout",
+      "status": "proposed_not_implemented",
+      "design_basis": "user_adopted_layout_scoped_geometry"
+    },
+    {
+      "id": "REQ-68",
+      "title_ja": "敵城を左右反転して生成する",
+      "requirement_ja": "敵城は自陣の地形・設備・向きを`(125-x,y)`、矩形を`(126-x1,y0,126-x0,y1)`で反転し、文字と操作は反転しない。",
+      "acceptance_ja": "対応する部屋、砲台、弾薬庫、通路、復活室、門、核の相対位置が反転し、操作入力と文字の左右は同じである。",
+      "phase": "R1",
+      "category": "layout",
+      "status": "proposed_not_implemented",
+      "design_basis": "adopted_layout_transform"
+    },
+    {
+      "id": "REQ-69",
+      "title_ja": "126×70セルと通路矩形を記録する",
+      "requirement_ja": "自陣側の`INTERIOR_LAYOUTS.json`に126×70セル、半開矩形、部屋間passage、7ゲート辺を記録する。",
+      "acceptance_ja": "全矩形が範囲内で、部屋・通路の参照と実セル矩形を確認できる。実機の壁・衝突合格とは扱わない。",
+      "phase": "R1",
+      "category": "layout",
+      "status": "proposed_not_implemented",
+      "design_basis": "r1_geometry_proposal"
+    },
+    {
+      "id": "REQ-70",
+      "title_ja": "復活室と核経路を後方で分離する",
+      "requirement_ja": "正面入口を含む中央通路の後方に復活室、そのさらに後方に直列G1〜G7と核室を置き、核室に復活床を置かない。",
+      "acceptance_ja": "主人公側P1〜P3の各復活床、敵の担当床、7門、核室が別参照であり、復活室を核室や門奥へ置き換えない。",
+      "phase": "R1",
+      "category": "layout",
+      "status": "proposed_not_implemented",
+      "design_basis": "user_adopted_map_and_core_preservation"
+    },
+    {
+      "id": "REQ-71",
+      "title_ja": "敵の役割配分を4/4/8/14で固定する",
+      "requirement_ja": "敵30人を射手4・射手護衛4・弾の運び手8・内部兵14へ配分する。",
+      "acceptance_ja": "名簿の役割集計が4/4/8/14＝30となり、砲台と補助的な広場任務を人数へ重ねて数えない。",
+      "phase": "R1",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "v5_adopted_layout_distribution"
+    },
+    {
+      "id": "REQ-72",
+      "title_ja": "広場の守備者を倒してから敵城へ進む",
+      "requirement_ja": "敵城の通常室へ進む前に広場へ派遣された警備者を討伐し、突破状態を別に保持する。",
+      "acceptance_ja": "広場の生存警備者を無視した走り抜け、突進すり抜け、画面切替による消去では突破できず、城内全滅や7門開放を追加条件にしない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "specified_not_implemented",
+      "design_basis": "user_specified_plaza_breakthrough"
+    },
+    {
+      "id": "REQ-73",
+      "title_ja": "広場警備と侵入担当を既存名簿から割り当てる",
+      "requirement_ja": "E25〜E27を広場警備、E29・E30を侵入任務として担当室から徒歩で派遣し、31人目を作らない。",
+      "acceptance_ja": "生存世代・所属・復活予定を保ったまま広場と相手城を移動し、討伐後は20秒で元の担当室へ戻る。",
+      "phase": "R1",
+      "category": "enemy_rooms_respawn",
+      "status": "proposed_not_implemented",
+      "design_basis": "v5_scoped_roster_assignment"
+    },
+    {
+      "id": "REQ-74",
+      "title_ja": "主人公を5秒観戦後に復活させる",
+      "requirement_ja": "主人公側P1〜P3の体力0を確定した更新dからd＋300更新まで観戦し、自陣の復活室に各自の復活床へ体力全快・荷物なしで戻す。",
+      "acceptance_ja": "d＋299までは観戦、d＋300でP1〜P3がそれぞれplayer_respawn_pad_P1〜P3へ一度だけ復活する。敵は同時刻に復活せず、荷物は複製されない。",
+      "phase": "R2",
+      "category": "combat",
+      "status": "specified_not_implemented",
+      "design_basis": "user_specified_five_second_respawn"
+    },
+    {
+      "id": "REQ-75",
+      "title_ja": "観戦中も同じ世界を進める",
+      "requirement_ja": "主人公の観戦中は広場・両城・人物・弾・外装・門・核を同じ試合状態で進め、主人公の移動・攻撃・装填・命令だけを無効にする。",
+      "acceptance_ja": "観戦中に世界を停止・再生成せず、予定された勝敗が確定すれば復活を破棄して結果へ移る。",
+      "phase": "R2",
+      "category": "ui",
+      "status": "specified_not_implemented",
+      "design_basis": "user_specified_spectator_world"
+    },
+    {
+      "id": "REQ-76",
+      "title_ja": "ホームから名前、カウントダウン、戦闘、結果へ遷移する",
+      "requirement_ja": "ホーム、名前入力、3秒カウントダウン、戦闘、観戦、結果を一つの試合状態として管理する。",
+      "acceptance_ja": "ゲーム開始→名前登録→カウントダウン→開始→結果の順を確認し、準備中の中止と二重押下で試合を重複生成しない。",
+      "phase": "R1",
+      "category": "product",
+      "status": "proposed_not_implemented",
+      "design_basis": "v5_screen_flow_proposal"
+    },
+    {
+      "id": "REQ-77",
+      "title_ja": "名前の正規化と長さを検査する",
+      "requirement_ja": "前後空白を除いた1〜20文字の名前だけを開始成立へ通す。空白だけ、空文字、上限超過は開始しない。",
+      "acceptance_ja": "入力欄の前回値や開始ボタンの連打があっても、開始成立時に同じ規約で一度だけ検証する。",
+      "phase": "R1",
+      "category": "input",
+      "status": "proposed_not_implemented",
+      "design_basis": "v5_screen_flow_proposal"
+    },
+    {
+      "id": "REQ-78",
+      "title_ja": "画面遷移で世界状態を保つ",
+      "requirement_ja": "自陣・広場・敵陣・観戦・結果の切替は同じ`match_id`と世界状態を参照し、画面切替で新しい人物・弾・復活時計を作らない。",
+      "acceptance_ja": "人物番号、生存世代、物体所在、外装・門・核、開始記録が切替前後で連続する。",
+      "phase": "R1",
+      "category": "technical",
+      "status": "proposed_not_implemented",
+      "design_basis": "v5_screen_state_scope"
+    },
+    {
+      "id": "REQ-79",
+      "title_ja": "結果画面の必須情報を表示する",
+      "requirement_ja": "初期公開の結果画面へ勝敗、スコア、詳細、結果シェア、上位10位、実験場リンク、再戦、ホームを置く。",
+      "acceptance_ja": "結果・スコア詳細・共有・上位10位・リンクが同じ終局結果を参照し、主要操作が内部スクロールの外へ消えない。",
+      "phase": "R5",
+      "category": "product",
+      "status": "specified_not_implemented",
+      "design_basis": "user_required_initial_result_screen"
+    },
+    {
+      "id": "REQ-80",
+      "title_ja": "初期公開ランキングを必須にする",
+      "requirement_ja": "初期公開の標準戦は結果送信と上位10位ランキング表示を完成条件に含める。接続未確定時は未接続状態を表示し、ランキング省略を公開条件にしない。",
+      "acceptance_ja": "ランキング取得中、0件、失敗、上位10位を区別し、ローカル履歴や架空データで埋めない。",
+      "phase": "R5",
+      "category": "product",
+      "status": "specified_not_implemented",
+      "design_basis": "user_required_initial_public_ranking"
+    },
+    {
+      "id": "REQ-81",
+      "title_ja": "開始と結果の送信を一件にする",
+      "requirement_ja": "開始記録と対象終局結果は同一識別子・同一内容で再送し、送信状態と再試行可否を保存する。",
+      "acceptance_ja": "通信再送、結果画面再表示、再戦操作で開始・結果を二重登録せず、結果・共有・ホームを失わない。",
+      "phase": "R5",
+      "category": "technical",
+      "status": "proposed_not_implemented",
+      "design_basis": "ranking_idempotency_proposal"
+    },
+    {
+      "id": "REQ-82",
+      "title_ja": "得点式と接続値の未確定を明示する",
+      "requirement_ja": "`SCORE_PLAN.json`は承認前の式、`RANKING_INTEGRATION_PLAN.json`はnull接続設定として資料化し、game_id・game_slug・URLを推測しない。",
+      "acceptance_ja": "資料検査では2ファイルを参照でき、Supabase・公開登録・ランキング接続を実施済みと主張しない。",
+      "phase": "R1",
+      "category": "workflow",
+      "status": "proposed_not_implemented",
+      "design_basis": "v5_unconnected_ranking_plan"
     }
   ]
 }

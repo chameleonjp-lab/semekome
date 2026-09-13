@@ -1,0 +1,37 @@
+#app { height: 100dvh; height: 100svh; padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left); }
+.home { height: 100%; max-width: 720px; margin: auto; padding: 32px 26px; display: flex; flex-direction: column; justify-content: center; overflow-y: auto; overscroll-behavior: contain; }
+.home-actions { display: grid; grid-template-columns: 1.4fr 1fr; gap: 10px; }
+.preview { height: 100%; max-width: 1100px; margin: auto; padding: 12px; display: grid; grid-template-rows: auto auto auto minmax(120px, 1fr) auto auto; gap: 10px; overflow: hidden; }
+.teams { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.preview .masthead { grid-row: 1; }
+.preview .teams { grid-row: 2; }
+.preview .area-tabs { grid-row: 3; }
+.preview .map-wrap { grid-row: 4; }
+.preview .map-tools { grid-row: 5; }
+.preview .room-info { grid-row: 6; }
+@media (max-height: 700px) and (orientation: portrait) {
+  .preview { padding: 8px; gap: 7px; }
+  .team-card { padding: 7px 10px; }
+  .room-info { padding-top: 6px; }
+  .room-detail { min-height: 1.5em; }
+  .home { justify-content: flex-start; }
+}
+@media (orientation: landscape) and (max-height: 650px) {
+  .home { padding: 18px 24px; display: grid; grid-template-columns: 1fr 1fr; align-content: center; gap: 8px 24px; }
+  .home-intro { grid-column: 1; grid-row: 1 / 4; }
+  .home-art { grid-column: 2; margin: 0; max-height: 120px; }
+  .home-actions, .home-notice { grid-column: 2; }
+  .home h1 { font-size: 2.7rem; }
+  .home-copy { font-size: .9rem; }
+  .preview { grid-template-columns: minmax(185px, 28%) minmax(0, 1fr); grid-template-rows: auto auto minmax(0, 1fr) auto; gap: 8px 12px; padding: 8px 12px; }
+  .preview .masthead { grid-column: 1; grid-row: 1; }
+  .preview .teams { grid-column: 1; grid-row: 2; }
+  .team-card { padding: 6px; }
+  .team-title { font-size: .8rem; flex-wrap: wrap; }
+  .gate-status { font-size: .75rem; }
+  .preview .area-tabs { grid-column: 2; grid-row: 1; }
+  .preview .map-wrap { grid-column: 2; grid-row: 2 / 4; min-height: 100px; }
+  .preview .map-tools { grid-column: 2; grid-row: 4; }
+  .preview .room-info { grid-column: 1; grid-row: 3 / 5; overflow-y: auto; overscroll-behavior: contain; }
+  .room-detail { font-size: .8rem; }
+}
