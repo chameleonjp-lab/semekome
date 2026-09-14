@@ -169,6 +169,8 @@ export interface Reservation {
   createdTick: number;
   /** Destination captured when a delivery reservation is made. */
   targetTurretId?: string;
+  /** Physical handoff slot captured before a carrier leaves for the turret. */
+  targetStagingSlot?: 0 | 1;
 }
 
 export interface ActorState {
@@ -540,6 +542,8 @@ export interface ObjectTransitionInput {
   generation?: number;
   reservationId?: string;
   turretId?: string;
+  /** Handoff slot claimed by a delivery reservation. */
+  stagingSlot?: 0 | 1;
   portId?: string;
   weaponId?: string;
   originGroupId?: string;

@@ -10,6 +10,7 @@ import type {
   PauseReason,
   Point,
   RejectedInput,
+  Reservation,
   StepReport,
   TeamId,
   WorldEvent,
@@ -1316,8 +1317,20 @@ function caseRoomPosition(state: BattleState, caseState: BattleCaseState): void 
   if (room) caseState.roomId = room;
 }
 
-function reservationForCase(state: BattleState, objectId: string): { id: string; kind: string } | undefined {
+function reservationForCase(state: BattleState, objectId: string): Reservation | undefined {
   return Object.values(state.reservations).find((reservation) => reservation.objectIds.includes(objectId));
+}
+
+function deliveryReservationForCase(state: BattleState, objectId: string): Reservation | undefined {
+  return Object.values(state.reservations).find((reservation) =>
+    reservation.kind === "delivery" && reservation.objectIds.includes(objectId),
+  );
+}
+
+function deliveryReservationForSlot(state: BattleState, turretId: string, stagingSlot: 0 | 1): Reservation | undefined {
+  return Object.values(state.reservations).find((reservation) =>
+    reservation.kind === "delivery" && reservation.targetTurretId === turretId && reservation.targetStagingSlot === stagingSlot,
+  );
 }
 
 function releaseReservation(state: BattleState, reservationId: string): void {
@@ -1944,12 +1957,28 @@ function lowestAlivePart(castle: BattleState["castles"][TeamId]): PartId | undef
   return PART_IDS.find((id) => !castle.exterior[id].destroyed);
 }
 
-function availableStagingSlot(state: BattleState, actor: ActorState, turret: BattleTurretState): 0 | 1 | undefined {
+function availableStagingSlot(
+  state: BattleState,
+  actor: ActorState,
+  turret: BattleTurretState,
+  caseId?: string,
+): 0 | 1 | undefined {
   const actorPosition = actorFixed(state, actor.id);
   for (const slot of [0, 1] as const) {
     if (turret.stagingSlots[slot] !== null) continue;
+    const reservation = deliveryReservationForSlot(state, turret.id, slot);
+    if (reservation && (!caseId || !reservation.objectIds.includes(caseId))) continue;
     const stagingPosition = turret.stagingPositions[slot];
     if (withinActionRange(actorPosition, stagingPosition) && hasFloorLineOfSight(state, actor.team, actorPosition, stagingPosition)) return slot;
+  }
+  return undefined;
+}
+
+function availableDeliverySlot(state: BattleState, turret: BattleTurretState): 0 | 1 | undefined {
+  for (const slot of [0, 1] as const) {
+    if (turret.stagingSlots[slot] !== null) continue;
+    if (deliveryReservationForSlot(state, turret.id, slot)) continue;
+    return slot;
   }
   return undefined;
 }
@@ -1959,8 +1988,16 @@ function reserveDeliveryThroughCommon(
   actor: ActorState,
   caseState: BattleCaseState,
   turret: BattleTurretState,
+  stagingSlot: 0 | 1 | undefined,
   events: WorldEvent[],
 ): string | undefined {
+  const existing = deliveryReservationForCase(state, caseState.id);
+  if (existing) {
+    if (existing.ownerActorId === actor.id && existing.targetTurretId === turret.id &&
+        (stagingSlot === undefined || existing.targetStagingSlot === stagingSlot)) return existing.id;
+    return undefined;
+  }
+  if (reservationForCase(state, caseState.id)) return undefined;
   const reservationId = `delivery:${state.matchId}:${state.tick}:${actor.id}:${actor.generation}:${caseState.id}`;
   // The common transition must see the same cargo ownership that the
   // physical coordinator is about to stage.  It owns reservation identity;
@@ -1973,13 +2010,17 @@ function reserveDeliveryThroughCommon(
     generation: actor.generation,
     team: actor.team,
     turretId: turret.id,
+    stagingSlot,
     reservationId,
     matchId: state.matchId,
   });
   const commonObject = common.objects[caseState.id];
+  const commonReservation = common.reservations[reservationId];
   if (common.lastStep.rejected.length > 0 || !common.lastStep.advanced ||
       commonObject?.location.kind !== "reserved-carried" ||
-      commonObject.location.actorId !== actor.id || commonObject.location.reservationId !== reservationId) return undefined;
+      commonObject.location.actorId !== actor.id || commonObject.location.reservationId !== reservationId ||
+      commonReservation?.targetTurretId !== turret.id ||
+      (stagingSlot !== undefined && commonReservation.targetStagingSlot !== stagingSlot)) return undefined;
   state.objects = common.objects;
   state.reservations = common.reservations;
   const commonActor = common.actors[actor.id];
@@ -2009,9 +2050,20 @@ function deliverCase(state: BattleState, actor: ActorState, caseState: BattleCas
   if (part !== undefined && !isPartId(part)) return false;
   const turret = turretAtActor(state, actor);
   if (!turret || turret.team !== actor.team) return false;
-  const stagingSlot = availableStagingSlot(state, actor, turret);
+  const existingReservation = deliveryReservationForCase(state, caseState.id);
+  const reservedSlot = existingReservation?.targetTurretId === turret.id ? existingReservation.targetStagingSlot : undefined;
+  const actorPosition = actorFixed(state, actor.id);
+  let stagingSlot: 0 | 1 | undefined;
+  if (reservedSlot !== undefined) {
+    const slotAvailable = turret.stagingSlots[reservedSlot] === null &&
+      withinActionRange(actorPosition, turret.stagingPositions[reservedSlot]) &&
+      hasFloorLineOfSight(state, actor.team, actorPosition, turret.stagingPositions[reservedSlot]);
+    stagingSlot = slotAvailable ? reservedSlot : undefined;
+  } else {
+    stagingSlot = availableStagingSlot(state, actor, turret, caseState.id);
+  }
   if (stagingSlot === undefined) return false;
-  const reservationId = reserveDeliveryThroughCommon(state, actor, caseState, turret, events);
+  const reservationId = reserveDeliveryThroughCommon(state, actor, caseState, turret, stagingSlot, events);
   if (!reservationId) return false;
   // Route/aim selection is held separately while the case waits on the floor;
   // route/targetPart themselves are captured only when load enqueues it.
@@ -2737,8 +2789,16 @@ function processCarrierAI(state: BattleState, actor: ActorState, events: WorldEv
     assignment.pathIndex = 0;
     assignment.stuckTicks = 0;
   }
+  if (!actorIsProtected(state, actor)) {
+    for (const item of carried) {
+      if (deliveryReservationForCase(state, item.id)) continue;
+      const stagingSlot = availableDeliverySlot(state, turret);
+      if (stagingSlot === undefined) break;
+      reserveDeliveryThroughCommon(state, actor, item, turret, stagingSlot, events);
+    }
+  }
   moveAIAlongPath(state, actor, assignment, turret.operatorPosition);
-  if (!actorIsProtected(state, actor) && availableStagingSlot(state, actor, turret) !== undefined) {
+  if (!actorIsProtected(state, actor)) {
     let delivered = false;
     for (const item of [...carried]) {
       if (turret.handoffIds.length >= STAGING_SLOTS_PER_TURRET) break;
@@ -3275,7 +3335,7 @@ export function getInteraction(state: BattleState, actorId: ActorId = "P1", slot
         const part = state.castles[actor!.team].exterior[partId];
         return !part.destroyed && part.health < part.maxHealth;
       }))) handles.push("repair");
-  if (actionable && selectedOwned && turret && availableStagingSlot(state, actor!, turret) !== undefined) handles.push("deliver");
+  if (actionable && selectedOwned && turret && availableStagingSlot(state, actor!, turret, selectedCase?.id) !== undefined) handles.push("deliver");
   if (actionable && selectedOwned) handles.push("drop");
   const loadCandidate = turret ? firstHandoffCase(state, turret)?.caseState : undefined;
   if (actionable && turret && loadCandidate && turret.queueIds.length < QUEUE_CAPACITY_PER_TURRET &&

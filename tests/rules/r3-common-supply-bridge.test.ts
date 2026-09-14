@@ -85,9 +85,28 @@ test("R3 handoff enqueues the same case through the common object transition", (
   assert.equal(queued.route, "detour");
   assert.equal(queued.targetPart, "P3");
   assert.deepEqual(currentTurret.queueIds, [caseState.id]);
+  assert.equal(Object.values(state.reservations).some((reservation) => reservation.kind === "delivery"), false);
   assert.equal(projected.weaponId, queued.type);
   assert.deepEqual(projected.location, { kind: "queue", team: "player", turretId: currentTurret.id, index: 0 });
   assert.equal(state.lastStep.events.filter((event) => event.type === "object_moved" && event.objectId === caseState.id && event.location.kind === "queue").length, 1);
+  assertObjectLocationsUnique(state);
+});
+
+test("R3 carrier AI reserves a common staging slot before walking to the turret", () => {
+  let state = createBattle({ matchId: "r3-common-carrier-reservation", seed: 11 });
+  let reservation: BattleState["reservations"][string] | undefined;
+  for (let index = 0; index < 360 && !reservation; index += 1) {
+    state = stepBattle(state);
+    reservation = Object.values(state.reservations).find((candidate) => candidate.kind === "delivery");
+  }
+
+  assert.ok(reservation);
+  assert.equal(reservation.targetTurretId, "T1");
+  assert.ok(reservation.targetStagingSlot === 0 || reservation.targetStagingSlot === 1);
+  const object = state.objects[reservation.objectIds[0]];
+  assert.equal(object?.location.kind, "reserved-carried");
+  assert.equal(object?.location.kind === "reserved-carried" && object.location.reservationId, reservation.id);
+  assert.equal(state.actors[reservation.ownerActorId]?.cargoIds.includes(reservation.objectIds[0]!), true);
   assertObjectLocationsUnique(state);
 });
 
