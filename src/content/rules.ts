@@ -17,6 +17,7 @@ type InitialRulesShape = {
     carry_slots?: number;
   };
   exterior?: { parts?: Array<{ max_health?: number }> };
+  equipment?: { health?: number; disabled_ticks?: number };
   team_profiles?: {
     player?: { respawn_ticks?: number };
     enemy?: { respawn_ticks?: number };
@@ -46,6 +47,8 @@ export const DEFAULT_RULES: RulesConfig = {
   dashActorDamage: positiveNumber(source.actor?.dash_actor_damage, 1),
   dashEquipmentDamage: positiveNumber(source.actor?.dash_equipment_damage, 10),
   dashKnockbackSubunits: Math.round(positiveNumber(source.actor?.dash_knockback_units, 0.6) * 1_000),
+  equipmentHealth: positiveNumber(source.equipment?.health, 60),
+  equipmentDisabledTicks: positiveInteger(source.equipment?.disabled_ticks, 480),
   playerRespawnTicks: positiveInteger(source.team_profiles?.player?.respawn_ticks, 300),
   enemyRespawnTicks: positiveInteger(source.team_profiles?.enemy?.respawn_ticks, 1_200),
   spawnProtectionTicks: positiveInteger(source.actor?.spawn_protection_ticks, 60),
