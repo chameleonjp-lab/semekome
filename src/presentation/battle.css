@@ -33,6 +33,7 @@
 #battle-drop { min-height: 48px; touch-action: none; }
 .battle-settings { display: flex; gap: 6px; align-items: stretch; }
 .target-control { display: flex; align-items: center; gap: 5px; font-size: .68rem; flex: 1; white-space: nowrap; }
+.target-control[hidden] { display: none; }
 .target-control select { min-width: 0; width: 100%; border: 1px solid #506b79; background: #20313e; border-radius: 10px; }
 .battle-overlay { position: absolute; inset: 0; z-index: 3; display: grid; place-items: center; padding: 20px; background: #091923d9; }
 .battle-overlay[hidden] { display: none; }
