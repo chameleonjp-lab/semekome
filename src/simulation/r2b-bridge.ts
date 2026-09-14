@@ -304,7 +304,7 @@ export function bridgeActorFirstContact(
       matchId: evidence.matchId,
       actorId: target.id,
       generation: target.generation,
-      amount: 1,
+      amount: state.rules.dashActorDamage,
       ...(evidence.targetCargoId === undefined ? {} : { dropObjectId: evidence.targetCargoId }),
     },
   };
