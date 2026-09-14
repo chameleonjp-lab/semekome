@@ -1281,11 +1281,17 @@ function reservationForCase(state: BattleState, objectId: string): { id: string;
 function syncWorldObject(state: BattleState, caseState: BattleCaseState): void {
   const object: WorldObject = state.objects[caseState.id] ?? {
     id: caseState.id,
+    weaponId: caseState.type,
     sourceTeam: caseState.sourceTeam,
     weight: caseState.weight,
     location: { kind: "consumed", reason: "initializing", tick: state.tick },
     originGroupId: caseState.originGroupId,
   };
+  // The physical R2a case catalog is the four-case subset of the common
+  // weapon catalog. Keep the catalog identity on the common projection so a
+  // later common-world transition can validate the same generated object
+  // without trusting a caller-provided weapon id.
+  object.weaponId = caseState.type;
   object.sourceTeam = caseState.sourceTeam;
   object.weight = caseState.weight;
   object.originGroupId = caseState.originGroupId;
@@ -1924,7 +1930,50 @@ function loadHandoff(state: BattleState, actor: ActorState, turret: BattleTurret
       !hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), caseState.position ?? turret.position)) return false;
   // A handoff is not a teleport into the queue: the live operator first picks
   // the physical case up, then places that same case into the turret queue.
+  // Fixtures and physical AI update the case registry before the denormalized
+  // R1 object projection. Normalize it before taking the rollback snapshot so
+  // a rejected common transition leaves every object unchanged.
+  syncAllWorldObjects(state);
+  const eventStart = events.length;
+  const caseBefore = structuredClone(caseState);
+  const objectBefore = state.objects[caseId] ? structuredClone(state.objects[caseId]) : undefined;
+  const cargoBefore = [...actor.cargoIds];
+  const slotsBefore = [...(state.cargoSlots[actor.id] ?? [null, null])] as [string | null, string | null];
+  const handoffIdsBefore = [...turret.handoffIds];
+  const stagingSlotsBefore = [...turret.stagingSlots] as [string | null, string | null];
   if (!pickCase(state, actor, caseState, events)) return false;
+  // The common rules own the queue transition. Physical staging and fixed
+  // coordinates remain authoritative, but the same object must first pass
+  // the common actor/ownership/capacity checks on the tick snapshot.
+  const common = stepWorld(state, {
+    kind: "enqueue_object",
+    objectId: caseId,
+    actorId: actor.id,
+    generation: actor.generation,
+    team: actor.team,
+    turretId: turret.id,
+    matchId: state.matchId,
+  });
+  const commonObject = common.objects[caseId];
+  const expectedQueueIndex = turret.queueIds.length;
+  const commonQueueAccepted = common.lastStep.rejected.length === 0 && common.lastStep.advanced &&
+    commonObject?.location.kind === "queue" && commonObject.location.team === actor.team &&
+    commonObject.location.turretId === turret.id && commonObject.location.index === expectedQueueIndex;
+  if (!commonQueueAccepted) {
+    // A rejected common transition must not consume the physical handoff or
+    // leave the actor with a case that disappeared from its staging slot.
+    Object.assign(caseState, caseBefore);
+    actor.cargoIds = cargoBefore;
+    state.cargoSlots[actor.id] = slotsBefore;
+    turret.handoffIds = handoffIdsBefore;
+    turret.stagingSlots = stagingSlotsBefore;
+    if (objectBefore) state.objects[caseId] = objectBefore;
+    else delete state.objects[caseId];
+    events.splice(eventStart);
+    return false;
+  }
+  state.objects = common.objects;
+  events.push(...common.lastStep.events);
   const cargoSlot = state.cargoSlots[actor.id]?.indexOf(caseId) ?? -1;
   if (cargoSlot < 0) return false;
   removeFromArray(actor.cargoIds, caseId);
@@ -1940,7 +1989,6 @@ function loadHandoff(state: BattleState, actor: ActorState, turret: BattleTurret
   caseState.pendingSelectionActorId = undefined;
   turret.queueIds.push(caseId);
   setCaseQueue(state, caseState, turret);
-  events.push(event("object_moved", { objectId: caseId, location: state.objects[caseId].location }));
   return true;
 }
 
