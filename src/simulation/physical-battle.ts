@@ -1327,9 +1327,10 @@ function deliveryReservationForCase(state: BattleState, objectId: string): Reser
   );
 }
 
-function deliveryReservationForSlot(state: BattleState, turretId: string, stagingSlot: 0 | 1): Reservation | undefined {
+function deliveryReservationForSlot(state: BattleState, turret: BattleTurretState, stagingSlot: 0 | 1): Reservation | undefined {
   return Object.values(state.reservations).find((reservation) =>
-    reservation.kind === "delivery" && reservation.targetTurretId === turretId && reservation.targetStagingSlot === stagingSlot,
+    reservation.kind === "delivery" && reservation.targetTurretId === turret.id &&
+      state.actors[reservation.ownerActorId]?.team === turret.team && reservation.targetStagingSlot === stagingSlot,
   );
 }
 
@@ -1966,7 +1967,7 @@ function availableStagingSlot(
   const actorPosition = actorFixed(state, actor.id);
   for (const slot of [0, 1] as const) {
     if (turret.stagingSlots[slot] !== null) continue;
-    const reservation = deliveryReservationForSlot(state, turret.id, slot);
+    const reservation = deliveryReservationForSlot(state, turret, slot);
     if (reservation && (!caseId || !reservation.objectIds.includes(caseId))) continue;
     const stagingPosition = turret.stagingPositions[slot];
     if (withinActionRange(actorPosition, stagingPosition) && hasFloorLineOfSight(state, actor.team, actorPosition, stagingPosition)) return slot;
@@ -1977,7 +1978,7 @@ function availableStagingSlot(
 function availableDeliverySlot(state: BattleState, turret: BattleTurretState): 0 | 1 | undefined {
   for (const slot of [0, 1] as const) {
     if (turret.stagingSlots[slot] !== null) continue;
-    if (deliveryReservationForSlot(state, turret.id, slot)) continue;
+    if (deliveryReservationForSlot(state, turret, slot)) continue;
     return slot;
   }
   return undefined;

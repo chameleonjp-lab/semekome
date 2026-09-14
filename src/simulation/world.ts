@@ -743,7 +743,8 @@ function processObjectTransition(
       return;
     }
     if (stagingSlot !== undefined && Object.values(world.reservations).some((candidate) =>
-      candidate.kind === "delivery" && candidate.targetTurretId === turret.id && candidate.targetStagingSlot === stagingSlot,
+      candidate.kind === "delivery" && candidate.targetTurretId === turret.id &&
+        world.actors[candidate.ownerActorId]?.team === team && candidate.targetStagingSlot === stagingSlot,
     )) {
       reject(report, index, "invalid_object_transition", "delivery staging slot already reserved");
       return;

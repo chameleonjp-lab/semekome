@@ -199,3 +199,82 @@ test("R3 common delivery reservation rejects a duplicate handoff slot", () => {
   assert.equal(duplicate.reservations["delivery:r3-common-delivery-slot:P2:second"], undefined);
   assertObjectLocationsUnique(duplicate);
 });
+
+test("R3 common delivery slots are scoped to the turret team", () => {
+  const world = createWorld({ matchId: "r3-common-delivery-team-scope", seed: 751 });
+  const playerPort = world.layout.home.supplyPorts[0];
+  const enemyPort = world.layout.enemy.supplyPorts[0];
+  const playerTurret = world.layout.home.turrets[0];
+  const enemyTurret = world.layout.enemy.turrets[0];
+  assert.ok(playerPort);
+  assert.ok(enemyPort);
+  assert.ok(playerTurret);
+  assert.ok(enemyTurret);
+  const playerId = "case-player-supply_1-g01";
+  const enemyId = "case-enemy-supply_1-g01";
+  let state = stepWorld(world, {
+    kind: "spawn_supply",
+    objectId: playerId,
+    team: "player",
+    portId: playerPort.id,
+    weaponId: "standard_slug",
+    weight: 1,
+    originGroupId: "group-player-supply_1-g01",
+    roomId: playerPort.roomId,
+    position: { ...playerPort.cell },
+    matchId: world.matchId,
+  });
+  state = stepWorld(state, {
+    kind: "spawn_supply",
+    objectId: enemyId,
+    team: "enemy",
+    portId: enemyPort.id,
+    weaponId: "standard_slug",
+    weight: 1,
+    originGroupId: "group-enemy-supply_1-g01",
+    roomId: enemyPort.roomId,
+    position: { ...enemyPort.cell },
+    matchId: world.matchId,
+  });
+  state = stepWorld(state, {
+    kind: "pickup_object",
+    objectId: playerId,
+    actorId: "P1",
+    generation: state.actors.P1.generation,
+    matchId: world.matchId,
+  });
+  state = stepWorld(state, {
+    kind: "pickup_object",
+    objectId: enemyId,
+    actorId: "E01",
+    generation: state.actors.E01.generation,
+    matchId: world.matchId,
+  });
+  const playerReserved = stepWorld(state, {
+    kind: "reserve_delivery",
+    objectId: playerId,
+    actorId: "P1",
+    generation: state.actors.P1.generation,
+    team: "player",
+    turretId: playerTurret.id,
+    stagingSlot: 0,
+    reservationId: "delivery:r3-common-delivery-team-scope:P1",
+    matchId: world.matchId,
+  });
+  const enemyReserved = stepWorld(playerReserved, {
+    kind: "reserve_delivery",
+    objectId: enemyId,
+    actorId: "E01",
+    generation: playerReserved.actors.E01.generation,
+    team: "enemy",
+    turretId: enemyTurret.id,
+    stagingSlot: 0,
+    reservationId: "delivery:r3-common-delivery-team-scope:E01",
+    matchId: world.matchId,
+  });
+
+  assert.equal(playerReserved.lastStep.rejected.length, 0);
+  assert.equal(enemyReserved.lastStep.rejected.length, 0);
+  assert.equal(Object.values(enemyReserved.reservations).filter((reservation) => reservation.kind === "delivery").length, 2);
+  assertObjectLocationsUnique(enemyReserved);
+});
