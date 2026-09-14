@@ -338,6 +338,12 @@ export interface RulesConfig {
   ticksPerSecond: number;
   matchLimitTicks: number;
   actorHealth: number;
+  dashDistanceSubunits: number;
+  dashDurationTicks: number;
+  dashCooldownTicks: number;
+  dashActorDamage: number;
+  dashEquipmentDamage: number;
+  dashKnockbackSubunits: number;
   playerRespawnTicks: number;
   enemyRespawnTicks: number;
   spawnProtectionTicks: number;

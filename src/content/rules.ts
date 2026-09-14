@@ -6,6 +6,12 @@ type InitialRulesShape = {
   simulation?: { ticks_per_second?: number; match_limit_ticks?: number };
   actor?: {
     health?: number;
+    dash_distance_units?: number;
+    dash_duration_ticks?: number;
+    dash_cooldown_ticks?: number;
+    dash_actor_damage?: number;
+    dash_equipment_damage?: number;
+    dash_knockback_units?: number;
     damage_invulnerability_ticks?: number;
     spawn_protection_ticks?: number;
     carry_slots?: number;
@@ -34,6 +40,12 @@ export const DEFAULT_RULES: RulesConfig = {
   ticksPerSecond: positiveInteger(source.simulation?.ticks_per_second, 60),
   matchLimitTicks: positiveInteger(source.simulation?.match_limit_ticks, 25_200),
   actorHealth: positiveNumber(source.actor?.health, 4),
+  dashDistanceSubunits: Math.round(positiveNumber(source.actor?.dash_distance_units, 1.2) * 1_000),
+  dashDurationTicks: positiveInteger(source.actor?.dash_duration_ticks, 12),
+  dashCooldownTicks: positiveInteger(source.actor?.dash_cooldown_ticks, 54),
+  dashActorDamage: positiveNumber(source.actor?.dash_actor_damage, 1),
+  dashEquipmentDamage: positiveNumber(source.actor?.dash_equipment_damage, 10),
+  dashKnockbackSubunits: Math.round(positiveNumber(source.actor?.dash_knockback_units, 0.6) * 1_000),
   playerRespawnTicks: positiveInteger(source.team_profiles?.player?.respawn_ticks, 300),
   enemyRespawnTicks: positiveInteger(source.team_profiles?.enemy?.respawn_ticks, 1_200),
   spawnProtectionTicks: positiveInteger(source.actor?.spawn_protection_ticks, 60),

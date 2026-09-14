@@ -18,6 +18,7 @@ import type {
 import { GATE_IDS, PART_IDS } from "../domain/types.ts";
 import {
   ACTOR_SPEED_SUBUNITS_PER_TICK,
+  ACTOR_RADIUS_SUBUNITS,
   cellCenter,
   floorCell,
 } from "../actors/movement.ts";
@@ -56,7 +57,6 @@ const PLAYER_TEAM: TeamId = "player";
 const ENEMY_TEAM: TeamId = "enemy";
 const ALL_TEAMS: readonly TeamId[] = [PLAYER_TEAM, ENEMY_TEAM];
 const ACTION_RANGE_SUBUNITS = GEOMETRY_ACTION_RANGE_SUBUNITS;
-const ACTOR_KNOCKBACK_SUBUNITS = 600;
 const EVENT_LOG_LIMIT = 512;
 const ROUTE_COLLISION_EPSILON = 0.012;
 const AI_REPLAN_TICKS = 120;
@@ -102,6 +102,8 @@ export interface BattleIntent {
   actorId: ActorId;
   generation: number;
   direction?: BattleDirection;
+  /** Starts a fixed-duration dash in the sampled direction. */
+  dash?: BattleDirection;
   handle?: BattleHandle;
   slot?: number;
   route?: BattleRoute;
@@ -205,6 +207,13 @@ export interface BattleCrewState {
   assignments: Record<string, CrewAssignment>;
 }
 
+export interface BattleDashState {
+  direction: BattleDirection;
+  remainingTicks: number;
+  /** Fixed-point origin captured when the dash starts. */
+  start: FixedPoint;
+}
+
 export interface BattleLogisticsState {
   ports: Record<string, BattlePortState>;
   groups: Record<string, { id: string; team: TeamId; portId: string; caseIds: string[]; retired: boolean }>;
@@ -257,6 +266,10 @@ function isPartId(value: unknown): value is PartId {
 /** R1 remains a structural/cell projection; fixedActors is movement authority. */
 export interface BattleState extends WorldState {
   fixedActors: Record<string, { position: FixedPoint; remainder?: FixedPoint }>;
+  /** Active dashes are physical state; the common world only sees contacts. */
+  dashes: Record<string, BattleDashState | undefined>;
+  /** Tick at which each actor may start another dash. */
+  dashCooldownUntilTick: Record<string, number>;
   /** Two stable cargo slots; null is intentional and is never compacted. */
   cargoSlots: Record<string, [string | null, string | null]>;
   battleCases: Record<string, BattleCaseState>;
@@ -497,6 +510,172 @@ function moveFixed(state: BattleState, actor: ActorState, direction: BattleDirec
   return moved;
 }
 
+function dashDirectionValid(direction: BattleDirection | undefined): direction is BattleDirection {
+  if (!direction || !isFiniteDirection(direction)) return false;
+  return direction.x !== 0 || direction.y !== 0;
+}
+
+function startDash(
+  state: BattleState,
+  actor: ActorState,
+  direction: BattleDirection | undefined,
+  report: StepReport,
+): boolean {
+  if (!dashDirectionValid(direction)) {
+    addRejection(report, 0, "invalid_transition", "dash direction must be a non-neutral unit vector");
+    return false;
+  }
+  if (actorIsProtected(state, actor)) {
+    addRejection(report, 0, "protected_actor", "spawn protection blocks dash attacks");
+    return false;
+  }
+  if (state.dashes[actor.id]) {
+    addRejection(report, 0, "invalid_transition", "actor is already dashing");
+    return false;
+  }
+  const cooldownUntil = state.dashCooldownUntilTick[actor.id] ?? 0;
+  if (state.tick < cooldownUntil) {
+    addRejection(report, 0, "invalid_transition", `dash cooldown until tick ${cooldownUntil}`);
+    return false;
+  }
+  state.dashes[actor.id] = {
+    direction: { ...direction },
+    remainingTicks: state.rules.dashDurationTicks,
+    start: copyPoint(actorFixed(state, actor.id)),
+  };
+  state.dashCooldownUntilTick[actor.id] = state.tick + state.rules.dashCooldownTicks;
+  report.acceptedInputKinds.push("dash");
+  return true;
+}
+
+/** Return the first segment parameter at which two actor circles overlap. */
+function segmentActorContactT(from: FixedPoint, to: FixedPoint, target: FixedPoint): number | undefined {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const fx = from.x - target.x;
+  const fy = from.y - target.y;
+  const radius = ACTOR_RADIUS_SUBUNITS * 2;
+  const radiusSquared = radius * radius;
+  const startDistance = fx * fx + fy * fy;
+  if (startDistance <= radiusSquared) return 0;
+  const a = dx * dx + dy * dy;
+  if (a === 0) return undefined;
+  const b = 2 * (fx * dx + fy * dy);
+  const c = startDistance - radiusSquared;
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) return undefined;
+  const root = Math.sqrt(discriminant);
+  const entry = (-b - root) / (2 * a);
+  if (entry < 0 || entry > 1) return undefined;
+  return entry;
+}
+
+function interpolatePoint(from: FixedPoint, to: FixedPoint, progress: number): FixedPoint {
+  return {
+    x: Math.round(from.x + (to.x - from.x) * progress),
+    y: Math.round(from.y + (to.y - from.y) * progress),
+  };
+}
+
+function dashContactTarget(
+  state: BattleState,
+  actor: ActorState,
+  from: FixedPoint,
+  to: FixedPoint,
+): { target: ActorState; progress: number; position: FixedPoint } | undefined {
+  if (actor.location.area !== "castle" || !actor.location.castleTeam) return undefined;
+  const candidates = Object.values(state.actors)
+    .filter((candidate) => candidate.id !== actor.id && candidate.alive && candidate.team !== actor.team &&
+      candidate.location.area === "castle" && candidate.location.castleTeam === actor.location.castleTeam)
+    .map((candidate) => ({ candidate, progress: segmentActorContactT(from, to, actorFixed(state, candidate.id)) }))
+    .filter((entry): entry is { candidate: ActorState; progress: number } => entry.progress !== undefined)
+    .sort((left, right) => left.progress - right.progress || String(left.candidate.id).localeCompare(String(right.candidate.id)));
+  const first = candidates[0];
+  if (!first) return undefined;
+  return {
+    target: first.candidate,
+    progress: first.progress,
+    position: interpolatePoint(from, to, first.progress),
+  };
+}
+
+/**
+ * Advance all active physical dashes by one tick and return the one contact
+ * envelope produced during this tick.  The movement is authoritative here;
+ * damage or victory is still resolved by the R2b bridge/common world.
+ */
+function advanceDashes(state: BattleState): R2bBridgeRequest | undefined {
+  for (const actor of Object.values(state.actors).sort((left, right) => String(left.id).localeCompare(String(right.id)))) {
+    const dash = state.dashes[actor.id];
+    if (!dash) continue;
+    if (!actor.alive || actor.location.area !== "castle" || !actor.location.castleTeam) {
+      state.dashes[actor.id] = undefined;
+      continue;
+    }
+    const current = actorFixed(state, actor.id);
+    const distance = state.rules.dashDistanceSubunits / state.rules.dashDurationTicks;
+    const diagonal = dash.direction.x !== 0 && dash.direction.y !== 0 ? Math.SQRT1_2 : 1;
+    const requested = {
+      x: Math.round(current.x + dash.direction.x * distance * diagonal),
+      y: Math.round(current.y + dash.direction.y * distance * diagonal),
+    };
+    const walkable = canOccupy(state, actor.location.castleTeam, requested);
+    const endpoint = walkable ? requested : furthestWalkablePoint(state, actor.location.castleTeam, current, requested);
+    const blocked = endpoint.x !== requested.x || endpoint.y !== requested.y;
+    const contact = dashContactTarget(state, actor, current, endpoint);
+    if (contact) {
+      setActorFixed(state, actor, contact.position);
+      state.dashes[actor.id] = undefined;
+      const targetSlots = state.cargoSlots[contact.target.id] ?? [null, null];
+      const targetCargoId = targetSlots.find((objectId) => objectId !== null && contact.target.cargoIds.includes(objectId)) ?? undefined;
+      return {
+        kind: "actor_contact",
+        evidence: {
+          matchId: state.matchId,
+          tick: state.tick,
+          actorId: actor.id,
+          generation: actor.generation,
+          targetActorId: contact.target.id,
+          targetGeneration: contact.target.generation,
+          attackType: "dash",
+          firstContact: "actor",
+          from: contact.position,
+          to: copyPoint(actorFixed(state, contact.target.id)),
+          targetPosition: copyPoint(actorFixed(state, contact.target.id)),
+          ...(targetCargoId ? { targetCargoId } : {}),
+        },
+      };
+    }
+    if (endpoint.x !== current.x || endpoint.y !== current.y) setActorFixed(state, actor, endpoint);
+    // A wall, closed gate, or equipment body is the first physical obstacle;
+    // the dash ends at its conservative clearance point and never tunnels.
+    if (blocked || actor.currentRoomId === "core") {
+      if (actor.currentRoomId === "core") {
+        state.dashes[actor.id] = undefined;
+        return {
+          kind: "core_contact",
+          evidence: {
+            matchId: state.matchId,
+            tick: state.tick,
+            actorId: actor.id,
+            generation: actor.generation,
+            targetTeam: actor.location.castleTeam === actor.team ? (actor.team === PLAYER_TEAM ? ENEMY_TEAM : PLAYER_TEAM) : actor.location.castleTeam,
+            attackType: "dash",
+            firstContact: "core",
+            from: copyPoint(actorFixed(state, actor.id)),
+            to: copyPoint(actorFixed(state, actor.id)),
+          },
+        };
+      }
+      state.dashes[actor.id] = undefined;
+      continue;
+    }
+    dash.remainingTicks -= 1;
+    if (dash.remainingTicks <= 0) state.dashes[actor.id] = undefined;
+  }
+  return undefined;
+}
+
 function nearestCellPath(state: BattleState, team: TeamId, from: Point, to: Point): Point[] {
   const pathCellOpen = (cell: Point): boolean => isWalkableCell(state, team, cell) && canOccupyFixed(state, team, { x: cellCenter(cell.x), y: cellCenter(cell.y) });
   if (!pathCellOpen(to)) return [];
@@ -697,8 +876,8 @@ function applyActorKnockback(state: BattleState, attackerId: ActorId, targetId: 
   const distance = Math.hypot(dx, dy);
   if (distance === 0) return;
   const desired = {
-    x: Math.round(targetPosition.x + (dx / distance) * ACTOR_KNOCKBACK_SUBUNITS),
-    y: Math.round(targetPosition.y + (dy / distance) * ACTOR_KNOCKBACK_SUBUNITS),
+    x: Math.round(targetPosition.x + (dx / distance) * state.rules.dashKnockbackSubunits),
+    y: Math.round(targetPosition.y + (dy / distance) * state.rules.dashKnockbackSubunits),
   };
   const destination = canOccupy(state, target.location.castleTeam, desired)
     ? desired
@@ -1523,6 +1702,7 @@ function processCrewAI(state: BattleState, events: WorldEvent[]): void {
 function markDeathIfNeeded(state: BattleState, events: WorldEvent[]): void {
   for (const actor of Object.values(state.actors)) {
     if (!actor.alive || actor.health > 0 || actor.respawnAtTick !== null) continue;
+    state.dashes[actor.id] = undefined;
     dropActorCargo(state, actor, events);
     actor.alive = false;
     actor.health = 0;
@@ -1547,6 +1727,8 @@ function finishRespawns(state: BattleState, events: WorldEvent[]): void {
     actor.respawnAtTick = null;
     actor.protectedUntilTick = state.tick + state.rules.spawnProtectionTicks;
     actor.damageImmuneUntilTick = null;
+    state.dashes[actor.id] = undefined;
+    state.dashCooldownUntilTick[actor.id] = state.tick;
     actor.currentRoomId = actor.respawnRoomId;
     actor.location = { area: "castle", castleTeam: actor.team, roomId: actor.respawnRoomId, pathRooms: [actor.respawnRoomId], pathGates: [] };
     actor.cargoIds = [];
@@ -1621,6 +1803,8 @@ export function createBattle(options: { matchId: string; seed: number }): Battle
   const state = {
     ...world,
     fixedActors: Object.fromEntries(Object.values(world.actors).map((actor) => [actor.id, { position: { x: cellCenter(actor.position.x), y: cellCenter(actor.position.y) }, remainder: { x: 0, y: 0 } }])) as BattleState["fixedActors"],
+    dashes: Object.fromEntries(Object.keys(world.actors).map((actorId) => [actorId, undefined])) as BattleState["dashes"],
+    dashCooldownUntilTick: Object.fromEntries(Object.keys(world.actors).map((actorId) => [actorId, 0])) as BattleState["dashCooldownUntilTick"],
     cargoSlots: Object.fromEntries(Object.keys(world.actors).map((actorId) => [actorId, [null, null]])) as BattleState["cargoSlots"],
     battleCases: {},
     logistics: {
@@ -1703,11 +1887,14 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
   // cannot invalidate a legitimate near-boundary handling action.
   const snapshotCandidates = interactionCandidates(state, actor);
   if (intent.handle !== undefined) handleIntent(state, intent, actor, report, events, snapshotCandidates);
+  const rejectionCountBeforeDash = report.rejected.length;
+  if (intent.dash !== undefined) startDash(state, actor, intent.dash, report);
+  if (report.rejected.length > rejectionCountBeforeDash) return;
   if (intent.direction !== undefined) {
     if (intent.direction.x === 0 && intent.direction.y === 0) {
       // A held movement pad commonly reports its neutral vector each tick.
     } else if (!isFiniteDirection(intent.direction)) addRejection(report, 0, "invalid_transition", "direction must be a unit vector");
-    else {
+    else if (!state.dashes[actor.id]) {
       moveFixed(state, actor, intent.direction);
       report.acceptedInputKinds.push("direction");
     }
@@ -1848,7 +2035,16 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   markDeathIfNeeded(next, events);
   processCrewAI(next, events);
   updateCaseCarriedPositions(next);
-  applyR2bBridge(next, intent, report, events);
+  const generatedBridge = advanceDashes(next);
+  const bridgeIntent = generatedBridge
+    ? (intent ? { ...intent, bridge: generatedBridge } : {
+      matchId: next.matchId,
+      actorId: generatedBridge.evidence.actorId,
+      generation: generatedBridge.evidence.generation,
+      bridge: generatedBridge,
+    })
+    : intent;
+  applyR2bBridge(next, bridgeIntent, report, events);
   // A validated actor hit must be visible to the common world before launch
   // selection.  A terminal core contact ends the tick without creating new
   // logistics/artillery side effects.
