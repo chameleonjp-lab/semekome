@@ -1,9 +1,10 @@
 import { canOccupyFixed, hasFloorLineOfSight } from "../actors/geometry.ts";
-import { floorCell } from "../actors/movement.ts";
+import { ACTOR_RADIUS_SUBUNITS, floorCell } from "../actors/movement.ts";
 import { roomContainsPoint, routeHasAllGates } from "../domain/layout.ts";
 import type {
   ActorId,
   CoreAttackInput,
+  DamageActorInput,
   MoveActorInput,
   PlazaCrossingState,
   TeamId,
@@ -43,6 +44,24 @@ export interface PlazaEntryEvidence {
   guardGenerations: Readonly<Record<string, number>>;
 }
 
+export interface PhysicalActorContactEvidence {
+  matchId: string;
+  tick: number;
+  /** The actor whose physical dash produced this envelope. */
+  actorId: ActorId;
+  generation: number;
+  targetActorId: ActorId;
+  targetGeneration: number;
+  attackType: "dash";
+  firstContact: "actor";
+  /** Fixed-point positions captured after the physical dash stopped. */
+  from: FixedPoint;
+  to: FixedPoint;
+  targetPosition: FixedPoint;
+  /** The target's selected carried case, if one was selected at contact. */
+  targetCargoId?: string;
+}
+
 /**
  * A renderer or physical simulation may submit one of these two evidence
  * envelopes.  The envelope is deliberately separate from `CoreAttackInput`
@@ -51,12 +70,13 @@ export interface PlazaEntryEvidence {
  */
 export type R2bBridgeRequest =
   | { kind: "core_contact"; evidence: PhysicalFirstContactEvidence }
+  | { kind: "actor_contact"; evidence: PhysicalActorContactEvidence }
   | { kind: "plaza_entry"; evidence: PlazaEntryEvidence };
 
 export interface PreparedR2bWorldInput {
   kind: R2bBridgeRequest["kind"];
   /** The validated command to consume in the current world tick. */
-  input: CoreAttackInput | MoveActorInput;
+  input: CoreAttackInput | DamageActorInput | MoveActorInput;
   /**
    * A prepared snapshot is returned for plaza entry because the crossing
    * permission is generation-bound.  Core contact can reuse the caller's
@@ -219,6 +239,77 @@ export function bridgeCoreFirstContact(
   };
 }
 
+/**
+ * Convert a physical actor-to-actor dash contact into one common-world damage
+ * input.  The physical adapter proves the contact geometry; the common world
+ * remains the authority for health, invulnerability, cargo, and respawn.
+ */
+export function bridgeActorFirstContact(
+  state: BattleState,
+  evidence: PhysicalActorContactEvidence,
+): R2bBridgeResult<DamageActorInput> {
+  const attackerResult = actorAtSnapshot(state, evidence.matchId, evidence.actorId, evidence.generation, evidence.tick);
+  if (!attackerResult.ok) return attackerResult;
+  const targetResult = actorAtSnapshot(state, evidence.matchId, evidence.targetActorId, evidence.targetGeneration, evidence.tick);
+  if (!targetResult.ok) return targetResult;
+  const attacker = attackerResult.value;
+  const target = targetResult.value;
+  if (attacker.id === target.id || attacker.team === target.team) {
+    return failure("invalid_target", "actor contact must target a live opposing actor");
+  }
+  if (evidence.attackType !== "dash" || evidence.firstContact !== "actor") {
+    return failure("invalid_contact", "only a dash whose first contact is an actor may deal actor damage");
+  }
+  if (!finitePoint(evidence.from) || !finitePoint(evidence.to) || !finitePoint(evidence.targetPosition)) {
+    return failure("invalid_contact", "fixed-point actor contact is not finite");
+  }
+  const attackerFixed = state.fixedActors[evidence.actorId]?.position;
+  const targetFixed = state.fixedActors[evidence.targetActorId]?.position;
+  if (!attackerFixed || !targetFixed || !samePoint(attackerFixed, evidence.from) ||
+      !samePoint(targetFixed, evidence.targetPosition) || !samePoint(evidence.to, evidence.targetPosition) ||
+      attacker.position.x !== floorCell(evidence.from.x) || attacker.position.y !== floorCell(evidence.from.y) ||
+      target.position.x !== floorCell(evidence.targetPosition.x) || target.position.y !== floorCell(evidence.targetPosition.y)) {
+    return failure("stale_snapshot", "physical actor positions no longer match the actor snapshot");
+  }
+  if (attacker.location.area !== "castle" || target.location.area !== "castle" ||
+      !attacker.location.castleTeam || attacker.location.castleTeam !== target.location.castleTeam ||
+      attacker.location.roomId !== target.location.roomId || attacker.currentRoomId !== target.currentRoomId) {
+    return failure("invalid_contact", "actors must share one castle room for contact damage");
+  }
+  if ((attacker.protectedUntilTick !== null && evidence.tick < attacker.protectedUntilTick) ||
+      (target.protectedUntilTick !== null && evidence.tick < target.protectedUntilTick)) {
+    return failure("invalid_contact", "spawn-protected actors cannot participate in contact damage");
+  }
+  if (target.damageImmuneUntilTick !== null && evidence.tick < target.damageImmuneUntilTick) {
+    return failure("invalid_contact", "target is temporarily immune to additional damage");
+  }
+  const contactDistance = Math.hypot(targetFixed.x - attackerFixed.x, targetFixed.y - attackerFixed.y);
+  if (contactDistance > ACTOR_RADIUS_SUBUNITS * 2 ||
+      !hasFloorLineOfSight(state, attacker.location.castleTeam, attackerFixed, targetFixed)) {
+    return failure("invalid_contact", "actor circles do not overlap or a wall blocks contact");
+  }
+  if (evidence.targetCargoId !== undefined) {
+    const object = state.objects[evidence.targetCargoId];
+    const carriedByActor = object !== undefined &&
+      (object.location.kind === "carried" || object.location.kind === "reserved-carried") &&
+      object.location.actorId === target.id;
+    if (!target.cargoIds.includes(evidence.targetCargoId) || !carriedByActor) {
+      return failure("invalid_contact", "selected target cargo is not currently carried by the target");
+    }
+  }
+  return {
+    ok: true,
+    value: {
+      kind: "damage_actor",
+      matchId: evidence.matchId,
+      actorId: target.id,
+      generation: target.generation,
+      amount: 1,
+      ...(evidence.targetCargoId === undefined ? {} : { dropObjectId: evidence.targetCargoId }),
+    },
+  };
+}
+
 export interface PreparedPlazaEntry {
   state: WorldState;
   input: MoveActorInput;
@@ -287,6 +378,19 @@ export function prepareR2bWorldInput(
 ): R2bBridgeResult<PreparedR2bWorldInput> {
   if (request.kind === "core_contact") {
     const result = bridgeCoreFirstContact(state, request.evidence);
+    if (!result.ok) return result;
+    return {
+      ok: true,
+      value: {
+        kind: request.kind,
+        input: result.value,
+        state,
+      },
+    };
+  }
+
+  if (request.kind === "actor_contact") {
+    const result = bridgeActorFirstContact(state, request.evidence);
     if (!result.ok) return result;
     return {
       ok: true,

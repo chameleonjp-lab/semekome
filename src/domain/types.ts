@@ -185,6 +185,8 @@ export interface ActorState {
   alive: boolean;
   generation: number;
   protectedUntilTick: number | null;
+  /** The first damage tick after a hit is exclusive; null means vulnerable. */
+  damageImmuneUntilTick: number | null;
   respawnAtTick: number | null;
   cargoIds: string[];
   reservationIds: string[];
@@ -255,6 +257,7 @@ export interface RejectedInput {
     | "unknown_actor"
     | "dead_actor"
     | "protected_actor"
+    | "invulnerable_actor"
     | "paused"
     | "ended"
     | "invalid_transition"
@@ -338,6 +341,7 @@ export interface RulesConfig {
   playerRespawnTicks: number;
   enemyRespawnTicks: number;
   spawnProtectionTicks: number;
+  damageInvulnerabilityTicks: number;
   exteriorPartHealth: number;
   maxCarrySlots: number;
 }
@@ -379,6 +383,8 @@ export interface DamageActorInput {
   amount: number;
   generation: number;
   matchId: string;
+  /** Only a validated physical hit may select one carried object to drop. */
+  dropObjectId?: string;
 }
 export interface MoveActorInput {
   kind: "move_actor";

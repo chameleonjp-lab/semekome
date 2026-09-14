@@ -87,6 +87,7 @@ function initialActor(definition: ActorDefinition, worldLayout: WorldState["layo
     alive: true,
     generation: 0,
     protectedUntilTick: null,
+    damageImmuneUntilTick: null,
     respawnAtTick: null,
     cargoIds: [],
     reservationIds: [],
@@ -354,15 +355,17 @@ function compactQueue(world: WorldState, team: TeamId, turretId: string): void {
   });
 }
 
+function dropActorCargoItem(world: WorldState, actor: ActorState, objectId: string, events: WorldEvent[]): boolean {
+  const object = world.objects[objectId];
+  if (!object || !actor.cargoIds.includes(objectId)) return false;
+  object.location = objectLocationFloor(world, actor);
+  actor.cargoIds = actor.cargoIds.filter((candidate) => candidate !== objectId);
+  events.push({ type: "object_moved", objectId, location: clone(object.location) });
+  return true;
+}
+
 function dropActorCargo(world: WorldState, actor: ActorState, events: WorldEvent[]): void {
-  const cargoIds = [...actor.cargoIds];
-  for (const objectId of cargoIds) {
-    const object = world.objects[objectId];
-    if (!object) continue;
-    object.location = objectLocationFloor(world, actor);
-    events.push({ type: "object_moved", objectId, location: clone(object.location) });
-  }
-  actor.cargoIds = [];
+  for (const objectId of [...actor.cargoIds]) dropActorCargoItem(world, actor, objectId, events);
 }
 
 function clearActorReservations(world: WorldState, actor: ActorState): void {
@@ -392,7 +395,10 @@ function applyActorDamage(
   if (!actor.alive || amount <= 0) return;
   actor.health = Math.max(0, actor.health - amount);
   events.push({ type: "actor_damaged", actorId: actor.id, amount });
-  if (actor.health > 0) return;
+  if (actor.health > 0) {
+    actor.damageImmuneUntilTick = currentTick + world.rules.damageInvulnerabilityTicks;
+    return;
+  }
   // A dead actor is never processed a second time in the same or a later
   // input batch. This is the single reservation boundary for respawn.
   actor.alive = false;
@@ -401,6 +407,7 @@ function applyActorDamage(
   actor.deathCount += 1;
   actor.respawnAtTick = currentTick + (actor.team === PLAYER_TEAM ? world.rules.playerRespawnTicks : world.rules.enemyRespawnTicks);
   actor.protectedUntilTick = null;
+  actor.damageImmuneUntilTick = null;
   dropActorCargo(world, actor, events);
   clearActorReservations(world, actor);
   events.push({ type: "actor_died", actorId: actor.id, generation: actor.generation, respawnAtTick: actor.respawnAtTick });
@@ -419,6 +426,7 @@ function finishRespawns(world: WorldState, currentTick: number, events: WorldEve
     actor.health = actor.maxHealth;
     actor.respawnAtTick = null;
     actor.protectedUntilTick = currentTick + world.rules.spawnProtectionTicks;
+    actor.damageImmuneUntilTick = null;
     actor.currentRoomId = roomId;
     actor.location = {
       area: "castle",
@@ -884,9 +892,25 @@ export function stepWorld(world: WorldState, input?: WorldInput | readonly World
         reject(report, index, "protected_actor");
         continue;
       }
+      if (startActor.damageImmuneUntilTick !== null && currentTick < startActor.damageImmuneUntilTick) {
+        reject(report, index, "invulnerable_actor");
+        continue;
+      }
       if (!Number.isFinite(actorInput.amount) || actorInput.amount <= 0) {
         reject(report, index, "invalid_transition", "damage must be positive");
         continue;
+      }
+      if (actorInput.dropObjectId !== undefined) {
+        const dropObject = next.objects[actorInput.dropObjectId];
+        const owned = actor.cargoIds.includes(actorInput.dropObjectId);
+        const carriedByExpectedActor = dropObject !== undefined &&
+          (dropObject.location.kind === "carried" || dropObject.location.kind === "reserved-carried") &&
+          dropObject.location.actorId === actor.id;
+        if (!owned || !carriedByExpectedActor) {
+          reject(report, index, "invalid_transition", "drop object is not carried by the damaged actor");
+          continue;
+        }
+        dropActorCargoItem(next, actor, actorInput.dropObjectId, events);
       }
       applyActorDamage(next, actor, Math.trunc(actorInput.amount), currentTick, events);
       report.acceptedInputKinds.push(kind);
