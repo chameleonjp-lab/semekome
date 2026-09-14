@@ -358,8 +358,17 @@ function compactQueue(world: WorldState, team: TeamId, turretId: string): void {
 function dropActorCargoItem(world: WorldState, actor: ActorState, objectId: string, events: WorldEvent[]): boolean {
   const object = world.objects[objectId];
   if (!object || !actor.cargoIds.includes(objectId)) return false;
+  const previousLocation = object.location;
   object.location = objectLocationFloor(world, actor);
   actor.cargoIds = actor.cargoIds.filter((candidate) => candidate !== objectId);
+  if (previousLocation.kind === "reserved-carried") {
+    const reservation = world.reservations[previousLocation.reservationId];
+    if (reservation) {
+      const owner = world.actors[reservation.ownerActorId];
+      if (owner) owner.reservationIds = owner.reservationIds.filter((id) => id !== reservation.id);
+      delete world.reservations[reservation.id];
+    }
+  }
   events.push({ type: "object_moved", objectId, location: clone(object.location) });
   return true;
 }

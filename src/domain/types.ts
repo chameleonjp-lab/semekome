@@ -302,6 +302,31 @@ export type WorldEvent =
   | { type: "outcome"; outcome: Exclude<Outcome, "ongoing">; tick: number }
   | { type: "object_moved"; objectId: string; location: ObjectLocation }
   | { type: "object_consumed"; objectId: string; reason: string }
+  | {
+      type: "repair_started";
+      actorId: ActorId;
+      objectId: string;
+      team: TeamId;
+      partId: PartId;
+      completesAtTick: number;
+    }
+  | {
+      type: "repair_cancelled";
+      actorId: ActorId;
+      objectId: string;
+      team: TeamId;
+      partId: PartId;
+      reason: "interrupted" | "damaged" | "dead" | "stale_generation" | "invalid_target";
+    }
+  | {
+      type: "repair_completed";
+      actorId: ActorId;
+      objectId: string;
+      team: TeamId;
+      partId: PartId;
+      amount: number;
+      budgetUsed: number;
+    }
   | { type: "case_spawned"; objectId: string; team: TeamId; portId: string; caseType: string }
   | {
     type: "projectile_launched";
@@ -366,6 +391,12 @@ export interface RulesConfig {
   spawnProtectionTicks: number;
   damageInvulnerabilityTicks: number;
   exteriorPartHealth: number;
+  /** Maximum cumulative exterior repair per team in one match. */
+  repairBudget: number;
+  /** Exterior health restored by one completed repair case. */
+  repairPerCase: number;
+  /** Fixed ticks required to complete an exterior repair. */
+  repairWorkTicks: number;
   maxCarrySlots: number;
 }
 
