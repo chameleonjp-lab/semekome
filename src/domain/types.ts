@@ -327,6 +327,32 @@ export type WorldEvent =
       amount: number;
       budgetUsed: number;
     }
+  | {
+      type: "equipment_repair_started";
+      actorId: ActorId;
+      objectId: string;
+      team: TeamId;
+      equipmentId: string;
+      equipmentKind: "turret" | "supply_port";
+      completesAtTick: number;
+    }
+  | {
+      type: "equipment_repair_cancelled";
+      actorId: ActorId;
+      objectId: string;
+      team: TeamId;
+      equipmentId: string;
+      equipmentKind: "turret" | "supply_port";
+      reason: "interrupted" | "damaged" | "dead" | "stale_generation" | "invalid_target";
+    }
+  | {
+      type: "equipment_repair_completed";
+      actorId: ActorId;
+      objectId: string;
+      team: TeamId;
+      equipmentId: string;
+      equipmentKind: "turret" | "supply_port";
+    }
   | { type: "case_spawned"; objectId: string; team: TeamId; portId: string; caseType: string }
   | {
     type: "projectile_launched";
@@ -386,6 +412,10 @@ export interface RulesConfig {
   dashKnockbackSubunits: number;
   equipmentHealth: number;
   equipmentDisabledTicks: number;
+  /** Fixed ticks required to complete a manual equipment repair. */
+  equipmentRepairWorkTicks: number;
+  /** Health assigned by a completed manual equipment repair. */
+  equipmentRepairHealth: number;
   playerRespawnTicks: number;
   enemyRespawnTicks: number;
   spawnProtectionTicks: number;

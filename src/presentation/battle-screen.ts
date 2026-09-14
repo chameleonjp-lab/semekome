@@ -1,5 +1,5 @@
 import { createBattle, getInteraction, pauseBattle, resumeBattle, setBattleVisibility, stepBattle } from '../simulation/physical-battle.ts';
-import type { BattleHandle, BattleIntent, BattleRoute } from '../simulation/physical-battle.ts';
+import type { BattleEquipmentKind, BattleHandle, BattleIntent, BattleRoute } from '../simulation/physical-battle.ts';
 import { PART_IDS } from '../domain/types.ts';
 import type { PartId } from '../domain/types.ts';
 import { bindMovement } from '../input/battle-input.ts';
@@ -8,7 +8,7 @@ import { caseLabels, createBattleRenderer } from './battle-renderer.ts';
 import './battle.css';
 
 const actionLabels: Record<BattleHandle, string> = {
-  pickup: '弾を拾う', drop: '弾を置く', deliver: '砲台へ渡す', load: '砲台へ装填', repair: '外装を修理', launch: '砲撃する', intercept: '迎撃する',
+  pickup: '弾を拾う', drop: '弾を置く', deliver: '砲台へ渡す', load: '砲台へ装填', repair: '修理する', launch: '砲撃する', intercept: '迎撃する',
 };
 
 export function openBattleSetup(app: HTMLElement, goHome: () => void): () => void {
@@ -19,7 +19,7 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
     <form novalidate><label for="player-name">あなたの名前</label><input id="player-name" name="playerName" autocomplete="nickname" aria-describedby="name-hint name-error" placeholder="1〜20文字" required>
     <p id="name-hint">前後の空白は取り除きます。名前の外部送信は行いません。</p><p id="name-error" role="alert"></p>
     <button type="submit" class="primary">確認を開始する</button><button type="button" id="cancel-setup">ホームへ戻る</button></form>
-    <p class="scope-note">今回は運搬・砲撃・外装修理まで。設備修理、広場の戦い・敵陣への侵入・核攻撃・結果とランキングは未実装です。</p></section>`;
+    <p class="scope-note">今回は運搬・砲撃・外装修理・設備修理まで。広場の戦い・敵陣への侵入・核攻撃・結果とランキングは未実装です。</p></section>`;
   const input = app.querySelector<HTMLInputElement>('#player-name')!;
   app.querySelector('#cancel-setup')!.addEventListener('click', goHome);
   app.querySelector('form')!.addEventListener('submit', event => {
@@ -44,6 +44,7 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
   let slot = 0;
   let route: BattleRoute = 'direct';
   let part: PartId = 'P1';
+  let equipmentTarget: { kind: BattleEquipmentKind; id: string } | undefined;
   let pending: BattleIntent | undefined;
   let frame = 0;
   let playerOperatedLaunches = 0;
@@ -56,9 +57,9 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     <p class="battle-hint" aria-live="polite">上の弾薬庫Aへ。弾の近くで「弾を拾う」。</p>
     <div class="cargo-controls" aria-label="所持する弾"><button data-slot="0" aria-pressed="true">左：空</button><button data-slot="1" aria-pressed="false">右：空</button></div>
     <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled>弾に近づく</button><button id="battle-drop" disabled>選択中の弾を置く</button></div></div>
-    <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵外装 ${id}</option>`).join('')}</select></label><button id="battle-help" aria-label="操作説明">?</button></div>
+    <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵外装 ${id}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><button id="battle-help" aria-label="操作説明">?</button></div>
     <div class="battle-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div><p id="overlay-title" class="overlay-title" role="status">開始まで</p><strong class="countdown-number">3</strong><p class="overlay-description">左のパッドで移動・右のボタンで弾を扱う</p><button id="resume-battle" class="primary" hidden>再開する</button><button id="leave-battle">準備を中止する</button></div></div>
-    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">運搬・砲撃・修理</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>上の弾薬庫Aで、床の弾に近づいて拾います。</li><li>通路を通って隣の砲撃室Aへ。砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>修理室で所持中の弾を1個使い、壊れていない自陣外装を90更新かけて修理できます。途中で移動・被弾すると弾は戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>設備修理、広場への移動・近接戦・核攻撃は次段階です。外装7部位が壊れても勝利ではありません。</p></div></dialog></section>`;
+    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">運搬・砲撃・修理</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>上の弾薬庫Aで、床の弾に近づいて拾います。</li><li>通路を通って隣の砲撃室Aへ。砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動・近接戦・核攻撃は次段階です。外装7部位が壊れても勝利ではありません。</p></div></dialog></section>`;
   const screen = app.querySelector<HTMLElement>('.battle')!;
   screen.dataset.matchId = state.matchId;
   app.querySelector('.player-label')!.textContent = name;
@@ -74,6 +75,8 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
   const drop = app.querySelector<HTMLButtonElement>('#battle-drop')!;
   const leave = app.querySelector<HTMLButtonElement>('#leave-battle')!;
   const help = app.querySelector<HTMLDialogElement>('.battle-help-dialog')!;
+  const equipmentTargetControl = app.querySelector<HTMLElement>('#equipment-target-control')!;
+  const equipmentTargetSelect = app.querySelector<HTMLSelectElement>('#equipment-target')!;
   let lastHud = '';
   let overlayWasVisible: boolean | null = null;
   const canInteract = () => !paused && countdown === 0 && state.phase === 'running';
@@ -106,7 +109,20 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     if (paused || countdown > 0 || state.phase !== 'running' || pending) return;
     const interaction = getInteraction(state, 'P1', slot);
     if (!interaction.handles.includes(handle)) return;
-    pending = { matchId: state.matchId, actorId: 'P1', generation: state.actors.P1.generation, handle, slot, route, part, contextToken: interaction.contextToken };
+    const target = handle === 'repair' && equipmentTargetSelect.value
+      ? equipmentTargetSelect.value.split(':')
+      : [];
+    pending = {
+      matchId: state.matchId,
+      actorId: 'P1',
+      generation: state.actors.P1.generation,
+      handle,
+      slot,
+      route,
+      part,
+      ...(target.length === 2 ? { equipmentKind: target[0] as BattleEquipmentKind, equipmentId: target[1] } : {}),
+      contextToken: interaction.contextToken,
+    };
   };
   // Pointerdown performs one edge-triggered action; the subsequent click is ignored.
   for (const button of [action, drop]) {
@@ -127,6 +143,11 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     (event.currentTarget as HTMLButtonElement).textContent = `経路：${route === 'direct' ? '直通' : '迂回'}`;
   }, options);
   app.querySelector<HTMLSelectElement>('#target-part')!.addEventListener('change', event => { if (canInteract()) part = (event.target as HTMLSelectElement).value as PartId; }, options);
+  equipmentTargetSelect.addEventListener('change', event => {
+    if (!canInteract()) return;
+    const [kind, id] = (event.target as HTMLSelectElement).value.split(':');
+    equipmentTarget = kind && id ? { kind: kind as BattleEquipmentKind, id } : undefined;
+  }, options);
   app.querySelector('#pause-battle')!.addEventListener('click', stop, options);
   resume.addEventListener('click', () => {
     if (document.hidden || help.open || state.phase === 'ended') return;
@@ -160,7 +181,8 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     const actor = state.actors.P1;
     const cargo = [0, 1].map(index => Object.values(state.objects).find(item => (item.location.kind === 'carried' || item.location.kind === 'reserved-carried') && item.location.actorId === 'P1' && item.location.slot === index));
     const nearest = interaction.cases.find(item => item.id === interaction.pickupCaseId);
-    const signature = JSON.stringify([Math.floor(state.tick / 60), actor.currentRoomId, available, nearest?.id, cargo.map(item => item?.id), slot, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health])]);
+    const equipmentTargetsSignature = interaction.equipmentRepairTargets.map(target => `${target.kind}:${target.id}:${target.health}:${target.disabledUntilTick}`);
+    const signature = JSON.stringify([Math.floor(state.tick / 60), actor.currentRoomId, available, nearest?.id, cargo.map(item => item?.id), slot, equipmentTargetsSignature, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health])]);
     screen.dataset.tick = String(state.tick); screen.dataset.phase = countdown ? 'countdown' : paused ? 'paused' : state.phase;
     screen.dataset.playerX = String(state.fixedActors.P1.position.x); screen.dataset.playerY = String(state.fixedActors.P1.position.y);
     screen.dataset.playerOperatedLaunches = String(playerOperatedLaunches);
@@ -178,7 +200,14 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     }
     const room = state.layout.home.rooms.find(item => item.id === actor.currentRoomId);
     app.querySelector('.current-room')!.textContent = room?.label ?? '通路';
-    app.querySelector('.battle-hint')!.textContent = available === 'repair' ? '修理室で対象の外装を選び、弾を修理へ回します。' : available === 'load' ? '装填後は、操作位置で待つと自動発射します。' : cargo.some(Boolean) ? '選んだ弾を砲台へ。弾薬庫の隣が砲撃室です。' : actor.currentRoomId === 'central_corridor' ? '上の弾薬庫Aへ。広場への移動は次段階です。' : '床の弾に近づいて拾う → 隣の砲台へ運ぶ。';
+    equipmentTargetControl.hidden = actor.currentRoomId !== 'repair' || interaction.equipmentRepairTargets.length === 0;
+    const availableTargetValues = new Set(interaction.equipmentRepairTargets.map(target => `${target.kind}:${target.id}`));
+    equipmentTargetSelect.replaceChildren(new Option('外装を修理', ''));
+    for (const target of interaction.equipmentRepairTargets) equipmentTargetSelect.add(new Option(`${target.kind === 'turret' ? '砲台' : '補給口'} ${target.id}：${target.health}/${state.rules.equipmentRepairHealth}`, `${target.kind}:${target.id}`));
+    const selectedTarget = equipmentTarget && availableTargetValues.has(`${equipmentTarget.kind}:${equipmentTarget.id}`) ? `${equipmentTarget.kind}:${equipmentTarget.id}` : '';
+    equipmentTargetSelect.value = selectedTarget;
+    equipmentTarget = selectedTarget ? equipmentTarget : undefined;
+    app.querySelector('.battle-hint')!.textContent = available === 'repair' ? '修理室で外装または設備を選び、弾を修理へ回します。' : available === 'load' ? '装填後は、操作位置で待つと自動発射します。' : cargo.some(Boolean) ? '選んだ弾を砲台へ。弾薬庫の隣が砲撃室です。' : actor.currentRoomId === 'central_corridor' ? '上の弾薬庫Aへ。広場への移動は次段階です。' : '床の弾に近づいて拾う → 隣の砲台へ運ぶ。';
     for (const team of ['player', 'enemy'] as const) {
       const card = app.querySelector<HTMLElement>(`[data-team="${team}"]`)!;
       card.querySelector('.battle-gates')!.textContent = `門 ${state.castles[team].openGateIds.length}/7`;

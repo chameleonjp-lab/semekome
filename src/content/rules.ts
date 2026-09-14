@@ -22,7 +22,12 @@ type InitialRulesShape = {
     repair_per_crate?: number;
     repair_work_ticks?: number;
   };
-  equipment?: { health?: number; disabled_ticks?: number };
+  equipment?: {
+    health?: number;
+    disabled_ticks?: number;
+    repair_work_ticks?: number;
+    manual_restore_health?: number;
+  };
   team_profiles?: {
     player?: { respawn_ticks?: number };
     enemy?: { respawn_ticks?: number };
@@ -54,6 +59,8 @@ export const DEFAULT_RULES: RulesConfig = {
   dashKnockbackSubunits: Math.round(positiveNumber(source.actor?.dash_knockback_units, 0.6) * 1_000),
   equipmentHealth: positiveNumber(source.equipment?.health, 60),
   equipmentDisabledTicks: positiveInteger(source.equipment?.disabled_ticks, 480),
+  equipmentRepairWorkTicks: positiveInteger(source.equipment?.repair_work_ticks, 120),
+  equipmentRepairHealth: positiveNumber(source.equipment?.manual_restore_health, 60),
   playerRespawnTicks: positiveInteger(source.team_profiles?.player?.respawn_ticks, 300),
   enemyRespawnTicks: positiveInteger(source.team_profiles?.enemy?.respawn_ticks, 1_200),
   spawnProtectionTicks: positiveInteger(source.actor?.spawn_protection_ticks, 60),
