@@ -4,6 +4,7 @@ import { actorCanAct, atTurret, executeActorCommand, near, ordered, queueFor, re
 
 export interface EnemyObservation {
   role: ActorState["role"];
+  health: number;
   homeRoomId: string;
   currentRoomId: string;
   inHomeCastle: boolean;
@@ -24,7 +25,7 @@ export function observeEnemy(battle: BattleState, actor: ActorState): EnemyObser
       (b.position.x - actor.position.x) ** 2 - (b.position.y - actor.position.y) ** 2 || ordered(a.id, b.id)).map(other => other.id);
   const turret = actor.turretId ? turretDefinition(battle, actor.team, actor.turretId) : undefined;
   return {
-    role: actor.role, homeRoomId: actor.homeRoomId, currentRoomId: actor.currentRoomId,
+    role: actor.role, health: actor.health, homeRoomId: actor.homeRoomId, currentRoomId: actor.currentRoomId,
     inHomeCastle: actor.location.area === "castle" && actor.location.castleTeam === actor.team,
     threats, cargo: actor.cargoIds.filter(id => battle.world.objects[id].location.kind === "carried"),
     nearbyCases: Object.values(battle.world.objects).filter(o => o.weaponId && Object.hasOwn(battle.catalog, o.weaponId) && o.location.kind === "floor" &&
@@ -39,6 +40,7 @@ export function observeEnemy(battle: BattleState, actor: ActorState): EnemyObser
 export function chooseEnemyIntent(observation: EnemyObservation): EnemyIntent {
   const o = observation;
   const threat = o.threats[0];
+  if (threat && o.health <= 2) return { kind: "retreat", awayFromId: threat };
   switch (o.role) {
     case "shooter":
       if (!o.inHomeCastle || o.currentRoomId !== o.homeRoomId) return { kind: "move_goal", roomId: o.homeRoomId, purpose: "return" };

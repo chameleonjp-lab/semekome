@@ -49,11 +49,13 @@ import {
 } from "../artillery/artillery.ts";
 import { getHandoffPosition, getTurretOperatorPosition } from "../artillery/positions.ts";
 import type { CrewAssignment, CrewTask } from "../crew/crew.ts";
+import type { EnemyIntent } from "../domain/battle.ts";
 import {
   prepareR2bWorldInput,
   type PhysicalActorContactEvidence,
   type R2bBridgeRequest,
 } from "./r2b-bridge.ts";
+import { chooseEnemyIntent, type EnemyObservation } from "./enemy-rules.ts";
 
 const PLAYER_TEAM: TeamId = "player";
 const ENEMY_TEAM: TeamId = "enemy";
@@ -63,7 +65,6 @@ const EVENT_LOG_LIMIT = 512;
 const ROUTE_COLLISION_EPSILON = 0.012;
 const AI_REPLAN_TICKS = 120;
 const ENEMY_DECISION_INTERVAL_TICKS = 36;
-const INTERNAL_SOLDIER_RETREAT_HEALTH = 2;
 // A full cell search is intentionally amortised across simulation ticks. A
 // browser frame must not spend hundreds of milliseconds planning all internal
 // soldiers at once (the UI clock treats that as an interruption).
@@ -222,16 +223,14 @@ export interface BattleCrewState {
 }
 
 /**
- * The physical coordinator keeps a small, deterministic copy of the enemy
- * movement decision.  It is intentionally separate from the R2a common-rule
- * `EnemyDecision`: this state contains no inventory reservation or artillery
- * command and is consumed only by the fixed-point mover below.
+ * The physical coordinator keeps a deterministic copy of the common enemy
+ * intention.  The observation is projected from fixed-point state, while the
+ * role priority itself is selected by the shared R2a rule.  Physical
+ * execution still validates movement, line of sight, cargo, and equipment
+ * independently; copying an intent never teleports an actor or grants an
+ * object transition.
  */
-export type PhysicalEnemyIntent =
-  | { kind: "wait"; reason: string }
-  | { kind: "move_goal"; roomId: string; purpose: "return" | "patrol" | "plaza" | "assault" }
-  | { kind: "defend"; targetId: ActorId }
-  | { kind: "retreat"; awayFromId: ActorId };
+export type PhysicalEnemyIntent = EnemyIntent;
 
 export interface PhysicalEnemyDecision {
   generation: number;
@@ -1015,25 +1014,55 @@ function roomTargetPoint(state: BattleState, team: TeamId, roomId: string): Fixe
   return candidates.find((point) => canOccupy(state, team, point));
 }
 
-function nearestLocalThreat(state: BattleState, actor: ActorState): ActorState | undefined {
-  const castleTeam = actor.location.castleTeam;
-  if (actor.location.area !== "castle" || !castleTeam) return undefined;
-  return Object.values(state.actors)
-    .filter((candidate) => candidate.alive && candidate.team !== actor.team && candidate.location.area === "castle" &&
-      candidate.location.castleTeam === castleTeam && candidate.currentRoomId === actor.currentRoomId)
+function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyObservation {
+  const local = (candidate: ActorState): boolean => candidate.id !== actor.id && candidate.alive &&
+    candidate.team !== actor.team && candidate.location.area === actor.location.area &&
+    candidate.location.castleTeam === actor.location.castleTeam && candidate.currentRoomId === actor.currentRoomId;
+  const threats = Object.values(state.actors)
+    .filter(local)
     .sort((left, right) => distanceSquared(actorFixed(state, actor.id), actorFixed(state, left.id)) -
-      distanceSquared(actorFixed(state, actor.id), actorFixed(state, right.id)) || String(left.id).localeCompare(String(right.id)))[0];
+      distanceSquared(actorFixed(state, actor.id), actorFixed(state, right.id)) || String(left.id).localeCompare(String(right.id)))
+    .map((candidate) => candidate.id);
+  const turretDefinition = actor.turretId
+    ? teamLayout(state, actor.team).turrets.find((candidate) => candidate.id === actor.turretId)
+    : undefined;
+  const turret = turretDefinition
+    ? state.artillery.turrets[turretKey(actor.team, turretDefinition.id)]
+    : undefined;
+  const nearbyCases = Object.values(state.battleCases)
+    .filter((caseState) => caseState.location === "floor" && caseState.currentTeam === actor.team &&
+      caseState.roomId === actor.currentRoomId && caseState.position !== undefined &&
+      withinActionRange(actorFixed(state, actor.id), caseState.position))
+    .sort((left, right) => distanceSquared(actorFixed(state, actor.id), left.position!) -
+      distanceSquared(actorFixed(state, actor.id), right.position!) || left.id.localeCompare(right.id))
+    .map((caseState) => caseState.id);
+  return {
+    role: actor.role,
+    health: actor.health,
+    homeRoomId: actor.homeRoomId,
+    currentRoomId: actor.currentRoomId,
+    inHomeCastle: actor.location.area === "castle" && actor.location.castleTeam === actor.team,
+    threats,
+    cargo: actor.cargoIds.filter((caseId) => state.battleCases[caseId]?.location === "carried"),
+    nearbyCases,
+    turret: turret && turretDefinition ? {
+      id: turret.id,
+      roomId: turret.roomId,
+      atPosition: actor.location.area === "castle" && actor.location.castleTeam === actor.team &&
+        actor.currentRoomId === turret.roomId && withinActionRange(actorFixed(state, actor.id), turret.position) &&
+        hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), turret.position),
+      hasCapacity: turret.queueIds.length < QUEUE_CAPACITY_PER_TURRET && turret.handoffIds.length < STAGING_SLOTS_PER_TURRET,
+    } : undefined,
+    canAssault: actor.canAssaultOtherVehicle === true,
+    canGuardPlaza: actor.canGuardPlaza === true,
+  };
 }
 
 function physicalEnemyIntent(state: BattleState, actor: ActorState): PhysicalEnemyIntent {
-  const threat = nearestLocalThreat(state, actor);
-  if (threat) {
-    if (actor.health <= INTERNAL_SOLDIER_RETREAT_HEALTH) return { kind: "retreat", awayFromId: threat.id };
-    return { kind: "defend", targetId: threat.id };
-  }
-  if (actor.canGuardPlaza === true) return { kind: "move_goal", roomId: "central_corridor", purpose: "plaza" };
-  if (actor.canAssaultOtherVehicle === true) return { kind: "move_goal", roomId: "central_corridor", purpose: "assault" };
-  return { kind: "move_goal", roomId: actor.homeRoomId, purpose: "patrol" };
+  // Keep the role priority in one place: the fixed-point adapter supplies
+  // physical observations, then the shared common-rule selector chooses the
+  // same intent used by the non-physical battle state.
+  return chooseEnemyIntent(physicalEnemyObservation(state, actor));
 }
 
 function clearEnemyAssignment(assignment: CrewAssignment): void {
@@ -1046,12 +1075,12 @@ function clearEnemyAssignment(assignment: CrewAssignment): void {
 }
 
 function updatePhysicalEnemyDecisions(state: BattleState): void {
-  const internalIds = new Set<string>();
+  const enemyIds = new Set<string>();
   for (const actor of Object.values(state.actors)
-    .filter((candidate) => candidate.team === ENEMY_TEAM && candidate.role === "internal_soldier")
+    .filter((candidate) => candidate.team === ENEMY_TEAM && candidate.role !== "player" && candidate.role !== "support")
     .sort((left, right) => String(left.id).localeCompare(String(right.id)))) {
-    internalIds.add(String(actor.id));
-    if (!actor.alive) {
+    enemyIds.add(String(actor.id));
+    if (!actor.alive || (actor.protectedUntilTick !== null && state.tick < actor.protectedUntilTick)) {
       delete state.enemyDecisions[actor.id];
       clearEnemyAssignment(state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "idle", path: [], pathIndex: 0 });
       continue;
@@ -1066,11 +1095,12 @@ function updatePhysicalEnemyDecisions(state: BattleState): void {
     };
     const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "idle", path: [], pathIndex: 0 };
     clearEnemyAssignment(assignment);
+    assignment.task = "idle";
     if (intent.kind === "move_goal") assignment.targetRoomId = intent.roomId;
     else if (intent.kind === "defend" || intent.kind === "retreat") assignment.targetActorId = intent.kind === "defend" ? intent.targetId : intent.awayFromId;
     state.crew.assignments[actor.id] = assignment;
   }
-  for (const actorId of Object.keys(state.enemyDecisions)) if (!internalIds.has(actorId)) delete state.enemyDecisions[actorId];
+  for (const actorId of Object.keys(state.enemyDecisions)) if (!enemyIds.has(actorId)) delete state.enemyDecisions[actorId];
 }
 
 function retreatTargetPoint(state: BattleState, actor: ActorState, threat: ActorState): FixedPoint | undefined {
@@ -1105,6 +1135,16 @@ function startEnemyDash(state: BattleState, actor: ActorState, target: FixedPoin
   return true;
 }
 
+function enemyDecisionUsesPhysicalMover(actor: ActorState, intent: PhysicalEnemyIntent): boolean {
+  if (intent.kind === "defend" || intent.kind === "retreat") return true;
+  if (intent.kind !== "move_goal") return false;
+  if (actor.role === "internal_soldier") return true;
+  // Return goals are movement responsibilities for the non-combat roles.
+  // Shooter operation and carrier delivery remain with their role-specific
+  // handlers so they cannot skip equipment or cargo validation.
+  return intent.purpose === "return" && actor.role !== "ammo_carrier";
+}
+
 function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boolean): void {
   // A public dash or an explicit bridge is a player-authored physical
   // snapshot.  Keep NPCs from moving the target before that snapshot is
@@ -1112,11 +1152,16 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
   if (suppressNpcMovement) return;
   let pathPlansRemaining = INTERNAL_PATH_PLANS_PER_TICK;
   for (const actor of Object.values(state.actors)
-    .filter((candidate) => candidate.team === ENEMY_TEAM && candidate.role === "internal_soldier" && candidate.alive)
+    .filter((candidate) => candidate.team === ENEMY_TEAM && candidate.role !== "player" && candidate.role !== "support" && candidate.alive)
     .sort((left, right) => String(left.id).localeCompare(String(right.id)))) {
     const decision = state.enemyDecisions[actor.id];
-    if (!decision || decision.generation !== actor.generation || state.dashes[actor.id]) continue;
+    if (!decision || decision.generation !== actor.generation || state.dashes[actor.id] || !enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
     const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "idle" as CrewTask, path: [], pathIndex: 0 };
+    // Keep the bounded BFS budget for the internal-soldier patrol network.
+    // Shooter guards and carriers use the same collision-safe fixed-step
+    // fallback for their return/defense goals; their normal equipment/cargo
+    // paths remain owned by the role-specific handlers.
+    const canPlanAuthoredPath = actor.role === "internal_soldier";
     if (decision.intent.kind === "move_goal") {
       const targetChanged = assignment.targetRoomId !== decision.intent.roomId || !assignment.targetPosition;
       const target = targetChanged
@@ -1132,7 +1177,7 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
         assignment.pathIndex = 0;
         assignment.stuckTicks = 0;
       }
-      if (assignment.path.length === 0 && pathPlansRemaining > 0) {
+      if (canPlanAuthoredPath && assignment.path.length === 0 && pathPlansRemaining > 0) {
         assignment.path = actorTargetPath(state, actor, target);
         pathPlansRemaining -= 1;
       }
@@ -1148,7 +1193,7 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
       if (hasFloorLineOfSight(state, actor.location.castleTeam ?? ENEMY_TEAM, actorFixed(state, actor.id), target) &&
           distanceSquared(actorFixed(state, actor.id), target) <= (state.rules.dashDistanceSubunits + ACTOR_RADIUS_SUBUNITS * 2) ** 2 &&
           startEnemyDash(state, actor, target)) continue;
-      if (assignment.path.length === 0 && pathPlansRemaining > 0) {
+      if (canPlanAuthoredPath && assignment.path.length === 0 && pathPlansRemaining > 0) {
         assignment.path = actorTargetPath(state, actor, target);
         assignment.pathIndex = 0;
         pathPlansRemaining -= 1;
@@ -1163,14 +1208,14 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
       assignment.task = "retreat";
       assignment.targetActorId = threat.id;
       assignment.targetRoomId = undefined;
-      if (assignment.path.length === 0 && pathPlansRemaining > 0) {
+      if (canPlanAuthoredPath && assignment.path.length === 0 && pathPlansRemaining > 0) {
         assignment.path = actorTargetPath(state, actor, target);
         assignment.pathIndex = 0;
         assignment.stuckTicks = 0;
         pathPlansRemaining -= 1;
       }
       if (assignment.path.length > 0) moveAIAlongPath(state, actor, assignment, target);
-      else moveDirectlyToward(state, actor, target);
+      else moveDirectlyToward(state, actor, target, true);
     }
     state.crew.assignments[actor.id] = assignment;
   }
@@ -2085,6 +2130,8 @@ function processShooterAI(state: BattleState, actor: ActorState): void {
 
 function processCrewAI(state: BattleState, events: WorldEvent[]): void {
   for (const actor of Object.values(state.actors).sort((left, right) => left.id.localeCompare(right.id))) {
+    const decision = state.enemyDecisions[actor.id];
+    if (decision && enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
     if (actor.role === "ammo_carrier" || actor.role === "support") processCarrierAI(state, actor, events);
     else if (actor.role === "shooter") processShooterAI(state, actor);
   }
@@ -2431,8 +2478,8 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   const startActors = structuredClone(next.actors);
   applyIntent(next, intent, report, events);
   markDeathIfNeeded(next, events);
-  processCrewAI(next, events);
   updatePhysicalEnemyDecisions(next);
+  processCrewAI(next, events);
   processInternalSoldierAI(next, intent?.dash !== undefined || intent?.bridge !== undefined);
   updateCaseCarriedPositions(next);
   const dashResult = advanceDashes(next, events);
