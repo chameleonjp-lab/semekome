@@ -1320,6 +1320,14 @@ function reservationForCase(state: BattleState, objectId: string): { id: string;
   return Object.values(state.reservations).find((reservation) => reservation.objectIds.includes(objectId));
 }
 
+function releaseReservation(state: BattleState, reservationId: string): void {
+  const reservation = state.reservations[reservationId];
+  if (!reservation) return;
+  const owner = state.actors[reservation.ownerActorId];
+  if (owner) owner.reservationIds = owner.reservationIds.filter((id) => id !== reservationId);
+  delete state.reservations[reservationId];
+}
+
 function syncWorldObject(state: BattleState, caseState: BattleCaseState): void {
   const object: WorldObject = state.objects[caseState.id] ?? {
     id: caseState.id,
@@ -1836,6 +1844,27 @@ function spawnSupply(state: BattleState, events: WorldEvent[]): void {
     const definition = type ? caseDefinition(type) : undefined;
     if (!type || !definition) continue;
     const groupIndex = port.groupSequence;
+    const groupId = `group-${port.team}-${port.id}-g${String(groupIndex + 1).padStart(2, "0")}`;
+    const caseId = makeCaseId(port.team, port.id, groupIndex);
+    // Supply creation crosses the common-world boundary before the physical
+    // scheduler consumes its bag entry or advances the port sequence.  A
+    // rejected common transition therefore cannot create a second physical
+    // case, consume a stopped supply order, or leave a ghost group behind.
+    syncAllWorldObjects(state);
+    const common = stepWorld(state, {
+      kind: "spawn_supply",
+      objectId: caseId,
+      team: port.team,
+      portId: port.id,
+      weaponId: type,
+      weight: definition.weight,
+      originGroupId: groupId,
+      roomId: port.roomId,
+      position: readCell(spawnPosition),
+      matchId: state.matchId,
+    });
+    if (common.lastStep.rejected.length > 0 || !common.lastStep.advanced || !common.objects[caseId]) continue;
+    state.objects = common.objects;
     port.groupSequence += 1;
     port.groupCount += 1;
     state.logistics.bagIndices[port.team] += 1;
@@ -1845,8 +1874,6 @@ function spawnSupply(state: BattleState, events: WorldEvent[]): void {
       state.logistics.bagIndices[port.team] = 0;
     }
     port.nextSpawnTick = state.tick + SUPPLY_PERIOD_TICKS;
-    const groupId = `group-${port.team}-${port.id}-g${String(groupIndex + 1).padStart(2, "0")}`;
-    const caseId = makeCaseId(port.team, port.id, groupIndex);
     const caseState: BattleCaseState = {
       id: caseId,
       type,
@@ -1865,7 +1892,7 @@ function spawnSupply(state: BattleState, events: WorldEvent[]): void {
     state.battleCases[caseId] = caseState;
     state.logistics.groups[groupId] = { id: groupId, team: port.team, portId: port.id, caseIds: [caseId], retired: false };
     syncWorldObject(state, caseState);
-    events.push(event("case_spawned", { objectId: caseId, team: port.team, portId: port.id, caseType: type }));
+    events.push(...common.lastStep.events.filter((item) => item.type === "case_spawned" || item.type === "object_moved"));
   }
 }
 
@@ -1927,6 +1954,40 @@ function availableStagingSlot(state: BattleState, actor: ActorState, turret: Bat
   return undefined;
 }
 
+function reserveDeliveryThroughCommon(
+  state: BattleState,
+  actor: ActorState,
+  caseState: BattleCaseState,
+  turret: BattleTurretState,
+  events: WorldEvent[],
+): string | undefined {
+  const reservationId = `delivery:${state.matchId}:${state.tick}:${actor.id}:${actor.generation}:${caseState.id}`;
+  // The common transition must see the same cargo ownership that the
+  // physical coordinator is about to stage.  It owns reservation identity;
+  // fixed-point range and staging occupancy remain physical checks.
+  syncAllWorldObjects(state);
+  const common = stepWorld(state, {
+    kind: "reserve_delivery",
+    objectId: caseState.id,
+    actorId: actor.id,
+    generation: actor.generation,
+    team: actor.team,
+    turretId: turret.id,
+    reservationId,
+    matchId: state.matchId,
+  });
+  const commonObject = common.objects[caseState.id];
+  if (common.lastStep.rejected.length > 0 || !common.lastStep.advanced ||
+      commonObject?.location.kind !== "reserved-carried" ||
+      commonObject.location.actorId !== actor.id || commonObject.location.reservationId !== reservationId) return undefined;
+  state.objects = common.objects;
+  state.reservations = common.reservations;
+  const commonActor = common.actors[actor.id];
+  if (commonActor) actor.reservationIds = [...commonActor.reservationIds];
+  events.push(...common.lastStep.events.filter((item) => item.type === "object_moved"));
+  return reservationId;
+}
+
 function firstHandoffCase(state: BattleState, turret: BattleTurretState): { caseState: BattleCaseState; slot: 0 | 1 } | undefined {
   for (const slot of [0, 1] as const) {
     const caseId = turret.stagingSlots[slot];
@@ -1950,6 +2011,8 @@ function deliverCase(state: BattleState, actor: ActorState, caseState: BattleCas
   if (!turret || turret.team !== actor.team) return false;
   const stagingSlot = availableStagingSlot(state, actor, turret);
   if (stagingSlot === undefined) return false;
+  const reservationId = reserveDeliveryThroughCommon(state, actor, caseState, turret, events);
+  if (!reservationId) return false;
   // Route/aim selection is held separately while the case waits on the floor;
   // route/targetPart themselves are captured only when load enqueues it.
   caseState.pendingRoute = route;
@@ -1957,6 +2020,7 @@ function deliverCase(state: BattleState, actor: ActorState, caseState: BattleCas
   caseState.pendingSelectionActorId = actor.id;
   removeFromArray(actor.cargoIds, caseState.id);
   clearCargoSlot(state, actor.id, caseState.id);
+  releaseReservation(state, reservationId);
   turret.handoffIds.push(caseState.id);
   setCaseHandoff(state, caseState, turret, stagingSlot);
   events.push(event("object_moved", { objectId: caseState.id, location: state.objects[caseState.id].location }));
