@@ -48,8 +48,8 @@ function home(): void {
         <path d="M178 98H282" stroke="#cfbd8d" stroke-width="3"/>
         <text x="86" y="136" text-anchor="middle">自陣</text><text x="230" y="136" text-anchor="middle">広場</text><text x="374" y="136" text-anchor="middle">敵陣</text>
       </svg>
-      <div class="home-actions"><button class="primary" id="open-battle">運搬・砲撃を試す</button><button id="open-preview">配置を確認する</button><button id="open-rules">ルール説明</button></div>
-      <p class="home-notice">運搬・砲撃の操作確認版です。<br>核攻撃までの通常対戦はまだ遊べません。</p>
+      <div class="home-actions"><button class="primary" id="open-battle">運搬・砲撃・修理を試す</button><button id="open-preview">配置を確認する</button><button id="open-rules">ルール説明</button></div>
+      <p class="home-notice">運搬・砲撃・外装修理の操作確認版です。<br>核攻撃までの通常対戦はまだ遊べません。</p>
     </section>
     <dialog aria-labelledby="rules-title"><div class="dialog-head"><h2 id="rules-title">セメコメのルール</h2><button id="close-rules">閉じる</button></div>
       <div class="rules-body"><ol>

@@ -16,7 +16,12 @@ type InitialRulesShape = {
     spawn_protection_ticks?: number;
     carry_slots?: number;
   };
-  exterior?: { parts?: Array<{ max_health?: number }> };
+  exterior?: {
+    parts?: Array<{ max_health?: number }>;
+    repair_budget_per_team?: number;
+    repair_per_crate?: number;
+    repair_work_ticks?: number;
+  };
   equipment?: { health?: number; disabled_ticks?: number };
   team_profiles?: {
     player?: { respawn_ticks?: number };
@@ -54,6 +59,9 @@ export const DEFAULT_RULES: RulesConfig = {
   spawnProtectionTicks: positiveInteger(source.actor?.spawn_protection_ticks, 60),
   damageInvulnerabilityTicks: positiveInteger(source.actor?.damage_invulnerability_ticks, 36),
   exteriorPartHealth: positiveNumber(source.exterior?.parts?.[0]?.max_health, 50),
+  repairBudget: positiveNumber(source.exterior?.repair_budget_per_team, 96),
+  repairPerCase: positiveNumber(source.exterior?.repair_per_crate, 12),
+  repairWorkTicks: positiveInteger(source.exterior?.repair_work_ticks, 90),
   maxCarrySlots: positiveInteger(source.actor?.carry_slots, 2),
 };
 

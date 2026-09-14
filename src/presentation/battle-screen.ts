@@ -8,18 +8,18 @@ import { caseLabels, createBattleRenderer } from './battle-renderer.ts';
 import './battle.css';
 
 const actionLabels: Record<BattleHandle, string> = {
-  pickup: '弾を拾う', drop: '弾を置く', deliver: '砲台へ渡す', load: '砲台へ装填', launch: '砲撃する', intercept: '迎撃する',
+  pickup: '弾を拾う', drop: '弾を置く', deliver: '砲台へ渡す', load: '砲台へ装填', repair: '外装を修理', launch: '砲撃する', intercept: '迎撃する',
 };
 
 export function openBattleSetup(app: HTMLElement, goHome: () => void): () => void {
   let disposeBattle = () => {};
   let started = false;
-  app.innerHTML = `<section class="battle-setup" aria-label="名前入力"><p class="eyebrow">運搬・砲撃の操作確認版</p>
+  app.innerHTML = `<section class="battle-setup" aria-label="名前入力"><p class="eyebrow">運搬・砲撃・修理の操作確認版</p>
     <h1>出撃の準備</h1><p>弾薬庫で弾を拾い、隣の砲台へ運びます。<br>補助員と敵も、同じ戦場で作業します。</p>
     <form novalidate><label for="player-name">あなたの名前</label><input id="player-name" name="playerName" autocomplete="nickname" aria-describedby="name-hint name-error" placeholder="1〜20文字" required>
     <p id="name-hint">前後の空白は取り除きます。名前の外部送信は行いません。</p><p id="name-error" role="alert"></p>
     <button type="submit" class="primary">確認を開始する</button><button type="button" id="cancel-setup">ホームへ戻る</button></form>
-    <p class="scope-note">今回は運搬・砲撃まで。広場の戦い・敵陣への侵入・核攻撃・結果とランキングは未実装です。</p></section>`;
+    <p class="scope-note">今回は運搬・砲撃・外装修理まで。設備修理、広場の戦い・敵陣への侵入・核攻撃・結果とランキングは未実装です。</p></section>`;
   const input = app.querySelector<HTMLInputElement>('#player-name')!;
   app.querySelector('#cancel-setup')!.addEventListener('click', goHome);
   app.querySelector('form')!.addEventListener('submit', event => {
@@ -50,7 +50,7 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
   const clock = new SessionClock();
   const events = new AbortController();
   const options = { signal: events.signal };
-  app.innerHTML = `<section class="battle" aria-label="運搬と砲撃"><header class="battle-header"><div><strong class="player-label"></strong><span class="battle-stage">運搬・砲撃の確認</span></div><output class="battle-time" aria-label="経過時間">0:00</output><button id="pause-battle">一時停止</button></header>
+  app.innerHTML = `<section class="battle" aria-label="運搬と砲撃と修理"><header class="battle-header"><div><strong class="player-label"></strong><span class="battle-stage">運搬・砲撃・修理の確認</span></div><output class="battle-time" aria-label="経過時間">0:00</output><button id="pause-battle">一時停止</button></header>
     <div class="battle-armor" aria-label="両城の外装">${(['player', 'enemy'] as const).map(team => `<div data-team="${team}"><span>${team === 'player' ? '自陣' : '敵陣'}</span><div class="armor">${PART_IDS.map(id => `<span data-part="${id}"></span>`).join('')}</div><output class="battle-gates"></output></div>`).join('')}</div>
     <div class="battle-map"><canvas aria-label="あなたを中心とした自陣の城内と、直通・迂回の砲撃経路"></canvas><span class="current-room"></span></div>
     <p class="battle-hint" aria-live="polite">上の弾薬庫Aへ。弾の近くで「弾を拾う」。</p>
@@ -58,7 +58,7 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled>弾に近づく</button><button id="battle-drop" disabled>選択中の弾を置く</button></div></div>
     <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵外装 ${id}</option>`).join('')}</select></label><button id="battle-help" aria-label="操作説明">?</button></div>
     <div class="battle-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div><p id="overlay-title" class="overlay-title" role="status">開始まで</p><strong class="countdown-number">3</strong><p class="overlay-description">左のパッドで移動・右のボタンで弾を扱う</p><button id="resume-battle" class="primary" hidden>再開する</button><button id="leave-battle">準備を中止する</button></div></div>
-    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">運搬と砲撃</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>上の弾薬庫Aで、床の弾に近づいて拾います。</li><li>通路を通って隣の砲撃室Aへ。砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動・近接戦・核攻撃は次段階です。外装7部位が壊れても勝利ではありません。</p></div></dialog></section>`;
+    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">運搬・砲撃・修理</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>上の弾薬庫Aで、床の弾に近づいて拾います。</li><li>通路を通って隣の砲撃室Aへ。砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>修理室で所持中の弾を1個使い、壊れていない自陣外装を90更新かけて修理できます。途中で移動・被弾すると弾は戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>設備修理、広場への移動・近接戦・核攻撃は次段階です。外装7部位が壊れても勝利ではありません。</p></div></dialog></section>`;
   const screen = app.querySelector<HTMLElement>('.battle')!;
   screen.dataset.matchId = state.matchId;
   app.querySelector('.player-label')!.textContent = name;
@@ -91,7 +91,7 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     number.hidden = paused || countdown === 0 || ended;
     number.textContent = String(Math.ceil(countdown / 60));
     title.textContent = ended ? '操作確認を終了しました' : paused ? '一時停止中' : '開始まで';
-    description.textContent = ended ? '今回は運搬・砲撃の確認です。通常戦の勝敗やスコアは未実装です。' : paused ? '再開ボタンを押すまで、戦場も時計も止まります。' : '左のパッドで移動・右のボタンで弾を扱う';
+    description.textContent = ended ? '今回は運搬・砲撃・外装修理の確認です。通常戦の勝敗やスコアは未実装です。' : paused ? '再開ボタンを押すまで、戦場も時計も止まります。' : '左のパッドで移動・右のボタンで弾を扱う';
     resume.hidden = !paused || ended;
     leave.textContent = countdown > 0 && !ended ? '準備を中止する' : 'ホームへ戻る';
     for (const child of screen.children) {
@@ -156,7 +156,7 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
   }, options);
   const updateHud = () => {
     const interaction = getInteraction(state, 'P1', slot);
-    const available = (['deliver', 'load', 'pickup'] as const).find(handle => interaction.handles.includes(handle));
+    const available = (['repair', 'deliver', 'load', 'pickup'] as const).find(handle => interaction.handles.includes(handle));
     const actor = state.actors.P1;
     const cargo = [0, 1].map(index => Object.values(state.objects).find(item => (item.location.kind === 'carried' || item.location.kind === 'reserved-carried') && item.location.actorId === 'P1' && item.location.slot === index));
     const nearest = interaction.cases.find(item => item.id === interaction.pickupCaseId);
@@ -178,7 +178,7 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     }
     const room = state.layout.home.rooms.find(item => item.id === actor.currentRoomId);
     app.querySelector('.current-room')!.textContent = room?.label ?? '通路';
-    app.querySelector('.battle-hint')!.textContent = available === 'load' ? '装填後は、操作位置で待つと自動発射します。' : cargo.some(Boolean) ? '選んだ弾を砲台へ。弾薬庫の隣が砲撃室です。' : actor.currentRoomId === 'central_corridor' ? '上の弾薬庫Aへ。広場への移動は次段階です。' : '床の弾に近づいて拾う → 隣の砲台へ運ぶ。';
+    app.querySelector('.battle-hint')!.textContent = available === 'repair' ? '修理室で対象の外装を選び、弾を修理へ回します。' : available === 'load' ? '装填後は、操作位置で待つと自動発射します。' : cargo.some(Boolean) ? '選んだ弾を砲台へ。弾薬庫の隣が砲撃室です。' : actor.currentRoomId === 'central_corridor' ? '上の弾薬庫Aへ。広場への移動は次段階です。' : '床の弾に近づいて拾う → 隣の砲台へ運ぶ。';
     for (const team of ['player', 'enemy'] as const) {
       const card = app.querySelector<HTMLElement>(`[data-team="${team}"]`)!;
       card.querySelector('.battle-gates')!.textContent = `門 ${state.castles[team].openGateIds.length}/7`;
@@ -191,8 +191,9 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
       card.setAttribute('aria-label', `${team === 'player' ? '自陣' : '敵陣'}、外装${state.castles[team].destroyedPartIds.length}部位破壊、${state.castles[team].openGateIds.length}門開放`);
     }
     for (const option of app.querySelectorAll<HTMLOptionElement>('#target-part option')) {
-      const armor = state.castles.enemy.exterior[option.value as PartId];
-      option.textContent = `敵 ${option.value}：${armor.health}/${armor.maxHealth}`;
+      const targetTeam = actor.currentRoomId === 'repair' ? '自' : '敵';
+      const targetArmor = state.castles[targetTeam === '自' ? 'player' : 'enemy'].exterior[option.value as PartId];
+      option.textContent = `${targetTeam} ${option.value}：${targetArmor.health}/${targetArmor.maxHealth}`;
     }
   };
   const loop = (now: number) => {
