@@ -64,6 +64,10 @@ const ROUTE_COLLISION_EPSILON = 0.012;
 const AI_REPLAN_TICKS = 120;
 const ENEMY_DECISION_INTERVAL_TICKS = 36;
 const INTERNAL_SOLDIER_RETREAT_HEALTH = 2;
+// A full cell search is intentionally amortised across simulation ticks. A
+// browser frame must not spend hundreds of milliseconds planning all internal
+// soldiers at once (the UI clock treats that as an interruption).
+const INTERNAL_PATH_PLANS_PER_TICK = 2;
 const floorCellCache = new WeakMap<object, Set<string>>();
 const gateCellCache = new WeakMap<object, Record<string, Set<string>>>();
 
@@ -975,6 +979,20 @@ function moveAIAlongPath(state: BattleState, actor: ActorState, assignment: Crew
   moveAlongPath(state, actor, assignment.path, assignment.pathIndex, target);
 }
 
+/** Collision-safe fallback while an authored route is being planned. */
+function moveDirectlyToward(state: BattleState, actor: ActorState, target: FixedPoint, preferHorizontal = false): void {
+  const current = actorFixed(state, actor.id);
+  const deltaX = target.x - current.x;
+  const deltaY = target.y - current.y;
+  // Match the cardinal segment ordering used by moveAlongPath. This keeps
+  // the fallback physically conservative and avoids diagonal corner cuts.
+  const direction = (preferHorizontal || Math.abs(deltaX) >= Math.abs(deltaY)
+    ? { x: deltaX === 0 ? 0 : deltaX > 0 ? 1 : -1, y: 0 }
+    : { x: 0, y: deltaY === 0 ? 0 : deltaY > 0 ? 1 : -1 }) as BattleDirection;
+  if (direction.x === 0 && direction.y === 0) return;
+  moveFixed(state, actor, direction);
+}
+
 function roomTargetPoint(state: BattleState, team: TeamId, roomId: string): FixedPoint | undefined {
   const room = teamLayout(state, team).rooms.find((candidate) => candidate.id === roomId);
   if (!room) return undefined;
@@ -1092,6 +1110,7 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
   // snapshot.  Keep NPCs from moving the target before that snapshot is
   // validated, otherwise a legitimate contact would become stale mid-tick.
   if (suppressNpcMovement) return;
+  let pathPlansRemaining = INTERNAL_PATH_PLANS_PER_TICK;
   for (const actor of Object.values(state.actors)
     .filter((candidate) => candidate.team === ENEMY_TEAM && candidate.role === "internal_soldier" && candidate.alive)
     .sort((left, right) => String(left.id).localeCompare(String(right.id)))) {
@@ -1099,7 +1118,7 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
     if (!decision || decision.generation !== actor.generation || state.dashes[actor.id]) continue;
     const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "idle" as CrewTask, path: [], pathIndex: 0 };
     if (decision.intent.kind === "move_goal") {
-      const targetChanged = assignment.targetRoomId !== decision.intent.roomId || assignment.path.length === 0 || !assignment.targetPosition;
+      const targetChanged = assignment.targetRoomId !== decision.intent.roomId || !assignment.targetPosition;
       const target = targetChanged
         ? roomTargetPoint(state, actor.location.castleTeam ?? ENEMY_TEAM, decision.intent.roomId)
         : assignment.targetPosition;
@@ -1109,11 +1128,16 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
         assignment.targetRoomId = decision.intent.roomId;
         assignment.targetActorId = undefined;
         assignment.targetPosition = copyPoint(target);
-        assignment.path = actorTargetPath(state, actor, target);
+        assignment.path = [];
         assignment.pathIndex = 0;
         assignment.stuckTicks = 0;
       }
-      moveAIAlongPath(state, actor, assignment, target);
+      if (assignment.path.length === 0 && pathPlansRemaining > 0) {
+        assignment.path = actorTargetPath(state, actor, target);
+        pathPlansRemaining -= 1;
+      }
+      if (assignment.path.length > 0) moveAIAlongPath(state, actor, assignment, target);
+      else moveDirectlyToward(state, actor, target, decision.intent.purpose === "plaza" || decision.intent.purpose === "assault");
     } else if (decision.intent.kind === "defend") {
       const targetActor = state.actors[decision.intent.targetId];
       if (!targetActor?.alive || targetActor.location.castleTeam !== actor.location.castleTeam || targetActor.currentRoomId !== actor.currentRoomId) continue;
@@ -1124,9 +1148,13 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
       if (hasFloorLineOfSight(state, actor.location.castleTeam ?? ENEMY_TEAM, actorFixed(state, actor.id), target) &&
           distanceSquared(actorFixed(state, actor.id), target) <= (state.rules.dashDistanceSubunits + ACTOR_RADIUS_SUBUNITS * 2) ** 2 &&
           startEnemyDash(state, actor, target)) continue;
-      assignment.path = actorTargetPath(state, actor, target);
-      assignment.pathIndex = 0;
-      moveAIAlongPath(state, actor, assignment, target);
+      if (assignment.path.length === 0 && pathPlansRemaining > 0) {
+        assignment.path = actorTargetPath(state, actor, target);
+        assignment.pathIndex = 0;
+        pathPlansRemaining -= 1;
+      }
+      if (assignment.path.length > 0) moveAIAlongPath(state, actor, assignment, target);
+      else moveDirectlyToward(state, actor, target);
     } else if (decision.intent.kind === "retreat") {
       const threat = state.actors[decision.intent.awayFromId];
       if (!threat?.alive) continue;
@@ -1135,12 +1163,14 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
       assignment.task = "retreat";
       assignment.targetActorId = threat.id;
       assignment.targetRoomId = undefined;
-      if (assignment.path.length === 0) {
+      if (assignment.path.length === 0 && pathPlansRemaining > 0) {
         assignment.path = actorTargetPath(state, actor, target);
         assignment.pathIndex = 0;
         assignment.stuckTicks = 0;
+        pathPlansRemaining -= 1;
       }
-      moveAIAlongPath(state, actor, assignment, target);
+      if (assignment.path.length > 0) moveAIAlongPath(state, actor, assignment, target);
+      else moveDirectlyToward(state, actor, target);
     }
     state.crew.assignments[actor.id] = assignment;
   }
@@ -1934,9 +1964,14 @@ function actorTargetPath(state: BattleState, actor: ActorState, target: FixedPoi
   if (!actor.location.castleTeam) return [];
   const team = actor.location.castleTeam;
   const from = readCell(actorFixed(state, actor.id));
-  const candidates = walkableApproachCells(state, team, target);
   const direct = readCell(target);
-  if (!candidates.some((cell) => cell.x === direct.x && cell.y === direct.y)) candidates.push(direct);
+  // Room goals are authored walkable points. Try their direct cell before the
+  // 32-point approach ring; most internal patrol/return routes therefore need
+  // only one BFS instead of exploring every approach candidate.
+  const directPath = nearestCellPath(state, team, from, direct);
+  if (directPath.length > 0) return directPath;
+  const candidates = walkableApproachCells(state, team, target)
+    .filter((cell) => cell.x !== direct.x || cell.y !== direct.y);
   let best: Point[] = [];
   let bestDistance = Number.POSITIVE_INFINITY;
   let bestVerticalOffset = Number.POSITIVE_INFINITY;
