@@ -167,6 +167,8 @@ export interface Reservation {
   ownerActorId: ActorId;
   objectIds: string[];
   createdTick: number;
+  /** Destination captured when a delivery reservation is made. */
+  targetTurretId?: string;
 }
 
 export interface ActorState {
@@ -527,6 +529,8 @@ export interface ObjectTransitionInput {
   kind:
     | "pickup_object"
     | "reserve_object"
+    | "reserve_delivery"
+    | "spawn_supply"
     | "enqueue_object"
     | "fly_object"
     | "consume_object"
@@ -536,6 +540,10 @@ export interface ObjectTransitionInput {
   generation?: number;
   reservationId?: string;
   turretId?: string;
+  portId?: string;
+  weaponId?: string;
+  originGroupId?: string;
+  weight?: number;
   projectileId?: string;
   team?: TeamId;
   targetTeam?: TeamId;

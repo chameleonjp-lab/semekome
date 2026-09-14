@@ -182,6 +182,8 @@ function inputKind(input: WorldInput): string {
     trustedCollision: "trusted_collision",
     pickup_object: "pickup_object",
     reserve_object: "reserve_object",
+    reserve_delivery: "reserve_delivery",
+    spawn_supply: "spawn_supply",
     enqueue_object: "enqueue_object",
     fly_object: "fly_object",
     consume_object: "consume_object",
@@ -622,6 +624,45 @@ function processObjectTransition(
   index: number,
   events: WorldEvent[],
 ): void {
+  if (input.kind === "spawn_supply") {
+    if (world.objects[input.objectId]) {
+      reject(report, index, "invalid_object_transition", "supply object already exists");
+      return;
+    }
+    const team = input.team;
+    const portId = input.portId;
+    const weaponId = input.weaponId;
+    const originGroupId = input.originGroupId;
+    const roomId = input.roomId;
+    const position = input.position;
+    const weight = input.weight;
+    if (team !== PLAYER_TEAM && team !== ENEMY_TEAM || !portId || !weaponId || !originGroupId || !roomId ||
+        !position || !Number.isInteger(position.x) || !Number.isInteger(position.y) ||
+        typeof weight !== "number" || !Number.isInteger(weight) || weight <= 0) {
+      reject(report, index, "invalid_object_transition", "supply spawn requires team, port, catalog identity, weight, and cell");
+      return;
+    }
+    const layout = layoutForTeam(world, team);
+    const port = layout.supplyPorts.find((candidate) => candidate.id === portId);
+    const room = layout.rooms.find((candidate) => candidate.id === roomId && roomContainsPoint(candidate, position));
+    const onFloor = layout.floorCells.some((cell) => cell.x === position.x && cell.y === position.y);
+    if (!port || port.roomId !== roomId || !room || !onFloor) {
+      reject(report, index, "invalid_object_transition", "supply spawn is outside the authored port room");
+      return;
+    }
+    world.objects[input.objectId] = {
+      id: input.objectId,
+      weaponId,
+      sourceTeam: team,
+      weight,
+      originGroupId,
+      location: { kind: "floor", team, roomId, position: { ...position } },
+    };
+    events.push({ type: "case_spawned", objectId: input.objectId, team, portId, caseType: weaponId });
+    events.push({ type: "object_moved", objectId: input.objectId, location: clone(world.objects[input.objectId].location) });
+    report.acceptedInputKinds.push(input.kind);
+    return;
+  }
   const object = world.objects[input.objectId];
   if (!object) {
     reject(report, index, "invalid_object_transition", "unknown object");
@@ -672,6 +713,34 @@ function processObjectTransition(
       ownerActorId: actor.id,
       objectIds: [object.id],
       createdTick: world.tick,
+    };
+    object.location = { kind: "reserved-carried", actorId: actor.id, slot: object.location.slot, reservationId };
+    actor.reservationIds = [...actor.reservationIds, reservationId];
+  } else if (input.kind === "reserve_delivery") {
+    const turretId = input.turretId;
+    const team = input.team ?? actor?.team;
+    if (!actor || !turretId || !input.reservationId || team !== actor.team ||
+        object.location.kind !== "carried" || object.location.actorId !== actor.id) {
+      reject(report, index, "invalid_object_transition", "delivery reservation requires owned carried object and own-team turret");
+      return;
+    }
+    const turret = layoutForTeam(world, team).turrets.find((candidate) => candidate.id === turretId);
+    if (!turret) {
+      reject(report, index, "invalid_object_transition", "delivery turret does not belong to actor team");
+      return;
+    }
+    if (world.reservations[input.reservationId]) {
+      reject(report, index, "invalid_object_transition", "delivery reservation already exists");
+      return;
+    }
+    const reservationId = input.reservationId;
+    world.reservations[reservationId] = {
+      id: reservationId,
+      kind: "delivery",
+      ownerActorId: actor.id,
+      objectIds: [object.id],
+      createdTick: world.tick,
+      targetTurretId: turret.id,
     };
     object.location = { kind: "reserved-carried", actorId: actor.id, slot: object.location.slot, reservationId };
     actor.reservationIds = [...actor.reservationIds, reservationId];
@@ -925,7 +994,7 @@ export function stepWorld(world: WorldState, input?: WorldInput | readonly World
       report.acceptedInputKinds.push(kind);
     } else if (kind === "move_actor") {
       processMove(next, candidate as unknown as MoveActorInput, startCastles, report, index);
-    } else if (["pickup_object", "reserve_object", "enqueue_object", "fly_object", "consume_object", "drop_object"].includes(kind)) {
+    } else if (["pickup_object", "reserve_object", "reserve_delivery", "spawn_supply", "enqueue_object", "fly_object", "consume_object", "drop_object"].includes(kind)) {
       processObjectTransition(next, { ...(candidate as unknown as ObjectTransitionInput), kind: kind as ObjectTransitionInput["kind"] }, report, index, events);
     } else {
       reject(report, index, "unsupported_in_r1");
