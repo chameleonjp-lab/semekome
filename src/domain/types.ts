@@ -270,6 +270,21 @@ export interface RejectedInput {
 export type WorldEvent =
   | { type: "part_damaged"; team: TeamId; partId: PartId; amount: number }
   | { type: "part_destroyed"; team: TeamId; partId: PartId; gateId: GateId }
+  | {
+      type: "equipment_damaged";
+      team: TeamId;
+      equipmentId: string;
+      equipmentKind: "turret" | "supply_port";
+      amount: number;
+      remainingHealth: number;
+      disabledUntilTick: number | null;
+    }
+  | {
+      type: "equipment_restored";
+      team: TeamId;
+      equipmentId: string;
+      equipmentKind: "turret" | "supply_port";
+    }
   | { type: "actor_damaged"; actorId: ActorId; amount: number }
   | {
       type: "actor_died";
@@ -344,6 +359,8 @@ export interface RulesConfig {
   dashActorDamage: number;
   dashEquipmentDamage: number;
   dashKnockbackSubunits: number;
+  equipmentHealth: number;
+  equipmentDisabledTicks: number;
   playerRespawnTicks: number;
   enemyRespawnTicks: number;
   spawnProtectionTicks: number;

@@ -25,8 +25,10 @@ import {
 import {
   ACTION_RANGE_SUBUNITS as GEOMETRY_ACTION_RANGE_SUBUNITS,
   canOccupyFixed,
+  equipmentRectForCell,
   hasFloorLineOfSight,
   walkableApproachCells,
+  type FixedRect,
 } from "../actors/geometry.ts";
 import {
   FLOOR_CASE_LIMIT_PER_ROOM,
@@ -186,6 +188,9 @@ export interface BattlePortState {
   groupCount: number;
   groupSequence: number;
   stoppedUntilTick: number | null;
+  /** Equipment health is independent from supply disruption and stops. */
+  health: number;
+  disabledUntilTick: number | null;
 }
 
 export interface BattleTurretState {
@@ -200,6 +205,9 @@ export interface BattleTurretState {
   stagingPositions: [FixedPoint, FixedPoint];
   operatorPosition: FixedPoint;
   stoppedUntilTick: number | null;
+  /** Equipment health is independent from supply disruption and stops. */
+  health: number;
+  disabledUntilTick: number | null;
   operatorActorIds: ActorId[];
 }
 
@@ -577,6 +585,145 @@ function interpolatePoint(from: FixedPoint, to: FixedPoint, progress: number): F
   };
 }
 
+type BattleEquipmentKind = "turret" | "supply_port";
+type BattleEquipmentRuntime = BattleTurretState | BattlePortState;
+
+interface DashEquipmentContact {
+  kind: BattleEquipmentKind;
+  team: TeamId;
+  id: string;
+  position: FixedPoint;
+  progress: number;
+  equipment: BattleEquipmentRuntime;
+}
+
+interface DashAdvanceResult {
+  bridge?: R2bBridgeRequest;
+  equipmentContact?: DashEquipmentContact;
+  equipmentDamaged?: boolean;
+}
+
+function expandRect(rect: FixedRect, margin: number): FixedRect {
+  return {
+    x0: rect.x0 - margin,
+    y0: rect.y0 - margin,
+    x1: rect.x1 + margin,
+    y1: rect.y1 + margin,
+  };
+}
+
+/** Return the first segment parameter at which a line enters an AABB. */
+function segmentRectEntryT(from: FixedPoint, to: FixedPoint, rect: FixedRect): number | undefined {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  let near = 0;
+  let far = 1;
+  for (const [start, delta, min, max] of [
+    [from.x, dx, rect.x0, rect.x1],
+    [from.y, dy, rect.y0, rect.y1],
+  ] as const) {
+    if (delta === 0) {
+      if (start < min || start > max) return undefined;
+      continue;
+    }
+    let enter = (min - start) / delta;
+    let exit = (max - start) / delta;
+    if (enter > exit) [enter, exit] = [exit, enter];
+    near = Math.max(near, enter);
+    far = Math.min(far, exit);
+    if (near > far) return undefined;
+  }
+  if (far < 0 || near > 1) return undefined;
+  return Math.max(0, near);
+}
+
+function dashEquipmentContact(
+  state: BattleState,
+  actor: ActorState,
+  from: FixedPoint,
+  requested: FixedPoint,
+  endpoint: FixedPoint,
+): DashEquipmentContact | undefined {
+  if (actor.location.area !== "castle" || !actor.location.castleTeam) return undefined;
+  const totalDistance = Math.hypot(requested.x - from.x, requested.y - from.y);
+  if (totalDistance === 0) return undefined;
+  const endpointProgress = Math.hypot(endpoint.x - from.x, endpoint.y - from.y) / totalDistance;
+  const team = actor.location.castleTeam;
+  const layout = teamLayout(state, team);
+  const candidates: DashEquipmentContact[] = [];
+  for (const definition of layout.turrets) {
+    const equipment = state.artillery.turrets[turretKey(team, definition.id)];
+    if (!equipment) continue;
+    const progress = segmentRectEntryT(from, requested, expandRect(equipmentRectForCell(definition.cell), ACTOR_RADIUS_SUBUNITS));
+    // The clearance bisection rounds the conservative endpoint down by up to
+    // a few fixed units; allow that bounded quantization error when matching
+    // the expanded equipment body to the same first obstacle.
+    if (progress === undefined || progress > endpointProgress + 0.02) continue;
+    candidates.push({
+      kind: "turret",
+      team,
+      id: definition.id,
+      position: interpolatePoint(from, requested, progress),
+      progress,
+      equipment,
+    });
+  }
+  for (const definition of layout.supplyPorts) {
+    const equipment = state.logistics.ports[portKey(team, definition.id)];
+    if (!equipment) continue;
+    const progress = segmentRectEntryT(from, requested, expandRect(equipmentRectForCell(definition.cell), ACTOR_RADIUS_SUBUNITS));
+    if (progress === undefined || progress > endpointProgress + 0.02) continue;
+    candidates.push({
+      kind: "supply_port",
+      team,
+      id: definition.id,
+      position: interpolatePoint(from, requested, progress),
+      progress,
+      equipment,
+    });
+  }
+  return candidates.sort((left, right) => left.progress - right.progress || left.kind.localeCompare(right.kind) || left.id.localeCompare(right.id))[0];
+}
+
+function equipmentReady(state: BattleState, equipment: BattleEquipmentRuntime): boolean {
+  return equipment.disabledUntilTick === null || state.tick > equipment.disabledUntilTick;
+}
+
+function restoreDisabledEquipment(state: BattleState, events: WorldEvent[]): void {
+  const entries: Array<{ kind: BattleEquipmentKind; team: TeamId; id: string; equipment: BattleEquipmentRuntime }> = [
+    ...Object.values(state.artillery.turrets).map((equipment) => ({ kind: "turret" as const, team: equipment.team, id: equipment.id, equipment })),
+    ...Object.values(state.logistics.ports).map((equipment) => ({ kind: "supply_port" as const, team: equipment.team, id: equipment.id, equipment })),
+  ];
+  for (const entry of entries.sort((left, right) => `${left.team}:${left.kind}:${left.id}`.localeCompare(`${right.team}:${right.kind}:${right.id}`))) {
+    if (entry.equipment.disabledUntilTick === null || state.tick <= entry.equipment.disabledUntilTick) continue;
+    entry.equipment.health = state.rules.equipmentHealth;
+    entry.equipment.disabledUntilTick = null;
+    events.push(event("equipment_restored", {
+      team: entry.team,
+      equipmentId: entry.id,
+      equipmentKind: entry.kind,
+    }));
+  }
+}
+
+function damageEquipment(state: BattleState, actor: ActorState, contact: DashEquipmentContact, events: WorldEvent[]): boolean {
+  // A dash can be stopped by friendly equipment, but only hostile equipment
+  // consumes the authored equipment damage budget.
+  if (contact.team === actor.team || !equipmentReady(state, contact.equipment) || contact.equipment.health <= 0) return false;
+  const amount = Math.min(state.rules.dashEquipmentDamage, contact.equipment.health);
+  contact.equipment.health -= amount;
+  if (contact.equipment.health === 0) contact.equipment.disabledUntilTick = state.tick + state.rules.equipmentDisabledTicks;
+  events.push(event("equipment_damaged", {
+    team: contact.team,
+    equipmentId: contact.id,
+    equipmentKind: contact.kind,
+    amount,
+    remainingHealth: contact.equipment.health,
+    disabledUntilTick: contact.equipment.disabledUntilTick,
+  }));
+  return true;
+}
+
 function dashContactTarget(
   state: BattleState,
   actor: ActorState,
@@ -601,10 +748,11 @@ function dashContactTarget(
 
 /**
  * Advance all active physical dashes by one tick and return the one contact
- * envelope produced during this tick.  The movement is authoritative here;
- * damage or victory is still resolved by the R2b bridge/common world.
+ * envelope produced during this tick. The movement is authoritative here;
+ * actor damage or victory is still resolved by the R2b bridge/common world;
+ * equipment damage is resolved against the physical equipment runtime.
  */
-function advanceDashes(state: BattleState): R2bBridgeRequest | undefined {
+function advanceDashes(state: BattleState, events: WorldEvent[]): DashAdvanceResult {
   for (const actor of Object.values(state.actors).sort((left, right) => String(left.id).localeCompare(String(right.id)))) {
     const dash = state.dashes[actor.id];
     if (!dash) continue;
@@ -629,21 +777,32 @@ function advanceDashes(state: BattleState): R2bBridgeRequest | undefined {
       const targetSlots = state.cargoSlots[contact.target.id] ?? [null, null];
       const targetCargoId = targetSlots.find((objectId) => objectId !== null && contact.target.cargoIds.includes(objectId)) ?? undefined;
       return {
-        kind: "actor_contact",
-        evidence: {
-          matchId: state.matchId,
-          tick: state.tick,
-          actorId: actor.id,
-          generation: actor.generation,
-          targetActorId: contact.target.id,
-          targetGeneration: contact.target.generation,
-          attackType: "dash",
-          firstContact: "actor",
-          from: contact.position,
-          to: copyPoint(actorFixed(state, contact.target.id)),
-          targetPosition: copyPoint(actorFixed(state, contact.target.id)),
-          ...(targetCargoId ? { targetCargoId } : {}),
+        bridge: {
+          kind: "actor_contact",
+          evidence: {
+            matchId: state.matchId,
+            tick: state.tick,
+            actorId: actor.id,
+            generation: actor.generation,
+            targetActorId: contact.target.id,
+            targetGeneration: contact.target.generation,
+            attackType: "dash",
+            firstContact: "actor",
+            from: contact.position,
+            to: copyPoint(actorFixed(state, contact.target.id)),
+            targetPosition: copyPoint(actorFixed(state, contact.target.id)),
+            ...(targetCargoId ? { targetCargoId } : {}),
+          },
         },
+      };
+    }
+    const equipmentContact = dashEquipmentContact(state, actor, current, requested, endpoint);
+    if (equipmentContact) {
+      if (endpoint.x !== current.x || endpoint.y !== current.y) setActorFixed(state, actor, endpoint);
+      state.dashes[actor.id] = undefined;
+      return {
+        equipmentContact,
+        equipmentDamaged: damageEquipment(state, actor, equipmentContact, events),
       };
     }
     if (endpoint.x !== current.x || endpoint.y !== current.y) setActorFixed(state, actor, endpoint);
@@ -653,17 +812,19 @@ function advanceDashes(state: BattleState): R2bBridgeRequest | undefined {
       if (actor.currentRoomId === "core") {
         state.dashes[actor.id] = undefined;
         return {
-          kind: "core_contact",
-          evidence: {
-            matchId: state.matchId,
-            tick: state.tick,
-            actorId: actor.id,
-            generation: actor.generation,
-            targetTeam: actor.location.castleTeam === actor.team ? (actor.team === PLAYER_TEAM ? ENEMY_TEAM : PLAYER_TEAM) : actor.location.castleTeam,
-            attackType: "dash",
-            firstContact: "core",
-            from: copyPoint(actorFixed(state, actor.id)),
-            to: copyPoint(actorFixed(state, actor.id)),
+          bridge: {
+            kind: "core_contact",
+            evidence: {
+              matchId: state.matchId,
+              tick: state.tick,
+              actorId: actor.id,
+              generation: actor.generation,
+              targetTeam: actor.location.castleTeam === actor.team ? (actor.team === PLAYER_TEAM ? ENEMY_TEAM : PLAYER_TEAM) : actor.location.castleTeam,
+              attackType: "dash",
+              firstContact: "core",
+              from: copyPoint(actorFixed(state, actor.id)),
+              to: copyPoint(actorFixed(state, actor.id)),
+            },
           },
         };
       }
@@ -673,7 +834,7 @@ function advanceDashes(state: BattleState): R2bBridgeRequest | undefined {
     dash.remainingTicks -= 1;
     if (dash.remainingTicks <= 0) state.dashes[actor.id] = undefined;
   }
-  return undefined;
+  return {};
 }
 
 function nearestCellPath(state: BattleState, team: TeamId, from: Point, to: Point): Point[] {
@@ -1000,7 +1161,7 @@ function spawnSupply(state: BattleState, events: WorldEvent[]): void {
     return left.id.localeCompare(right.id);
   });
   for (const port of ports) {
-    if (state.tick < port.nextSpawnTick || (port.stoppedUntilTick !== null && state.tick < port.stoppedUntilTick)) continue;
+    if (!equipmentReady(state, port) || state.tick < port.nextSpawnTick || (port.stoppedUntilTick !== null && state.tick < port.stoppedUntilTick)) continue;
     // The 48-group cap is for live source groups across all four ports of a
     // team. A consumed group retires and frees one slot; a port is not
     // permanently exhausted after its lifetime counter reaches 48.
@@ -1146,7 +1307,7 @@ function deliverCase(state: BattleState, actor: ActorState, caseState: BattleCas
 }
 
 function loadHandoff(state: BattleState, actor: ActorState, turret: BattleTurretState, route: BattleRoute | undefined, part: PartId | undefined, events: WorldEvent[]): boolean {
-  if (turret.team !== actor.team || turret.queueIds.length >= QUEUE_CAPACITY_PER_TURRET) return false;
+  if (turret.team !== actor.team || !equipmentReady(state, turret) || turret.queueIds.length >= QUEUE_CAPACITY_PER_TURRET) return false;
   if (route !== undefined && !isBattleRoute(route)) return false;
   if (part !== undefined && !isPartId(part)) return false;
   const handoffSelection = firstHandoffCase(state, turret);
@@ -1299,6 +1460,7 @@ function shooterForTurret(state: BattleState, turret: BattleTurretState, startAc
 
 function launchOne(state: BattleState, turret: BattleTurretState, startActors: Record<string, ActorState>, events: WorldEvent[]): boolean {
   if (turret.queueIds.length === 0 || Object.keys(state.artillery.flights).length >= MAX_FLIGHT_COUNT) return false;
+  if (!equipmentReady(state, turret)) return false;
   if (turret.stoppedUntilTick !== null && state.tick < turret.stoppedUntilTick) return false;
   const shooter = shooterForTurret(state, turret, startActors);
   if (!shooter) return false;
@@ -1356,6 +1518,7 @@ function launchOne(state: BattleState, turret: BattleTurretState, startActors: R
 
 function autoLoadAtTurrets(state: BattleState, events: WorldEvent[]): void {
   for (const turret of Object.values(state.artillery.turrets).sort((left, right) => `${left.team}:${left.id}`.localeCompare(`${right.team}:${right.id}`))) {
+    if (!equipmentReady(state, turret)) continue;
     while (turret.queueIds.length < QUEUE_CAPACITY_PER_TURRET && turret.handoffIds.length > 0) {
       const selected = firstHandoffCase(state, turret);
       if (!selected) {
@@ -1756,6 +1919,8 @@ function makePorts(state: BattleState): Record<string, BattlePortState> {
         groupCount: 0,
         groupSequence: 0,
         stoppedUntilTick: null,
+        health: state.rules.equipmentHealth,
+        disabledUntilTick: null,
       };
     });
   }
@@ -1785,6 +1950,8 @@ function makeTurrets(state: BattleState): Record<string, BattleTurretState> {
         stagingPositions,
         operatorPosition,
         stoppedUntilTick: null,
+        health: state.rules.equipmentHealth,
+        disabledUntilTick: null,
         operatorActorIds: operators,
       };
     }
@@ -2030,12 +2197,15 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   }
   const currentTick = next.tick;
   report.processedTick = currentTick;
+  restoreDisabledEquipment(next, events);
   const startActors = structuredClone(next.actors);
   applyIntent(next, intent, report, events);
   markDeathIfNeeded(next, events);
   processCrewAI(next, events);
   updateCaseCarriedPositions(next);
-  const generatedBridge = advanceDashes(next);
+  const dashResult = advanceDashes(next, events);
+  if (dashResult.equipmentContact) report.acceptedInputKinds.push("equipment_contact");
+  const generatedBridge = dashResult.bridge;
   const bridgeIntent = generatedBridge
     ? (intent ? { ...intent, bridge: generatedBridge } : {
       matchId: next.matchId,
