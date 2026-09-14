@@ -355,6 +355,29 @@ export type WorldEvent =
     }
   | { type: "case_spawned"; objectId: string; team: TeamId; portId: string; caseType: string }
   | {
+      type: "projectile_split";
+      parentProjectileId: string;
+      childProjectileIds: string[];
+    }
+  | { type: "projectile_split_blocked"; parentProjectileId: string }
+  | {
+      type: "supply_disrupted";
+      sourceProjectileId: string;
+      team: TeamId;
+      disruptedUntilTick: number;
+      immuneUntilTick: number;
+    }
+  | {
+      type: "slow_zone_created";
+      sourceProjectileId: string;
+      sourceTeam: TeamId;
+      targetTeam: TeamId;
+      center: { x: number; y: number };
+      radiusSubunits: number;
+      multiplier: number;
+      expiresAtTick: number;
+    }
+  | {
     type: "projectile_launched";
     projectileId: string;
     objectId: string;

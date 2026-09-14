@@ -1,5 +1,6 @@
 import { createWorld, stepWorld } from "./world.ts";
 import { caseDefinition, CASE_TYPES, SUPPLY_BAG, type CaseType } from "../content/cases.ts";
+import layoutSource from "../../docs/plans/current/INTERIOR_LAYOUTS.json" with { type: "json" };
 import { padById } from "../domain/layout.ts";
 import { assertObjectLocationsUnique } from "../domain/objects.ts";
 import type {
@@ -186,6 +187,24 @@ export interface BattleFlightState extends BattleFlightView {
   distanceUnits: number;
   speedUnitsPerSecond: number;
   previousProgress: number;
+  /** Split children inherit the parent case but use their own damage. */
+  damageOverride?: number;
+  /** A child cannot recursively split, even though it retains the case ID. */
+  splitAttempted?: boolean;
+}
+
+export interface BattleSupplyStop {
+  disruptedUntilTick: number;
+  immuneUntilTick: number;
+}
+
+export interface BattleSlowZone {
+  sourceTeam: TeamId;
+  targetTeam: TeamId;
+  center: FixedPoint;
+  radiusSubunits: number;
+  multiplier: number;
+  expiresAtTick: number;
 }
 
 export interface BattlePortState {
@@ -283,6 +302,9 @@ export interface BattleLogisticsState {
   bags: Record<TeamId, CaseType[]>;
   bagIndices: Record<TeamId, number>;
   bagCycles: Record<TeamId, number>;
+  /** Supply disruption and movement zones are separate from equipment stops. */
+  supplyStops: Record<TeamId, BattleSupplyStop>;
+  slowZones: Partial<Record<TeamId, BattleSlowZone>>;
 }
 
 export interface BattleArtilleryState {
@@ -393,6 +415,26 @@ function actorFixed(state: BattleState, actorId: ActorId): FixedPoint {
 
 function copyPoint(point: FixedPoint): FixedPoint {
   return { x: Math.trunc(point.x), y: Math.trunc(point.y) };
+}
+
+function frontEntryCenter(state: BattleState, team: TeamId): FixedPoint {
+  const [homeX, y] = layoutSource.front_entry.cell as [number, number];
+  const cellX = team === PLAYER_TEAM ? homeX : state.layout.widthCells - 1 - homeX;
+  return { x: cellCenter(cellX), y: cellCenter(y) };
+}
+
+/**
+ * The slow-zone effect is attached to the target vehicle's authored front
+ * entry.  It affects every actor currently walking in that vehicle, including
+ * an invader, and composes with the heavy-cargo multiplier.
+ */
+function effectMovementMultiplier(state: BattleState, actor: ActorState, position: FixedPoint = actorFixed(state, actor.id)): number {
+  const castleTeam = actor.location.area === "castle" ? actor.location.castleTeam : undefined;
+  if (!castleTeam || actor.currentRoomId !== layoutSource.front_entry.room_id) return 1;
+  const zone = state.logistics.slowZones[castleTeam];
+  if (!zone || state.tick >= zone.expiresAtTick) return 1;
+  if (distanceSquared(position, zone.center) > zone.radiusSubunits * zone.radiusSubunits) return 1;
+  return zone.multiplier;
 }
 
 function distanceSquared(a: FixedPoint, b: FixedPoint): number {
@@ -548,7 +590,7 @@ function furthestWalkablePoint(state: BattleState, team: TeamId, from: FixedPoin
 function moveFixed(state: BattleState, actor: ActorState, direction: BattleDirection): boolean {
   if (!actor.alive || actor.location.area !== "castle" || !actor.location.castleTeam) return false;
   const totalWeight = actor.cargoIds.reduce((sum, id) => sum + (state.battleCases[id]?.weight ?? 0), 0);
-  const speed = ACTOR_SPEED_SUBUNITS_PER_TICK * carryingSpeedMultiplier(totalWeight);
+  const speed = ACTOR_SPEED_SUBUNITS_PER_TICK * carryingSpeedMultiplier(totalWeight) * effectMovementMultiplier(state, actor);
   const diagonal = direction.x !== 0 && direction.y !== 0 ? Math.SQRT1_2 : 1;
   const motion = state.fixedActors[actor.id] ?? { position: actorFixed(state, actor.id), remainder: { x: 0, y: 0 } };
   const remainder = motion.remainder ?? { x: 0, y: 0 };
@@ -954,7 +996,7 @@ function moveAlongPath(state: BattleState, actor: ActorState, path: Point[], pat
   // the fixed-point remainder in moveFixed rather than snapping by a large
   // teleport.
   const currentCell = readCell(current);
-  const moveSpeed = ACTOR_SPEED_SUBUNITS_PER_TICK * carryingSpeedMultiplier(carryWeight(state, actor));
+  const moveSpeed = ACTOR_SPEED_SUBUNITS_PER_TICK * carryingSpeedMultiplier(carryWeight(state, actor)) * effectMovementMultiplier(state, actor);
   const snapAxis = (axis: "x" | "y"): boolean => {
     const point = actorFixed(state, actor.id);
     const delta = targetPoint[axis] - point[axis];
@@ -1772,7 +1814,10 @@ function spawnSupply(state: BattleState, events: WorldEvent[]): void {
     return left.id.localeCompare(right.id);
   });
   for (const port of ports) {
-    if (!equipmentReady(state, port) || state.tick < port.nextSpawnTick || (port.stoppedUntilTick !== null && state.tick < port.stoppedUntilTick)) continue;
+    const supplyStop = state.logistics.supplyStops[port.team];
+    if (!equipmentReady(state, port) || state.tick < port.nextSpawnTick ||
+      (port.stoppedUntilTick !== null && state.tick < port.stoppedUntilTick) ||
+      (supplyStop !== undefined && state.tick < supplyStop.disruptedUntilTick)) continue;
     // The 48-group cap is for live source groups across all four ports of a
     // team. A consumed group retires and frees one slot; a port is not
     // permanently exhausted after its lifetime counter reaches 48.
@@ -2165,6 +2210,7 @@ function launchOne(state: BattleState, turret: BattleTurretState, startActors: R
     distanceUnits: ROUTE_LENGTH_UNITS[route],
     speedUnitsPerSecond: definition.flightSpeedUnitsPerSecond,
     previousProgress: 0,
+    splitAttempted: false,
   };
   state.artillery.flights[flightId] = flight;
   caseState.interceptRemaining = definition.interceptHits;
@@ -2335,6 +2381,126 @@ function targetPartAtImpact(state: BattleState, targetTeam: TeamId, requested: P
   return lowestAlivePart(startCastle);
 }
 
+function impactDamage(flight: BattleFlightState, caseState: BattleCaseState): number {
+  return flight.damageOverride ?? caseDefinition(caseState.type)?.partDamage ?? 0;
+}
+
+function applyImpactEffect(state: BattleState, flight: BattleFlightState, caseState: BattleCaseState, events: WorldEvent[]): void {
+  const effect = caseDefinition(caseState.type)?.effect;
+  if (!effect || effect.kind === "none" || effect.kind === "split") return;
+  if (effect.kind === "disrupt") {
+    const stop = state.logistics.supplyStops[flight.targetTeam];
+    if (stop && state.tick >= stop.immuneUntilTick) {
+      stop.disruptedUntilTick = state.tick + effect.durationTicks;
+      stop.immuneUntilTick = stop.disruptedUntilTick + effect.immunityTicks;
+      events.push(event("supply_disrupted", {
+        sourceProjectileId: flight.id,
+        team: flight.targetTeam,
+        disruptedUntilTick: stop.disruptedUntilTick,
+        immuneUntilTick: stop.immuneUntilTick,
+      }));
+    }
+    return;
+  }
+  const zone: BattleSlowZone = {
+    sourceTeam: flight.team,
+    targetTeam: flight.targetTeam,
+    center: frontEntryCenter(state, flight.targetTeam),
+    radiusSubunits: Math.round(effect.radiusFloorUnits * 1000),
+    multiplier: effect.multiplier,
+    expiresAtTick: state.tick + effect.durationTicks,
+  };
+  state.logistics.slowZones[flight.targetTeam] = zone;
+  events.push(event("slow_zone_created", {
+    sourceProjectileId: flight.id,
+    sourceTeam: zone.sourceTeam,
+    targetTeam: zone.targetTeam,
+    center: zone.center,
+    radiusSubunits: zone.radiusSubunits,
+    multiplier: zone.multiplier,
+    expiresAtTick: zone.expiresAtTick,
+  }));
+}
+
+function splitFlight(state: BattleState, flight: BattleFlightState, events: WorldEvent[]): void {
+  const caseState = state.battleCases[flight.objectId];
+  const definition = caseState ? caseDefinition(caseState.type) : undefined;
+  const effect = definition?.effect;
+  if (!caseState || !effect || effect.kind !== "split" || flight.splitAttempted || flight.progress < 0.5) return;
+  // A parent gets one split decision.  If the global projectile limit is full,
+  // it continues as the authored parent instead of retrying every tick.
+  flight.splitAttempted = true;
+  if (Object.keys(state.artillery.flights).length - 1 + effect.children > MAX_FLIGHT_COUNT) {
+    events.push(event("projectile_split_blocked", { parentProjectileId: flight.id }));
+    return;
+  }
+  const group = state.logistics.groups[caseState.originGroupId];
+  if (!group || group.retired) return;
+  const childFlightIds: string[] = [];
+  for (let index = 0; index < effect.children; index += 1) {
+    const childFlightId = `${flight.id}-split-${index + 1}`;
+    const childObjectId = `${caseState.id}-child-${index + 1}`;
+    childFlightIds.push(childFlightId);
+    const childCase: BattleCaseState = {
+      id: childObjectId,
+      type: caseState.type,
+      sourceTeam: caseState.sourceTeam,
+      currentTeam: flight.team,
+      weight: caseState.weight,
+      location: "flying",
+      originGroupId: caseState.originGroupId,
+      sourcePortId: caseState.sourcePortId,
+      createdTick: state.tick,
+      roomId: caseState.roomId,
+      flightId: childFlightId,
+      route: flight.route,
+      targetPart: flight.targetPart,
+      interceptRemaining: effect.childInterceptHits,
+    };
+    state.battleCases[childObjectId] = childCase;
+    group.caseIds.push(childObjectId);
+    state.objects[childObjectId] = {
+      id: childObjectId,
+      weaponId: childCase.type,
+      sourceTeam: childCase.sourceTeam,
+      weight: childCase.weight,
+      originGroupId: childCase.originGroupId,
+      parentObjectId: caseState.id,
+      location: { kind: "flying", projectileId: childFlightId },
+    };
+    state.projectiles[childFlightId] = {
+      id: childFlightId,
+      objectId: childObjectId,
+      team: flight.team,
+      sourceActorId: flight.sourceActorId,
+      sourceGeneration: flight.sourceGeneration,
+      targetTeam: flight.targetTeam,
+      targetPartId: flight.targetPart,
+    };
+    state.artillery.flights[childFlightId] = {
+      id: childFlightId,
+      objectId: childObjectId,
+      team: flight.team,
+      sourceActorId: flight.sourceActorId,
+      sourceGeneration: flight.sourceGeneration,
+      targetTeam: flight.targetTeam,
+      route: flight.route,
+      progress: Math.max(0, flight.progress - (index * effect.spacingRouteUnits) / flight.distanceUnits),
+      targetPart: flight.targetPart,
+      interceptRemaining: effect.childInterceptHits,
+      createdTick: state.tick,
+      distanceUnits: flight.distanceUnits,
+      speedUnitsPerSecond: effect.childSpeedUnitsPerSecond,
+      previousProgress: Math.max(0, flight.progress - (index * effect.spacingRouteUnits) / flight.distanceUnits),
+      damageOverride: effect.childPartDamage,
+      splitAttempted: true,
+    };
+    syncWorldObject(state, childCase);
+  }
+  consumeFlight(state, flight, "split", events);
+  events.push(event("projectile_split", { parentProjectileId: flight.id, childProjectileIds: childFlightIds }));
+}
+
 function resolveFlights(state: BattleState, events: WorldEvent[]): void {
   const startCastles = structuredClone(state.castles);
   const current = Object.values(state.artillery.flights).sort((left, right) => left.id.localeCompare(right.id));
@@ -2357,9 +2523,12 @@ function resolveFlights(state: BattleState, events: WorldEvent[]): void {
     if (first.createdTick === state.tick || second.createdTick === state.tick) continue;
     if (state.artillery.flights[first.id] && state.artillery.flights[second.id]) resolveFlightContact(state, first, second, events);
   }
+  for (const flight of current) {
+    if (state.artillery.flights[flight.id]) splitFlight(state, state.artillery.flights[flight.id], events);
+  }
   const impactGroups = new Map<string, Array<{ flight: BattleFlightState; caseState: BattleCaseState; targetPart?: PartId }>>();
   for (const flight of Object.values(state.artillery.flights).sort((left, right) => left.id.localeCompare(right.id))) {
-    if (flight.progress < 1) continue;
+    if (flight.progress < 1 || flight.createdTick === state.tick) continue;
     const caseState = state.battleCases[flight.objectId];
     if (!caseState) continue;
     const targetPart = targetPartAtImpact(state, flight.targetTeam, flight.targetPart, startCastles[flight.targetTeam]);
@@ -2372,7 +2541,7 @@ function resolveFlights(state: BattleState, events: WorldEvent[]): void {
     const [targetTeam, requestedPart] = key.split(":") as [TeamId, PartId | "none"];
     const partId = requestedPart === "none" ? undefined : requestedPart;
     if (partId && !startCastles[targetTeam].exterior[partId].destroyed) {
-      const amount = impacts.reduce((sum, impact) => sum + (caseDefinition(impact.caseState.type)?.partDamage ?? 0), 0);
+      const amount = impacts.reduce((sum, impact) => sum + impactDamage(impact.flight, impact.caseState), 0);
       const part = state.castles[targetTeam].exterior[partId];
       const oldHealth = part.health;
       part.health = Math.max(0, part.health - amount);
@@ -2380,6 +2549,7 @@ function resolveFlights(state: BattleState, events: WorldEvent[]): void {
       if (part.health === 0) part.destroyed = true;
     }
     for (const impact of impacts) {
+      applyImpactEffect(state, impact.flight, impact.caseState, events);
       events.push(event("projectile_impacted", { projectileId: impact.flight.id, objectId: impact.caseState.id, targetTeam, targetPart: impact.targetPart }));
       consumeFlight(state, impact.flight, "impact", events);
     }
@@ -2671,6 +2841,11 @@ export function createBattle(options: { matchId: string; seed: number }): Battle
       bags: { player: seededSupplyBag(world.seed, PLAYER_TEAM, 0), enemy: seededSupplyBag(world.seed, ENEMY_TEAM, 0) },
       bagIndices: { player: 0, enemy: 0 },
       bagCycles: { player: 0, enemy: 0 },
+      supplyStops: {
+        player: { disruptedUntilTick: 0, immuneUntilTick: 0 },
+        enemy: { disruptedUntilTick: 0, immuneUntilTick: 0 },
+      },
+      slowZones: {},
     },
     artillery: { turrets: {}, flights: {}, nextLaunchTick: { player: 0, enemy: 0 }, roundRobinTurretIndex: { player: 0, enemy: 0 }, contactPairs: {} },
     crew: { assignments: {} },
@@ -2901,6 +3076,9 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   }
   const currentTick = next.tick;
   report.processedTick = currentTick;
+  for (const [team, zone] of Object.entries(next.logistics.slowZones)) {
+    if (zone && currentTick >= zone.expiresAtTick) delete next.logistics.slowZones[team as TeamId];
+  }
   const startActors = structuredClone(next.actors);
   applyIntent(next, intent, report, events);
   markDeathIfNeeded(next, events);

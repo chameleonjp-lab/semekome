@@ -6,9 +6,11 @@ import { getHandoffPosition } from '../artillery/positions.ts';
 
 export const caseLabels: Record<string, string> = {
   standard_slug: '標準弾', dense_payload: '重量弾', screen_panel: '防護板', fast_dart: '高速杭',
+  split_payload: '分割弾', disruption_pack: '補給妨害', breach_lance: '貫通杭', adhesive_pod: '通路妨害',
 };
 const caseColors: Record<string, string> = {
   standard_slug: '#efce7c', dense_payload: '#e5a574', screen_panel: '#9bbef2', fast_dart: '#e5e9eb',
+  split_payload: '#d8a4df', disruption_pack: '#e58a89', breach_lance: '#d4b58b', adhesive_pod: '#9bd0a6',
 };
 
 /** Static authored floor is cached; drawing never updates the simulation. */
@@ -128,6 +130,13 @@ export function createBattleRenderer(canvas: HTMLCanvasElement, initial: BattleS
         context.moveTo(cx + size / 2, cy); context.lineTo(cx - size / 2, cy - size / 2);
         context.lineTo(cx - size / 2, cy + size / 2); context.closePath();
       } else if (item.type === 'screen_panel') context.rect(cx - size * .6, cy - size * .25, size * 1.2, size * .5);
+      else if (item.type === 'split_payload') {
+        context.moveTo(cx, cy - size / 2); context.lineTo(cx + size / 2, cy + size / 2); context.lineTo(cx - size / 2, cy + size / 2); context.closePath();
+      } else if (item.type === 'disruption_pack') {
+        context.arc(cx, cy, size / 2, 0, Math.PI * 2);
+      } else if (item.type === 'adhesive_pod') {
+        context.roundRect(cx - size / 2, cy - size / 2, size, size, size * .2);
+      }
       else context.rect(cx - size / 2, cy - size / 2, size, size);
       context.fill(); context.strokeStyle = '#142631'; context.lineWidth = 1; context.stroke();
       if (item.id === highlighted?.id) {
