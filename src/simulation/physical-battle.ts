@@ -2789,7 +2789,11 @@ function processCarrierAI(state: BattleState, actor: ActorState, events: WorldEv
     assignment.pathIndex = 0;
     assignment.stuckTicks = 0;
   }
-  if (!actorIsProtected(state, actor)) {
+  // The public P1 flow has priority over background support logistics. While
+  // P1 is carrying a case, P2/P3 must not pre-claim both handoff slots and
+  // hide the manual delivery action from the operator.
+  const publicPlayerHasCargo = actor.team === PLAYER_TEAM && (state.actors.P1?.cargoIds.length ?? 0) > 0;
+  if (!actorIsProtected(state, actor) && !publicPlayerHasCargo) {
     for (const item of carried) {
       if (deliveryReservationForCase(state, item.id)) continue;
       const stagingSlot = availableDeliverySlot(state, turret);
