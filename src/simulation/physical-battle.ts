@@ -117,6 +117,9 @@ export interface BattleIntent {
   slot?: number;
   route?: BattleRoute;
   part?: PartId;
+  /** Optional repair target. When present, both fields must be supplied. */
+  equipmentKind?: BattleEquipmentKind;
+  equipmentId?: string;
   /** Candidate snapshot token returned by getInteraction. */
   contextToken?: string;
   /**
@@ -232,8 +235,20 @@ export interface BattleRepairTask {
   completesAtTick: number;
 }
 
+export interface BattleEquipmentRepairTask {
+  actorId: ActorId;
+  generation: number;
+  objectId: string;
+  team: TeamId;
+  equipmentKind: BattleEquipmentKind;
+  equipmentId: string;
+  startedTick: number;
+  completesAtTick: number;
+}
+
 export interface BattleRepairState {
   tasks: Record<string, BattleRepairTask>;
+  equipmentTasks: Record<string, BattleEquipmentRepairTask>;
   /** Consumed exterior repair budget, kept separate for each vehicle. */
   budgetUsed: Record<TeamId, number>;
 }
@@ -292,6 +307,13 @@ export interface BattleInteraction {
   handles: BattleHandle[];
   /** The exact nearest pickup target accepted for the selected empty slot. */
   pickupCaseId?: string;
+  /** Own equipment that can be selected as a manual repair target. */
+  equipmentRepairTargets: Array<{
+    kind: BattleEquipmentKind;
+    id: string;
+    health: number;
+    disabledUntilTick: number | null;
+  }>;
   contextToken: string;
   selectedSlot?: 0 | 1;
 }
@@ -304,6 +326,10 @@ function isBattleHandle(value: unknown): value is BattleHandle {
 
 function isBattleRoute(value: unknown): value is BattleRoute {
   return value === "direct" || value === "detour";
+}
+
+function isBattleEquipmentKind(value: unknown): value is BattleEquipmentKind {
+  return value === "turret" || value === "supply_port";
 }
 
 function isPartId(value: unknown): value is PartId {
@@ -627,7 +653,7 @@ function interpolatePoint(from: FixedPoint, to: FixedPoint, progress: number): F
   };
 }
 
-type BattleEquipmentKind = "turret" | "supply_port";
+export type BattleEquipmentKind = "turret" | "supply_port";
 type BattleEquipmentRuntime = BattleTurretState | BattlePortState;
 
 interface DashEquipmentContact {
@@ -745,6 +771,10 @@ function restoreDisabledEquipment(state: BattleState, events: WorldEvent[]): voi
       equipmentId: entry.id,
       equipmentKind: entry.kind,
     }));
+    for (const task of Object.values(state.repairs.equipmentTasks)) {
+      if (task.team !== entry.team || task.equipmentKind !== entry.kind || task.equipmentId !== entry.id) continue;
+      cancelEquipmentRepair(state, task, "invalid_target", events);
+    }
   }
 }
 
@@ -1359,7 +1389,15 @@ function activeRepairTask(state: BattleState, actorId: ActorId): BattleRepairTas
   return state.repairs.tasks[actorId];
 }
 
-function releaseRepairReservation(state: BattleState, task: BattleRepairTask): void {
+function activeEquipmentRepairTask(state: BattleState, actorId: ActorId): BattleEquipmentRepairTask | undefined {
+  return state.repairs.equipmentTasks[actorId];
+}
+
+function activeAnyRepair(state: BattleState, actorId: ActorId): BattleRepairTask | BattleEquipmentRepairTask | undefined {
+  return activeRepairTask(state, actorId) ?? activeEquipmentRepairTask(state, actorId);
+}
+
+function releaseRepairReservation(state: BattleState, task: { actorId: ActorId; objectId: string }): void {
   const actor = state.actors[task.actorId];
   for (const [reservationId, reservation] of Object.entries(state.reservations)) {
     if (reservation.kind !== "repair" || !reservation.objectIds.includes(task.objectId)) continue;
@@ -1380,6 +1418,36 @@ function cancelRepair(state: BattleState, task: BattleRepairTask, reason: Extrac
     partId: task.partId,
     reason,
   }));
+}
+
+function cancelEquipmentRepair(
+  state: BattleState,
+  task: BattleEquipmentRepairTask,
+  reason: Extract<WorldEvent, { type: "equipment_repair_cancelled" }>["reason"],
+  events: WorldEvent[],
+): void {
+  releaseRepairReservation(state, task);
+  delete state.repairs.equipmentTasks[task.actorId];
+  events.push(event("equipment_repair_cancelled", {
+    actorId: task.actorId,
+    objectId: task.objectId,
+    team: task.team,
+    equipmentId: task.equipmentId,
+    equipmentKind: task.equipmentKind,
+    reason,
+  }));
+}
+
+function equipmentForRepair(
+  state: BattleState,
+  team: TeamId,
+  kind: BattleEquipmentKind,
+  id: string,
+): BattleEquipmentRuntime | undefined {
+  const equipment = kind === "turret"
+    ? state.artillery.turrets[turretKey(team, id)]
+    : state.logistics.ports[portKey(team, id)];
+  return equipment?.team === team ? equipment : undefined;
 }
 
 function chooseRepairPart(state: BattleState, team: TeamId, requested?: PartId): PartId | undefined {
@@ -1412,7 +1480,7 @@ function startRepair(
 ): boolean {
   if (actor.location.area !== "castle" || actor.location.castleTeam !== actor.team || actor.currentRoomId !== "repair") return false;
   if (caseState.location !== "carried" || caseState.ownerActorId !== actor.id || caseState.ownerGeneration !== actor.generation) return false;
-  if (reservationForCase(state, caseState.id) || activeRepairTask(state, actor.id)) return false;
+  if (reservationForCase(state, caseState.id) || activeAnyRepair(state, actor.id)) return false;
   if (state.repairs.budgetUsed[actor.team] >= state.rules.repairBudget) return false;
   const partId = chooseRepairPart(state, actor.team, requestedPart);
   if (!partId) return false;
@@ -1444,6 +1512,103 @@ function startRepair(
     completesAtTick: task.completesAtTick,
   }));
   return true;
+}
+
+function startEquipmentRepair(
+  state: BattleState,
+  actor: ActorState,
+  caseState: BattleCaseState,
+  equipmentKind: BattleEquipmentKind,
+  equipmentId: string,
+  events: WorldEvent[],
+): boolean {
+  if (actor.location.area !== "castle" || actor.location.castleTeam !== actor.team || actor.currentRoomId !== "repair") return false;
+  if (caseState.location !== "carried" || caseState.ownerActorId !== actor.id || caseState.ownerGeneration !== actor.generation) return false;
+  if (reservationForCase(state, caseState.id) || activeAnyRepair(state, actor.id)) return false;
+  const equipment = equipmentForRepair(state, actor.team, equipmentKind, equipmentId);
+  if (!equipment || (equipment.health >= state.rules.equipmentRepairHealth && equipment.disabledUntilTick === null)) return false;
+  if (Object.values(state.repairs.equipmentTasks).some((task) =>
+    task.team === actor.team && task.equipmentKind === equipmentKind && task.equipmentId === equipmentId)) return false;
+  const reservationId = `equipment-repair:${actor.id}:${actor.generation}:${state.tick}:${caseState.id}`;
+  state.reservations[reservationId] = {
+    id: reservationId,
+    kind: "repair",
+    ownerActorId: actor.id,
+    objectIds: [caseState.id],
+    createdTick: state.tick,
+  };
+  actor.reservationIds = [...actor.reservationIds, reservationId];
+  const task: BattleEquipmentRepairTask = {
+    actorId: actor.id,
+    generation: actor.generation,
+    objectId: caseState.id,
+    team: actor.team,
+    equipmentKind,
+    equipmentId,
+    startedTick: state.tick,
+    completesAtTick: state.tick + state.rules.equipmentRepairWorkTicks,
+  };
+  state.repairs.equipmentTasks[actor.id] = task;
+  syncWorldObject(state, caseState);
+  events.push(event("equipment_repair_started", {
+    actorId: actor.id,
+    objectId: caseState.id,
+    team: actor.team,
+    equipmentId,
+    equipmentKind,
+    completesAtTick: task.completesAtTick,
+  }));
+  return true;
+}
+
+function processEquipmentRepairs(state: BattleState, events: WorldEvent[]): void {
+  const damagedActors = new Set(events
+    .filter((candidate): candidate is Extract<WorldEvent, { type: "actor_damaged" }> => candidate.type === "actor_damaged")
+    .map((candidate) => candidate.actorId));
+  for (const task of Object.values(state.repairs.equipmentTasks).sort((left, right) => left.actorId.localeCompare(right.actorId))) {
+    const actor = state.actors[task.actorId];
+    if (!actor?.alive) {
+      cancelEquipmentRepair(state, task, "dead", events);
+      continue;
+    }
+    if (actor.generation !== task.generation) {
+      cancelEquipmentRepair(state, task, "stale_generation", events);
+      continue;
+    }
+    if (damagedActors.has(actor.id)) {
+      cancelEquipmentRepair(state, task, "damaged", events);
+      continue;
+    }
+    if (actor.location.area !== "castle" || actor.location.castleTeam !== actor.team || actor.currentRoomId !== "repair") {
+      cancelEquipmentRepair(state, task, "interrupted", events);
+      continue;
+    }
+    if (state.tick < task.completesAtTick) continue;
+    const equipment = equipmentForRepair(state, task.team, task.equipmentKind, task.equipmentId);
+    if (!equipment || (equipment.health >= state.rules.equipmentRepairHealth && equipment.disabledUntilTick === null)) {
+      cancelEquipmentRepair(state, task, "invalid_target", events);
+      continue;
+    }
+    const caseState = state.battleCases[task.objectId];
+    if (!caseState || !actor.cargoIds.includes(task.objectId)) {
+      cancelEquipmentRepair(state, task, "invalid_target", events);
+      continue;
+    }
+    equipment.health = Math.min(state.rules.equipmentHealth, state.rules.equipmentRepairHealth);
+    equipment.disabledUntilTick = null;
+    actor.cargoIds = actor.cargoIds.filter((id) => id !== task.objectId);
+    clearCargoSlot(state, actor.id, task.objectId);
+    releaseRepairReservation(state, task);
+    setCaseConsumed(state, caseState, "equipment_repair");
+    delete state.repairs.equipmentTasks[task.actorId];
+    events.push(event("equipment_repair_completed", {
+      actorId: actor.id,
+      objectId: task.objectId,
+      team: task.team,
+      equipmentId: task.equipmentId,
+      equipmentKind: task.equipmentKind,
+    }));
+  }
 }
 
 function processRepairs(state: BattleState, events: WorldEvent[]): void {
@@ -1825,7 +1990,7 @@ function handleIntent(
     addRejection(report, 0, "invalid_transition", "launch/intercept are simulation-owned actions");
     return;
   }
-  if (activeRepairTask(state, actor.id) && intent.handle !== "repair") {
+  if (activeAnyRepair(state, actor.id) && intent.handle !== "repair") {
     addRejection(report, 0, "invalid_object_transition", "actor is already repairing");
     return;
   }
@@ -1835,6 +2000,14 @@ function handleIntent(
   }
   if (intent.part !== undefined && !isPartId(intent.part)) {
     addRejection(report, 0, "invalid_transition", "unknown target part");
+    return;
+  }
+  if (intent.equipmentKind !== undefined && !isBattleEquipmentKind(intent.equipmentKind)) {
+    addRejection(report, 0, "invalid_transition", "unknown equipment kind");
+    return;
+  }
+  if ((intent.equipmentKind === undefined) !== (intent.equipmentId === undefined)) {
+    addRejection(report, 0, "invalid_transition", "equipment repair requires kind and id");
     return;
   }
   if (actor.protectedUntilTick !== null && state.tick < actor.protectedUntilTick) {
@@ -1892,7 +2065,12 @@ function handleIntent(
   } else if (intent.handle === "repair") {
     const selectedId = state.cargoSlots[actor.id]?.[slot] ?? null;
     candidate = selectedId ? state.battleCases[selectedId] : undefined;
-    if (!candidate || !startRepair(state, actor, candidate, intent.part, events)) {
+    const started = candidate && intent.equipmentKind !== undefined && intent.equipmentId !== undefined
+      ? startEquipmentRepair(state, actor, candidate, intent.equipmentKind, intent.equipmentId, events)
+      : candidate && intent.equipmentKind === undefined && intent.equipmentId === undefined
+        ? startRepair(state, actor, candidate, intent.part, events)
+        : false;
+    if (!started) {
       addRejection(report, 0, "invalid_object_transition", "repair room, case, target, or repair budget unavailable");
       return;
     }
@@ -2325,8 +2503,11 @@ function markDeathIfNeeded(state: BattleState, events: WorldEvent[]): void {
   for (const actor of Object.values(state.actors)) {
     if (!actor.alive || actor.health > 0 || actor.respawnAtTick !== null) continue;
     state.dashes[actor.id] = undefined;
-    const repair = activeRepairTask(state, actor.id);
-    if (repair) cancelRepair(state, repair, "dead", events);
+    const repair = activeAnyRepair(state, actor.id);
+    if (repair) {
+      if ("partId" in repair) cancelRepair(state, repair, "dead", events);
+      else cancelEquipmentRepair(state, repair, "dead", events);
+    }
     dropActorCargo(state, actor, events);
     actor.alive = false;
     actor.health = 0;
@@ -2445,7 +2626,7 @@ export function createBattle(options: { matchId: string; seed: number }): Battle
     },
     artillery: { turrets: {}, flights: {}, nextLaunchTick: { player: 0, enemy: 0 }, roundRobinTurretIndex: { player: 0, enemy: 0 }, contactPairs: {} },
     crew: { assignments: {} },
-    repairs: { tasks: {}, budgetUsed: { player: 0, enemy: 0 } },
+    repairs: { tasks: {}, equipmentTasks: {}, budgetUsed: { player: 0, enemy: 0 } },
     enemyDecisions: {},
     launchSelections: {},
     nextLaunchTick: { player: 0, enemy: 0 },
@@ -2495,9 +2676,12 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
   }
   const actor = resolveActor(state, intent, report);
   if (!actor) return;
-  const repair = activeRepairTask(state, actor.id);
+  const repair = activeAnyRepair(state, actor.id);
   const movementRequested = (intent.direction !== undefined && isFiniteDirection(intent.direction) && (intent.direction.x !== 0 || intent.direction.y !== 0)) || intent.dash !== undefined;
-  if (repair && movementRequested) cancelRepair(state, repair, "interrupted", events);
+  if (repair && movementRequested) {
+    if ("partId" in repair) cancelRepair(state, repair, "interrupted", events);
+    else cancelEquipmentRepair(state, repair, "interrupted", events);
+  }
   // Route/part are presentation selections, not object identifiers. Retain
   // the latest validated values so an automatic operator load captures the
   // selection that was current at the actual enqueue tick.
@@ -2521,8 +2705,11 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
   // cannot invalidate a legitimate near-boundary handling action.
   const snapshotCandidates = interactionCandidates(state, actor);
   if (intent.handle !== undefined) handleIntent(state, intent, actor, report, events, snapshotCandidates);
-  const startedRepair = activeRepairTask(state, actor.id);
-  if (startedRepair && movementRequested) cancelRepair(state, startedRepair, "interrupted", events);
+  const startedRepair = activeAnyRepair(state, actor.id);
+  if (startedRepair && movementRequested) {
+    if ("partId" in startedRepair) cancelRepair(state, startedRepair, "interrupted", events);
+    else cancelEquipmentRepair(state, startedRepair, "interrupted", events);
+  }
   const rejectionCountBeforeDash = report.rejected.length;
   if (intent.dash !== undefined) startDash(state, actor, intent.dash, report);
   if (report.rejected.length > rejectionCountBeforeDash) return;
@@ -2666,7 +2853,6 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   }
   const currentTick = next.tick;
   report.processedTick = currentTick;
-  restoreDisabledEquipment(next, events);
   const startActors = structuredClone(next.actors);
   applyIntent(next, intent, report, events);
   markDeathIfNeeded(next, events);
@@ -2690,12 +2876,17 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   // selection.  A terminal core contact ends the tick without creating new
   // logistics/artillery side effects.
   if ((next.phase as string) !== "ended") {
+    // Manual equipment repair wins over the automatic deadline in the same
+    // tick.  Restore any remaining disabled equipment only after the manual
+    // completion/cancellation boundary has been resolved.
+    processRepairs(next, events);
+    processEquipmentRepairs(next, events);
+    restoreDisabledEquipment(next, events);
     autoLoadAtTurrets(next, events);
     autoLaunch(next, startActors, events);
     resolveFlights(next, events);
     spawnSupply(next, events);
     markDeathIfNeeded(next, events);
-    processRepairs(next, events);
   }
 
   let finalOutcome: BattleState["outcome"] = next.outcome;
@@ -2714,6 +2905,7 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   // ends; the held case is returned by the cancellation boundary below.
   if ((next.phase as string) === "ended") {
     for (const task of Object.values(next.repairs.tasks)) cancelRepair(next, task, "interrupted", events);
+    for (const task of Object.values(next.repairs.equipmentTasks)) cancelEquipmentRepair(next, task, "interrupted", events);
   }
 
   next.tick = currentTick + 1;
@@ -2778,7 +2970,21 @@ export function getInteraction(state: BattleState, actorId: ActorId = "P1", slot
   const actionable = !!actor && actor.alive && !actorIsProtected(state, actor) && validSlot;
   const selectedOwned = !!selectedCase && selectedCase.location === "carried" && selectedCase.ownerActorId === actorId && selectedCase.ownerGeneration === actor?.generation && !reservationForCase(state, selectedCase.id);
   const repairRoom = actor?.location.area === "castle" && actor.location.castleTeam === actor.team && actor.currentRoomId === "repair";
-  if (actionable && selectedOwned && repairRoom && !activeRepairTask(state, actor!.id)) handles.push("repair");
+  const equipmentRepairTargets = actor && repairRoom
+    ? [
+      ...Object.values(state.artillery.turrets)
+        .filter((equipment) => equipment.team === actor.team && (equipment.health < state.rules.equipmentRepairHealth || equipment.disabledUntilTick !== null))
+        .map((equipment) => ({ kind: "turret" as const, id: equipment.id, health: equipment.health, disabledUntilTick: equipment.disabledUntilTick })),
+      ...Object.values(state.logistics.ports)
+        .filter((equipment) => equipment.team === actor.team && (equipment.health < state.rules.equipmentRepairHealth || equipment.disabledUntilTick !== null))
+        .map((equipment) => ({ kind: "supply_port" as const, id: equipment.id, health: equipment.health, disabledUntilTick: equipment.disabledUntilTick })),
+    ].sort((left, right) => `${left.kind}:${left.id}`.localeCompare(`${right.kind}:${right.id}`))
+    : [];
+  if (actionable && selectedOwned && repairRoom && !activeAnyRepair(state, actor!.id) &&
+      (equipmentRepairTargets.length > 0 || PART_IDS.some((partId) => {
+        const part = state.castles[actor!.team].exterior[partId];
+        return !part.destroyed && part.health < part.maxHealth;
+      }))) handles.push("repair");
   if (actionable && selectedOwned && turret && availableStagingSlot(state, actor!, turret) !== undefined) handles.push("deliver");
   if (actionable && selectedOwned) handles.push("drop");
   const loadCandidate = turret ? firstHandoffCase(state, turret)?.caseState : undefined;
@@ -2803,6 +3009,7 @@ export function getInteraction(state: BattleState, actorId: ActorId = "P1", slot
     turretIds: actor ? Object.values(state.artillery.turrets).filter((item) => item.team === actor.team).map((item) => item.id).sort() : [],
     handles,
     pickupCaseId: pickupCandidate?.id,
+    equipmentRepairTargets,
     contextToken,
     selectedSlot,
   };
