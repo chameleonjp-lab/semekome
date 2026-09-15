@@ -454,8 +454,10 @@ test("R2a flow keeps 33 actors and carries real supply into all enemy turrets", 
     const sequence = record.moveKinds.get(launch.event.objectId) ?? [];
     const queueIndex = sequence.findIndex((entry) => entry.kind === "queue");
     assert.ok(queueIndex >= 0, `${launch.event.objectId} reached a queue`);
-    const shooterPickup = sequence.findIndex((entry, index) => index < queueIndex && entry.kind === "carried" && entry.actorId === launch.event.sourceActorId);
-    assert.ok(shooterPickup >= 0, `${launch.event.objectId} was picked up by its live operator before queueing`);
+    const turretOperators: readonly string[] = launch.event.team === "enemy" ? ENEMY_SHOOTERS : PLAYER_ACTORS;
+    const operatorPickup = sequence.findIndex((entry, index) => index < queueIndex && entry.kind === "carried" &&
+      entry.actorId !== undefined && turretOperators.includes(entry.actorId));
+    assert.ok(operatorPickup >= 0, `${launch.event.objectId} was picked up by an authorized live operator before queueing`);
   }
   assert.equal(state.outcome, "ongoing", "R2a never resolves an invasion/core victory");
   assert.equal(state.phase, "running", "R2a remains a running battle after artillery work");

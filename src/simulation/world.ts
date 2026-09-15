@@ -729,8 +729,24 @@ function processObjectTransition(
       reject(report, index, "invalid_object_transition", "delivery turret does not belong to actor team");
       return;
     }
+    const stagingSlot = input.stagingSlot;
+    if (stagingSlot !== undefined && stagingSlot !== 0 && stagingSlot !== 1) {
+      reject(report, index, "invalid_object_transition", "delivery staging slot is invalid");
+      return;
+    }
+    if (stagingSlot !== undefined && stagingSlot >= turret.stagingFloorSlots) {
+      reject(report, index, "invalid_object_transition", "delivery staging slot is outside the authored floor");
+      return;
+    }
     if (world.reservations[input.reservationId]) {
       reject(report, index, "invalid_object_transition", "delivery reservation already exists");
+      return;
+    }
+    if (stagingSlot !== undefined && Object.values(world.reservations).some((candidate) =>
+      candidate.kind === "delivery" && candidate.targetTurretId === turret.id &&
+        world.actors[candidate.ownerActorId]?.team === team && candidate.targetStagingSlot === stagingSlot,
+    )) {
+      reject(report, index, "invalid_object_transition", "delivery staging slot already reserved");
       return;
     }
     const reservationId = input.reservationId;
@@ -741,6 +757,7 @@ function processObjectTransition(
       objectIds: [object.id],
       createdTick: world.tick,
       targetTurretId: turret.id,
+      targetStagingSlot: stagingSlot,
     };
     object.location = { kind: "reserved-carried", actorId: actor.id, slot: object.location.slot, reservationId };
     actor.reservationIds = [...actor.reservationIds, reservationId];
