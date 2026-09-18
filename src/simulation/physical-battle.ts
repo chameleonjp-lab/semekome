@@ -2139,6 +2139,69 @@ function turretForPort(state: BattleState, team: TeamId, portId: string): Battle
   return definition ? state.artillery.turrets[turretKey(team, definition.id)] : undefined;
 }
 
+function turretCanReceiveDelivery(state: BattleState, turret: BattleTurretState, caseIds: readonly string[]): boolean {
+  if (!equipmentReady(state, turret)) return false;
+  return caseIds.length === 0
+    ? availableDeliverySlot(state, turret) !== undefined
+    : caseIds.some((caseId) => availableDeliverySlot(state, turret, caseId) !== undefined);
+}
+
+function chooseDeliveryTurret(
+  state: BattleState,
+  actor: ActorState,
+  carried: readonly BattleCaseState[],
+  preferredTurretId?: string,
+): BattleTurretState | undefined {
+  const caseIds = carried.map((item) => item.id);
+  const reservedTurretIds = new Set(
+    carried
+      .map((item) => deliveryReservationForCase(state, item.id)?.targetTurretId)
+      .filter((id): id is string => id !== undefined),
+  );
+  const sourceTurretId = carried[0] ? turretForPort(state, actor.team, carried[0].sourcePortId)?.id : undefined;
+  const priority = (turret: BattleTurretState): number => {
+    if (reservedTurretIds.has(turret.id)) return 0;
+    if (turret.id === preferredTurretId) return 1;
+    if (turret.id === sourceTurretId) return 2;
+    return 3;
+  };
+  return Object.values(state.artillery.turrets)
+    .filter((turret) => turret.team === actor.team)
+    .sort((left, right) => priority(left) - priority(right) || left.id.localeCompare(right.id))
+    .find((turret) => turretCanReceiveDelivery(state, turret, caseIds));
+}
+
+function releaseStaleDeliveryReservations(
+  state: BattleState,
+  actor: ActorState,
+  carried: readonly BattleCaseState[],
+  events: WorldEvent[],
+): void {
+  for (const caseState of carried) {
+    const reservation = deliveryReservationForCase(state, caseState.id);
+    if (!reservation) continue;
+    const turret = reservation.targetTurretId
+      ? state.artillery.turrets[turretKey(actor.team, reservation.targetTurretId)]
+      : undefined;
+    if (turret && turretCanReceiveDelivery(state, turret, [caseState.id])) continue;
+
+    releaseReservation(state, reservation.id);
+    caseState.location = "carried";
+    caseState.currentTeam = actor.team;
+    caseState.position = undefined;
+    caseState.currentPosition = copyPoint(actorFixed(state, actor.id));
+    caseState.ownerActorId = actor.id;
+    caseState.ownerGeneration = actor.generation;
+    caseState.turretId = undefined;
+    caseState.queueIndex = undefined;
+    caseState.flightId = undefined;
+    caseState.stagingSlot = undefined;
+    caseState.roomId = actor.currentRoomId;
+    syncWorldObject(state, caseState);
+    events.push(event("object_moved", { objectId: caseState.id, location: state.objects[caseState.id].location }));
+  }
+}
+
 function makeCaseId(team: TeamId, portId: string, groupIndex: number): string {
   return `case-${team}-${portId}-g${String(groupIndex + 1).padStart(2, "0")}`;
 }
@@ -2277,6 +2340,7 @@ function availableStagingSlot(
   turret: BattleTurretState,
   caseId?: string,
 ): 0 | 1 | undefined {
+  if (!equipmentReady(state, turret)) return undefined;
   const actorPosition = actorFixed(state, actor.id);
   for (const slot of [0, 1] as const) {
     if (turret.stagingSlots[slot] !== null) continue;
@@ -2288,10 +2352,14 @@ function availableStagingSlot(
   return undefined;
 }
 
-function availableDeliverySlot(state: BattleState, turret: BattleTurretState): 0 | 1 | undefined {
+function availableDeliverySlot(state: BattleState, turret: BattleTurretState, caseId?: string): 0 | 1 | undefined {
+  const existing = caseId ? deliveryReservationForCase(state, caseId) : undefined;
+  if (existing?.targetTurretId !== undefined && existing.targetTurretId !== turret.id) return undefined;
   for (const slot of [0, 1] as const) {
+    if (existing?.targetStagingSlot !== undefined && existing.targetStagingSlot !== slot) continue;
     if (turret.stagingSlots[slot] !== null) continue;
-    if (deliveryReservationForSlot(state, turret, slot)) continue;
+    const reservation = deliveryReservationForSlot(state, turret, slot);
+    if (reservation && (!caseId || !reservation.objectIds.includes(caseId))) continue;
     return slot;
   }
   return undefined;
@@ -2358,13 +2426,22 @@ function firstHandoffCase(state: BattleState, turret: BattleTurretState): { case
   return undefined;
 }
 
-function deliverCase(state: BattleState, actor: ActorState, caseState: BattleCaseState, route: BattleRoute | undefined, part: PartId | undefined, events: WorldEvent[]): boolean {
+function deliverCase(
+  state: BattleState,
+  actor: ActorState,
+  caseState: BattleCaseState,
+  route: BattleRoute | undefined,
+  part: PartId | undefined,
+  events: WorldEvent[],
+  requestedTurret?: BattleTurretState,
+): boolean {
   if (!actor.cargoIds.includes(caseState.id)) return false;
   if (route !== undefined && !isBattleRoute(route)) return false;
   if (part !== undefined && !isPartId(part)) return false;
-  const turret = turretAtActor(state, actor);
-  if (!turret || turret.team !== actor.team) return false;
+  const turret = requestedTurret ?? turretAtActor(state, actor);
+  if (!turret || turret.team !== actor.team || !equipmentReady(state, turret)) return false;
   const existingReservation = deliveryReservationForCase(state, caseState.id);
+  if (existingReservation && (existingReservation.ownerActorId !== actor.id || existingReservation.targetTurretId !== turret.id)) return false;
   const reservedSlot = existingReservation?.targetTurretId === turret.id ? existingReservation.targetStagingSlot : undefined;
   const actorPosition = actorFixed(state, actor.id);
   let stagingSlot: 0 | 1 | undefined;
@@ -3093,9 +3170,17 @@ function processCarrierAI(state: BattleState, actor: ActorState, events: WorldEv
     state.crew.assignments[actor.id] = assignment;
     return;
   }
-  const first = carried[0];
-  const turret = turretForPort(state, actor.team, first.sourcePortId) ?? Object.values(state.artillery.turrets).find((item) => item.team === actor.team);
-  if (!turret) return;
+  releaseStaleDeliveryReservations(state, actor, carried, events);
+  const turret = chooseDeliveryTurret(state, actor, carried, assignment.targetTurretId);
+  if (!turret) {
+    assignment.task = "idle";
+    assignment.path = [];
+    assignment.pathIndex = 0;
+    assignment.targetTurretId = undefined;
+    assignment.stuckTicks = 0;
+    state.crew.assignments[actor.id] = assignment;
+    return;
+  }
   assignment.task = "deliver";
   if (assignment.targetTurretId !== turret.id || assignment.path.length === 0) {
     assignment.targetTurretId = turret.id;
@@ -3120,7 +3205,7 @@ function processCarrierAI(state: BattleState, actor: ActorState, events: WorldEv
     let delivered = false;
     for (const item of [...carried]) {
       if (turret.handoffIds.length >= STAGING_SLOTS_PER_TURRET) break;
-      delivered = deliverCase(state, actor, item, undefined, undefined, events) || delivered;
+      delivered = deliverCase(state, actor, item, undefined, undefined, events, turret) || delivered;
     }
     if (delivered && actor.cargoIds.length === 0) {
       assignment.task = "idle";
