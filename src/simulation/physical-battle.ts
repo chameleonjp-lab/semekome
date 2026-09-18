@@ -1,5 +1,5 @@
 import { createWorld, stepWorld } from "./world.ts";
-import { caseDefinition, CASE_TYPES, SUPPLY_BAG, type CaseType } from "../content/cases.ts";
+import { caseDefinition, CASE_TYPES, type CaseType } from "../content/cases.ts";
 import layoutSource from "../../docs/plans/current/INTERIOR_LAYOUTS.json" with { type: "json" };
 import { padById } from "../domain/layout.ts";
 import { assertObjectLocationsUnique } from "../domain/objects.ts";
@@ -43,6 +43,7 @@ import {
   carryingSpeedMultiplier,
   canCarry,
 } from "../logistics/logistics.ts";
+import { supplyBagForCycle } from "../logistics/supply-schedule.ts";
 import {
   ARTILLERY_ROUTES,
   MAX_FLIGHT_COUNT,
@@ -90,17 +91,10 @@ function xorshift32(value: number): number {
 }
 
 function seededSupplyBag(seed: number, team: TeamId, cycle: number): CaseType[] {
-  // Fisher–Yates is seeded from match identity, source vehicle, and bag
-  // cycle. No port owns an independent offset: simultaneous port spawns walk
-  // one shared bag in stable port-number order.
-  let random = (seed ^ (team === ENEMY_TEAM ? 0x85ebca6b : 0xc2b2ae35) ^ Math.imul(cycle + 1, 0x9e3779b9)) >>> 0;
-  const bag = [...SUPPLY_BAG];
-  for (let index = bag.length - 1; index > 0; index -= 1) {
-    random = xorshift32(random || 1);
-    const swapIndex = random % (index + 1);
-    [bag[index], bag[swapIndex]] = [bag[swapIndex], bag[index]];
-  }
-  return bag;
+  // One shared schedule is consumed by all four ports in stable port order.
+  // This wrapper keeps the physical state shape stable while the schedule
+  // generation itself lives in the common logistics module.
+  return supplyBagForCycle(seed, team, cycle);
 }
 
 export interface FixedPoint {
