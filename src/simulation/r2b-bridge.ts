@@ -1,5 +1,5 @@
 import { canOccupyFixed, hasFloorLineOfSight } from "../actors/geometry.ts";
-import { ACTOR_RADIUS_SUBUNITS, floorCell } from "../actors/movement.ts";
+import { ACTOR_RADIUS_SUBUNITS, FLOOR_SUBUNITS, floorCell } from "../actors/movement.ts";
 import { roomContainsPoint, routeHasAllGates } from "../domain/layout.ts";
 import type {
   ActorId,
@@ -134,6 +134,15 @@ function hasContinuousClearance(state: BattleState, team: TeamId, from: FixedPoi
     if (!canOccupyFixed(state, team, point)) return false;
   }
   return true;
+}
+
+function plazaPointCanOccupy(state: BattleState, point: FixedPoint): boolean {
+  if (!finitePoint(point)) return false;
+  const rect = state.layout.plaza;
+  return point.x - ACTOR_RADIUS_SUBUNITS >= rect.x0 * FLOOR_SUBUNITS &&
+    point.x + ACTOR_RADIUS_SUBUNITS <= rect.x1 * FLOOR_SUBUNITS &&
+    point.y - ACTOR_RADIUS_SUBUNITS >= rect.y0 * FLOOR_SUBUNITS &&
+    point.y + ACTOR_RADIUS_SUBUNITS <= rect.y1 * FLOOR_SUBUNITS;
 }
 
 function validTeam(team: unknown): team is TeamId {
@@ -271,10 +280,13 @@ export function bridgeActorFirstContact(
       target.position.x !== floorCell(evidence.targetPosition.x) || target.position.y !== floorCell(evidence.targetPosition.y)) {
     return failure("stale_snapshot", "physical actor positions no longer match the actor snapshot");
   }
-  if (attacker.location.area !== "castle" || target.location.area !== "castle" ||
-      !attacker.location.castleTeam || attacker.location.castleTeam !== target.location.castleTeam ||
-      attacker.location.roomId !== target.location.roomId || attacker.currentRoomId !== target.currentRoomId) {
-    return failure("invalid_contact", "actors must share one castle room for contact damage");
+  const sharedPlaza = attacker.location.area === "plaza" && target.location.area === "plaza" &&
+    attacker.currentRoomId === "plaza" && target.currentRoomId === "plaza";
+  const sharedCastle = attacker.location.area === "castle" && target.location.area === "castle" &&
+    !!attacker.location.castleTeam && attacker.location.castleTeam === target.location.castleTeam &&
+    attacker.location.roomId === target.location.roomId && attacker.currentRoomId === target.currentRoomId;
+  if (!sharedPlaza && !sharedCastle) {
+    return failure("invalid_contact", "actors must share one plaza or castle room for contact damage");
   }
   if ((attacker.protectedUntilTick !== null && evidence.tick < attacker.protectedUntilTick) ||
       (target.protectedUntilTick !== null && evidence.tick < target.protectedUntilTick)) {
@@ -284,8 +296,10 @@ export function bridgeActorFirstContact(
     return failure("invalid_contact", "target is temporarily immune to additional damage");
   }
   const contactDistance = Math.hypot(targetFixed.x - attackerFixed.x, targetFixed.y - attackerFixed.y);
-  if (contactDistance > ACTOR_RADIUS_SUBUNITS * 2 ||
-      !hasFloorLineOfSight(state, attacker.location.castleTeam, attackerFixed, targetFixed)) {
+  const contactClear = sharedPlaza
+    ? plazaPointCanOccupy(state, attackerFixed) && plazaPointCanOccupy(state, targetFixed)
+    : hasFloorLineOfSight(state, attacker.location.castleTeam!, attackerFixed, targetFixed);
+  if (contactDistance > ACTOR_RADIUS_SUBUNITS * 2 || !contactClear) {
     return failure("invalid_contact", "actor circles do not overlap or a wall blocks contact");
   }
   if (evidence.targetCargoId !== undefined) {
