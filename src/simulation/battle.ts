@@ -15,6 +15,7 @@ import {
   createCommonSupplyState,
   prepareCommonSupplySpawns,
 } from "./common-supply.ts";
+import { commonDeliveryInputs, prepareCommonDeliveryPlans } from "./common-delivery.ts";
 
 export function createBattle(options: CreateWorldOptions & { difficulty?: "easy" | "standard" | "hard" } = {}): BattleState {
   const world = createWorld(options);
@@ -95,9 +96,11 @@ export function stepBattle(battle: BattleState, inputs: readonly unknown[] = [])
   }
   const damage = advanceArtillery(next);
   launchReadyTurrets(next);
+  const deliveryPlans = prepareCommonDeliveryPlans(next);
+  const deliveryInputs = commonDeliveryInputs(deliveryPlans);
   const supplyPlans = prepareCommonSupplySpawns(next);
-  next.world = stepWorld(next.world, [...damage, ...commonSupplyInputs(supplyPlans)]);
-  commitCommonSupplySpawns(next, supplyPlans, damage.length, next.world.lastStep);
+  next.world = stepWorld(next.world, [...damage, ...deliveryInputs, ...commonSupplyInputs(supplyPlans)]);
+  commitCommonSupplySpawns(next, supplyPlans, damage.length + deliveryInputs.length, next.world.lastStep);
   refreshOperators(next);
   for (const [id, decision] of Object.entries(next.enemyDecisions)) {
     const actor = next.world.actors[id];
