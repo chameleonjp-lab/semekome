@@ -1,4 +1,6 @@
 import type { WeaponDefinition, WeaponEffect } from "../content/weapons.ts";
+import type { CaseType } from "../content/cases.ts";
+import type { SupplySchedule } from "../logistics/supply-schedule.ts";
 import type { ActorId, PartId, Point, TeamId, WorldState } from "./types.ts";
 
 export type RouteId = "direct" | "detour";
@@ -46,6 +48,24 @@ export interface EnemyDecision {
   nextDecisionTick: number;
   intent: EnemyIntent;
 }
+
+/** Runtime state for the common-world supply producer. */
+export interface CommonSupplyPort {
+  id: string;
+  team: TeamId;
+  roomId: string;
+  nextSpawnTick: number;
+  /** Monotonic source-local sequence used to keep object IDs unique. */
+  groupSequence: number;
+}
+
+export interface CommonSupplyState {
+  ports: Record<string, CommonSupplyPort>;
+  schedules: Record<TeamId, SupplySchedule>;
+  /** The allocation is retained in the schedule type for explicit validation. */
+  allocation: readonly CaseType[];
+}
+
 export interface BattleState {
   world: WorldState;
   catalog: Record<string, WeaponDefinition>;
@@ -55,6 +75,8 @@ export interface BattleState {
   nextLaunchTick: Record<TeamId, number>;
   nextTurretIndex: Record<TeamId, number>;
   supplyStops: Record<TeamId, SupplyStop>;
+  /** Common-world floor generation. Physical battle owns a separate producer. */
+  supply: CommonSupplyState;
   slowZones: Partial<Record<TeamId, SlowZone>>;
   enemyDecisions: Record<string, EnemyDecision>;
   enemyDecisionInterval: number;

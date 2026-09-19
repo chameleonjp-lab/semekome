@@ -9,6 +9,12 @@ import { applyClockCommand, type ClockCommand } from "./clock.ts";
 import { executeActorCommand, refreshOperators } from "./battle-actions.ts";
 import { advanceArtillery, launchReadyTurrets } from "./artillery.ts";
 import { updateEnemyDecisions } from "./enemy-rules.ts";
+import {
+  commitCommonSupplySpawns,
+  commonSupplyInputs,
+  createCommonSupplyState,
+  prepareCommonSupplySpawns,
+} from "./common-supply.ts";
 
 export function createBattle(options: CreateWorldOptions & { difficulty?: "easy" | "standard" | "hard" } = {}): BattleState {
   const world = createWorld(options);
@@ -21,7 +27,7 @@ export function createBattle(options: CreateWorldOptions & { difficulty?: "easy"
   return {
     world, catalog: structuredClone(WEAPONS), turrets: { player: turrets("player"), enemy: turrets("enemy") }, queued: {}, flights: {},
     nextLaunchTick: { player: 0, enemy: 0 }, nextTurretIndex: { player: 0, enemy: 0 },
-    supplyStops: { player: stop(), enemy: stop() }, slowZones: {}, enemyDecisions: {},
+    supplyStops: { player: stop(), enemy: stop() }, supply: createCommonSupplyState(world), slowZones: {}, enemyDecisions: {},
     enemyDecisionInterval: options.difficulty === "easy" ? 36 : options.difficulty === "hard" ? 11 : 18,
     interceptedPairs: [], nextId: 1, lastCombatStep: { rejected: [], events: [] },
   };
@@ -89,7 +95,9 @@ export function stepBattle(battle: BattleState, inputs: readonly unknown[] = [])
   }
   const damage = advanceArtillery(next);
   launchReadyTurrets(next);
-  next.world = stepWorld(next.world, damage);
+  const supplyPlans = prepareCommonSupplySpawns(next);
+  next.world = stepWorld(next.world, [...damage, ...commonSupplyInputs(supplyPlans)]);
+  commitCommonSupplySpawns(next, supplyPlans, damage.length, next.world.lastStep);
   refreshOperators(next);
   for (const [id, decision] of Object.entries(next.enemyDecisions)) {
     const actor = next.world.actors[id];

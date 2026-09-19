@@ -138,7 +138,7 @@ test("enemy role decisions differ locally without revealing unseen player or fut
   assert.equal(assault.kind === "move_goal" && assault.purpose, "assault");
 });
 
-test("shooter AI picks up, loads, operates through the same validators without creating ammunition", () => {
+test("shooter AI picks up, loads, operates through the same validators while scheduled supply stays distinct", () => {
   let b = createBattle();
   atTurret(b, "E01");
   caseAtActor(b, "real-case", "standard_slug", "E01");
@@ -148,7 +148,8 @@ test("shooter AI picks up, loads, operates through the same validators without c
   assert.equal(b.world.objects["real-case"].location.kind, "queue");
   while (b.world.tick <= 48) b = stepBattle(b);
   assert.equal(b.world.objects["real-case"].location.kind, "flying");
-  assert.equal(Object.keys(b.world.objects).length, 1);
+  assert.equal(Object.values(b.world.objects).filter(object => !object.id.startsWith("common-case-")).length, 1);
+  assert.equal(Object.values(b.world.objects).filter(object => object.location.kind === "flying").length, 1);
   assert.equal(Object.keys(b.world.actors).length, 33);
 });
 
