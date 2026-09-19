@@ -27,7 +27,11 @@ export function observeEnemy(battle: BattleState, actor: ActorState): EnemyObser
   return {
     role: actor.role, health: actor.health, homeRoomId: actor.homeRoomId, currentRoomId: actor.currentRoomId,
     inHomeCastle: actor.location.area === "castle" && actor.location.castleTeam === actor.team,
-    threats, cargo: actor.cargoIds.filter(id => battle.world.objects[id].location.kind === "carried"),
+    threats,
+    cargo: actor.cargoIds.filter(id => {
+      const location = battle.world.objects[id].location.kind;
+      return location === "carried" || location === "reserved-carried";
+    }),
     nearbyCases: Object.values(battle.world.objects).filter(o => o.weaponId && Object.hasOwn(battle.catalog, o.weaponId) && o.location.kind === "floor" &&
       actor.location.area === "castle" && o.location.team === actor.location.castleTeam && o.location.roomId === actor.location.roomId && near(actor.position, o.location.position))
       .map(o => o.id).sort(ordered),
