@@ -15,7 +15,12 @@ import {
   createCommonSupplyState,
   prepareCommonSupplySpawns,
 } from "./common-supply.ts";
-import { commonDeliveryInputs, commonDeliveryMovementInputs, prepareCommonDeliveryPlans } from "./common-delivery.ts";
+import {
+  commonDeliveryHandoffInputs,
+  commonDeliveryInputs,
+  commonDeliveryMovementInputs,
+  prepareCommonDeliveryPlans,
+} from "./common-delivery.ts";
 
 export function createBattle(options: CreateWorldOptions & { difficulty?: "easy" | "standard" | "hard" } = {}): BattleState {
   const world = createWorld(options);
@@ -52,6 +57,20 @@ export function assertBattleConsistent(battle: BattleState): void {
     if (!flight || flight.id !== id || flight.partId !== projectile.targetPartId) throw new Error("missing/mismatched flight state");
   }
   for (const id of Object.keys(battle.flights)) if (!Object.hasOwn(battle.world.projectiles, id)) throw new Error("flight without projectile");
+}
+
+/** Keep the battle-only firing snapshot aligned with common queue transitions. */
+function syncQueuedSnapshots(battle: BattleState): void {
+  const queuedIds = new Set<string>();
+  for (const object of Object.values(battle.world.objects)) {
+    if (object.location.kind !== "queue") continue;
+    queuedIds.add(object.id);
+    if (Object.hasOwn(battle.queued, object.id)) continue;
+    const turret = battle.turrets[object.location.team][object.location.turretId];
+    if (!turret) throw new Error(`missing runtime for queued turret ${object.location.team}:${object.location.turretId}`);
+    battle.queued[object.id] = { ...turret.settings };
+  }
+  for (const id of Object.keys(battle.queued)) if (!queuedIds.has(id)) delete battle.queued[id];
 }
 
 /** Public R2 command boundary. Caller may control P1, never impersonate NPCs.
@@ -100,9 +119,11 @@ export function stepBattle(battle: BattleState, inputs: readonly unknown[] = [])
   const deliveryInputs = [
     ...commonDeliveryInputs(deliveryPlans),
     ...commonDeliveryMovementInputs(next),
+    ...commonDeliveryHandoffInputs(next),
   ];
   const supplyPlans = prepareCommonSupplySpawns(next);
   next.world = stepWorld(next.world, [...damage, ...deliveryInputs, ...commonSupplyInputs(supplyPlans)]);
+  syncQueuedSnapshots(next);
   commitCommonSupplySpawns(next, supplyPlans, damage.length + deliveryInputs.length, next.world.lastStep);
   refreshOperators(next);
   for (const [id, decision] of Object.entries(next.enemyDecisions)) {

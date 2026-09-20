@@ -3,6 +3,7 @@ import test from "node:test";
 import { assertObjectLocationsUnique, createFloorObject } from "../../src/domain/objects.ts";
 import { assertBattleConsistent, createBattle, stepBattle } from "../../src/simulation/battle.ts";
 import { observeEnemy } from "../../src/simulation/enemy-rules.ts";
+import { stepWorld } from "../../src/simulation/world.ts";
 
 function runThroughFirstEnemySpawn() {
   let state = createBattle({ matchId: "r3-common-delivery-auto", seed: 1201 });
@@ -52,6 +53,101 @@ test("reserved common carrier advances one authored room link toward the turret"
   assert.equal(next.world.reservations[reservation.id]?.targetTurretId, targetTurret.id);
   assertObjectLocationsUnique(next.world);
   assertBattleConsistent(next);
+});
+
+test("common carrier enqueues the reserved case after reaching the turret room", () => {
+  let state = createBattle({ matchId: "r3-common-delivery-handoff", seed: 1227 });
+  state.world = createFloorObject(state.world, {
+    id: "manual-common-handoff-case",
+    weaponId: "standard_slug",
+    sourceTeam: "enemy",
+    weight: 1,
+    originGroupId: "manual-common-handoff-group",
+    roomId: "ammo_a",
+    position: { x: 90, y: 13 },
+  });
+
+  state = stepBattle(state);
+  const reservation = Object.values(state.world.reservations).find((candidate) => candidate.kind === "delivery");
+  assert.ok(reservation);
+  assert.equal(reservation.targetTurretId, "T1");
+  assert.equal(state.world.actors.E09.currentRoomId, "ammo_a");
+
+  state = stepBattle(state);
+  assert.equal(state.world.actors.E09.currentRoomId, "battery_a");
+  assert.equal(state.world.lastStep.acceptedInputKinds.includes("enqueue_object"), false);
+
+  state = stepBattle(state);
+  const object = state.world.objects["manual-common-handoff-case"];
+  assert.ok(object);
+  assert.deepEqual(object.location, { kind: "queue", team: "enemy", turretId: "T1", index: 0 });
+  assert.deepEqual(state.world.actors.E09.cargoIds, []);
+  assert.equal(state.world.reservations[reservation.id], undefined);
+  assert.deepEqual(state.queued[object.id], state.turrets.enemy.T1.settings);
+  assert.equal(state.world.lastStep.acceptedInputKinds.includes("enqueue_object"), true);
+  assertObjectLocationsUnique(state.world);
+  assertBattleConsistent(state);
+});
+
+test("common carrier keeps a reserved case while the target turret queue is full", () => {
+  let state = createBattle({ matchId: "r3-common-delivery-queue-full", seed: 1229 });
+  for (const id of ["manual-common-queue-a", "manual-common-queue-b"]) {
+    state.world = createFloorObject(state.world, {
+      id,
+      weaponId: "standard_slug",
+      sourceTeam: "enemy",
+      weight: 1,
+      originGroupId: `${id}-group`,
+      roomId: "battery_a",
+      position: { x: 106, y: 13 },
+    });
+    state.world = stepWorld(state.world, {
+      kind: "pickup_object",
+      objectId: id,
+      actorId: "E01",
+      generation: state.world.actors.E01.generation,
+      matchId: state.world.matchId,
+    });
+    state.world = stepWorld(state.world, {
+      kind: "enqueue_object",
+      objectId: id,
+      actorId: "E01",
+      generation: state.world.actors.E01.generation,
+      team: "enemy",
+      turretId: "T1",
+      matchId: state.world.matchId,
+    });
+    state.queued[id] = { ...state.turrets.enemy.T1.settings };
+  }
+  state.world = createFloorObject(state.world, {
+    id: "manual-common-queue-full-case",
+    weaponId: "standard_slug",
+    sourceTeam: "enemy",
+    weight: 1,
+    originGroupId: "manual-common-queue-full-group",
+    roomId: "ammo_a",
+    position: { x: 90, y: 13 },
+  });
+  assertBattleConsistent(state);
+
+  state = stepBattle(state);
+  const reservation = Object.values(state.world.reservations).find((candidate) => candidate.kind === "delivery");
+  assert.ok(reservation);
+  state = stepBattle(state);
+  assert.equal(state.world.actors.E09.currentRoomId, "battery_a");
+  state = stepBattle(state);
+
+  const object = state.world.objects["manual-common-queue-full-case"];
+  assert.ok(object);
+  assert.equal(object.location.kind, "reserved-carried");
+  assert.equal(state.world.reservations[reservation.id]?.targetTurretId, "T1");
+  assert.deepEqual(state.world.actors.E09.cargoIds, [object.id]);
+  assert.equal(state.world.lastStep.acceptedInputKinds.includes("enqueue_object"), false);
+  assert.equal(Object.values(state.world.objects).filter((candidate) =>
+    candidate.location.kind === "queue" && candidate.location.team === "enemy" && candidate.location.turretId === "T1",
+  ).length, 2);
+  assertObjectLocationsUnique(state.world);
+  assertBattleConsistent(state);
 });
 
 test("reserved common carrier does not skip an intermediate room", () => {
