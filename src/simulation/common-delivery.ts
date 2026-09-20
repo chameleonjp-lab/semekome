@@ -1,5 +1,6 @@
 import type { BattleState } from "../domain/battle.ts";
-import type { ObjectTransitionInput, TeamId, WorldInput } from "../domain/types.ts";
+import { canTraverse } from "../domain/layout.ts";
+import type { MoveActorInput, ObjectTransitionInput, TeamId, WorldInput } from "../domain/types.ts";
 import { ordered } from "./battle-actions.ts";
 
 /**
@@ -123,4 +124,79 @@ export function prepareCommonDeliveryPlans(battle: BattleState): CommonDeliveryP
 
 export function commonDeliveryInputs(plans: readonly CommonDeliveryPlan[]): WorldInput[] {
   return plans.flatMap((plan) => plan.inputs);
+}
+
+function nextDeliveryRoom(battle: BattleState, actor: BattleState["world"]["actors"][string], targetRoomId: string): string | undefined {
+  if (actor.location.area !== "castle" || actor.location.castleTeam !== actor.team) return undefined;
+  const layout = actor.team === "player" ? battle.world.layout.home : battle.world.layout.enemy;
+  if (!layout.rooms.some((room) => room.id === targetRoomId) || actor.currentRoomId === targetRoomId) return undefined;
+
+  const openGates = new Set(battle.world.castles[actor.team].openGateIds);
+  const parent = new Map<string, string | null>([[actor.currentRoomId, null]]);
+  const queue = [actor.currentRoomId];
+  for (let index = 0; index < queue.length; index += 1) {
+    const current = queue[index];
+    if (current === targetRoomId) break;
+    const neighbors = layout.links
+      .filter((link) => link.a === current || link.b === current)
+      .map((link) => ({
+        roomId: link.a === current ? link.b : link.a,
+        gateId: link.gateId,
+      }))
+      .filter((neighbor) => canTraverse(layout, current, neighbor.roomId, openGates))
+      .sort((left, right) => ordered(left.roomId, right.roomId));
+    for (const neighbor of neighbors) {
+      if (parent.has(neighbor.roomId)) continue;
+      parent.set(neighbor.roomId, current);
+      queue.push(neighbor.roomId);
+    }
+  }
+  if (!parent.has(targetRoomId)) return undefined;
+
+  const path: string[] = [];
+  let cursor: string | null = targetRoomId;
+  while (cursor !== null) {
+    path.push(cursor);
+    cursor = parent.get(cursor) ?? null;
+  }
+  path.reverse();
+  return path[1];
+}
+
+/**
+ * Advance reserved common carriers by one authored room link per world step.
+ * The reservation and cargo ownership are checked again before preparing the
+ * move, so a stale, dead, or already delivered carrier is left untouched.
+ */
+export function commonDeliveryMovementInputs(battle: BattleState): MoveActorInput[] {
+  const inputs: MoveActorInput[] = [];
+  const usedActors = new Set<string>();
+  const reservations = Object.values(battle.world.reservations)
+    .filter((reservation) => reservation.kind === "delivery")
+    .sort((left, right) => ordered(left.ownerActorId, right.ownerActorId) || ordered(left.id, right.id));
+
+  for (const reservation of reservations) {
+    const actor = battle.world.actors[reservation.ownerActorId];
+    const objectId = reservation.objectIds.length === 1 ? reservation.objectIds[0] : undefined;
+    const object = objectId ? battle.world.objects[objectId] : undefined;
+    if (!actor || usedActors.has(actor.id) || actor.role !== "ammo_carrier" || !actor.alive ||
+        !object || object.location.kind !== "reserved-carried" || object.location.actorId !== actor.id ||
+        object.location.reservationId !== reservation.id || !actor.cargoIds.includes(object.id) ||
+        !reservation.targetTurretId) continue;
+    const layout = actor.team === "player" ? battle.world.layout.home : battle.world.layout.enemy;
+    const turret = layout.turrets.find((candidate) => candidate.id === reservation.targetTurretId);
+    if (!turret) continue;
+    const nextRoom = nextDeliveryRoom(battle, actor, turret.roomId);
+    if (!nextRoom) continue;
+    inputs.push({
+      kind: "move_actor",
+      actorId: actor.id,
+      toRoomId: nextRoom,
+      castleTeam: actor.team,
+      generation: actor.generation,
+      matchId: battle.world.matchId,
+    });
+    usedActors.add(actor.id);
+  }
+  return inputs.sort((left, right) => ordered(left.actorId, right.actorId));
 }
