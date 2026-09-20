@@ -11,7 +11,7 @@
 |型検査|`npm run typecheck` 通過|
 |資料検査|`npm run check:docs` 通過（57/57）|
 |製品ビルド|`npm run build` 通過|
-|ブラウザ|GitHub Actions で確認予定。ローカルはPlaywrightの実行環境が未配置のため未実施|
+|ブラウザ|ローカルはPlaywrightの実行環境が未配置のため未実施。GitHub Actions の Chromium / WebKit 18件は成功|
 |実機・試遊|未実施。運搬表示、実機、通常戦の試遊は別段階の残件|
 
 共通移動は `move_actor` の正規入力だけを使い、閉じた門や所在不一致の運搬手へ入力を作らない。今回のDraft PRを床枠への受渡し、共通物流全体、R3全体、R2全体、通常戦完成とは扱わない。
