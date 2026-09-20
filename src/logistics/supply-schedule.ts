@@ -23,10 +23,24 @@ function validateTeam(team: TeamId): void {
   if (team !== "player" && team !== "enemy") throw new RangeError("supply schedule team is invalid");
 }
 
-function validateAllocation(allocation: readonly CaseType[]): CaseType[] {
+/**
+ * Validate the player-facing eight-case loadout.
+ *
+ * A loadout selects exactly four distinct case types. Each selected type is
+ * assigned one to three entries, and the resulting cycle always contains
+ * eight entries. Keeping this check at the schedule boundary prevents a UI
+ * or replay caller from bypassing the allocation contract.
+ */
+export function validateSupplyAllocation(allocation: readonly CaseType[]): CaseType[] {
   if (allocation.length !== 8) throw new RangeError("supply allocation must contain exactly eight cases");
   const knownTypes = new Set<string>(CASE_TYPES);
   if (allocation.some((type) => !knownTypes.has(type))) throw new RangeError("supply allocation contains an unknown case type");
+  const counts = new Map<CaseType, number>();
+  for (const type of allocation) counts.set(type, (counts.get(type) ?? 0) + 1);
+  if (counts.size !== 4) throw new RangeError("supply allocation must contain exactly four case types");
+  if ([...counts.values()].some((count) => count < 1 || count > 3)) {
+    throw new RangeError("supply allocation counts must be between one and three");
+  }
   return [...allocation];
 }
 
@@ -66,7 +80,7 @@ export function createSupplySchedule(options: CreateSupplyScheduleOptions): Supp
   validateTeam(options.team);
   const cycle = options.cycle ?? 0;
   if (!Number.isInteger(cycle) || cycle < 0) throw new RangeError("supply schedule cycle must be a non-negative integer");
-  const allocation = validateAllocation(options.allocation ?? SUPPLY_BAG);
+  const allocation = validateSupplyAllocation(options.allocation ?? SUPPLY_BAG);
   const seed = normaliseSeed(options.seed);
   return {
     seed,
@@ -83,6 +97,24 @@ export function currentSupplyType(schedule: SupplySchedule): CaseType {
   const type = schedule.order[schedule.index];
   if (!type) throw new RangeError("supply schedule cursor is outside its order");
   return type;
+}
+
+/**
+ * Preview at most the two entries exposed to the player before they spawn.
+ * The cursor advances across a cycle boundary in the returned view but does
+ * not mutate the schedule.
+ */
+export function previewSupplyTypes(schedule: SupplySchedule, count = 2): CaseType[] {
+  if (!Number.isInteger(count) || count < 0 || count > 2) {
+    throw new RangeError("supply preview count must be between zero and two");
+  }
+  const preview: CaseType[] = [];
+  let cursor = schedule;
+  for (let index = 0; index < count; index += 1) {
+    preview.push(currentSupplyType(cursor));
+    cursor = advanceSupplySchedule(cursor);
+  }
+  return preview;
 }
 
 /**

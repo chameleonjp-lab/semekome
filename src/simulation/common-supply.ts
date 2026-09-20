@@ -1,4 +1,4 @@
-import { CASE_TYPES, SUPPLY_BAG, caseDefinition } from "../content/cases.ts";
+import { CASE_TYPES, SUPPLY_BAG, caseDefinition, type CaseType } from "../content/cases.ts";
 import {
   FLOOR_CASE_LIMIT_PER_ROOM,
   SUPPLY_FIRST_DELAY_TICKS,
@@ -9,6 +9,7 @@ import {
   advanceSupplySchedule,
   createSupplySchedule,
   currentSupplyType,
+  previewSupplyTypes,
 } from "../logistics/supply-schedule.ts";
 import { roomContainsPoint } from "../domain/layout.ts";
 import type {
@@ -121,8 +122,13 @@ function nextGroupId(port: CommonSupplyPort): string {
 }
 
 /** Create the common producer state without creating a floor object. */
-export function createCommonSupplyState(world: WorldState): CommonSupplyState {
-  const allocation = [...SUPPLY_BAG];
+export interface CommonSupplyOptions {
+  /** Only the player's loadout is configurable through the public battle API. */
+  playerAllocation?: readonly CaseType[];
+}
+
+export function createCommonSupplyState(world: WorldState, options: CommonSupplyOptions = {}): CommonSupplyState {
+  const allocation = [...(options.playerAllocation ?? SUPPLY_BAG)];
   const ports: Record<string, CommonSupplyPort> = {};
   for (const team of TEAMS) {
     const layout = layoutForTeam(world, team);
@@ -136,14 +142,20 @@ export function createCommonSupplyState(world: WorldState): CommonSupplyState {
       };
     });
   }
+  const schedules = {
+    player: createSupplySchedule({ seed: world.seed, team: "player", allocation }),
+    enemy: createSupplySchedule({ seed: world.seed, team: "enemy", allocation: SUPPLY_BAG }),
+  };
   return {
     ports,
-    schedules: {
-      player: createSupplySchedule({ seed: world.seed, team: "player", allocation }),
-      enemy: createSupplySchedule({ seed: world.seed, team: "enemy", allocation }),
-    },
-    allocation,
+    schedules,
+    allocation: [...schedules.player.allocation],
   };
+}
+
+/** Return the two upcoming player entries without exposing the enemy schedule. */
+export function getPlayerSupplyPreview(battle: BattleState): readonly CaseType[] {
+  return previewSupplyTypes(battle.supply.schedules.player);
 }
 
 /**

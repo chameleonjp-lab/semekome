@@ -1,5 +1,6 @@
 import layoutSource from "../../docs/plans/current/INTERIOR_LAYOUTS.json" with { type: "json" };
 import { COMBAT_RULES, WEAPONS } from "../content/weapons.ts";
+import type { CaseType } from "../content/cases.ts";
 import type { BattleState, FloorSample, TurretRuntime } from "../domain/battle.ts";
 import { assertObjectLocationsUnique } from "../domain/objects.ts";
 import { roomContainsPoint } from "../domain/layout.ts";
@@ -22,7 +23,13 @@ import {
   prepareCommonDeliveryPlans,
 } from "./common-delivery.ts";
 
-export function createBattle(options: CreateWorldOptions & { difficulty?: "easy" | "standard" | "hard" } = {}): BattleState {
+export interface CreateBattleOptions extends CreateWorldOptions {
+  difficulty?: "easy" | "standard" | "hard";
+  /** Player-only loadout; enemy supply remains internal and unpreviewable. */
+  playerSupplyAllocation?: readonly CaseType[];
+}
+
+export function createBattle(options: CreateBattleOptions = {}): BattleState {
   const world = createWorld(options);
   if (world.rules.ticksPerSecond !== 60) throw new Error("R2a battle requires the v5 60 Hz clock");
   const turrets = (team: TeamId): Record<string, TurretRuntime> => Object.fromEntries(
@@ -33,7 +40,9 @@ export function createBattle(options: CreateWorldOptions & { difficulty?: "easy"
   return {
     world, catalog: structuredClone(WEAPONS), turrets: { player: turrets("player"), enemy: turrets("enemy") }, queued: {}, flights: {},
     nextLaunchTick: { player: 0, enemy: 0 }, nextTurretIndex: { player: 0, enemy: 0 },
-    supplyStops: { player: stop(), enemy: stop() }, supply: createCommonSupplyState(world), slowZones: {}, enemyDecisions: {},
+    supplyStops: { player: stop(), enemy: stop() },
+    supply: createCommonSupplyState(world, { playerAllocation: options.playerSupplyAllocation }),
+    slowZones: {}, enemyDecisions: {},
     enemyDecisionInterval: options.difficulty === "easy" ? 36 : options.difficulty === "hard" ? 11 : 18,
     interceptedPairs: [], nextId: 1, lastCombatStep: { rejected: [], events: [] },
   };

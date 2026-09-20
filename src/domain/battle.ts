@@ -62,7 +62,7 @@ export interface CommonSupplyPort {
 export interface CommonSupplyState {
   ports: Record<string, CommonSupplyPort>;
   schedules: Record<TeamId, SupplySchedule>;
-  /** The allocation is retained in the schedule type for explicit validation. */
+  /** The player-selected allocation is retained for the preview/settings boundary. */
   allocation: readonly CaseType[];
 }
 

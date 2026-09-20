@@ -4,7 +4,11 @@ import {
   advanceSupplySchedule,
   createSupplySchedule,
   currentSupplyType,
+  previewSupplyTypes,
 } from "../../src/logistics/supply-schedule.ts";
+import { SUPPLY_BAG } from "../../src/content/cases.ts";
+import { createBattle as createCommonBattle } from "../../src/simulation/battle.ts";
+import { getPlayerSupplyPreview } from "../../src/simulation/common-supply.ts";
 import { createBattle, stepBattle, type BattleState } from "../../src/simulation/physical-battle.ts";
 
 function counts(values: readonly string[]): Record<string, number> {
@@ -57,6 +61,57 @@ test("R3 common supply schedule rejects malformed allocations before a case can 
     ] }),
     /unknown case type/,
   );
+  assert.throws(
+    () => createSupplySchedule({ seed: 824, team: "player", allocation: [
+      "standard_slug", "standard_slug", "dense_payload", "screen_panel",
+      "fast_dart", "split_payload", "breach_lance", "adhesive_pod",
+    ] }),
+    /exactly four case types/,
+  );
+  assert.throws(
+    () => createSupplySchedule({ seed: 825, team: "player", allocation: [
+      "standard_slug", "standard_slug", "standard_slug", "standard_slug",
+      "dense_payload", "dense_payload", "screen_panel", "fast_dart",
+    ] }),
+    /between one and three/,
+  );
+});
+
+test("R3 player loadout validation and preview keep the enemy schedule private", () => {
+  const allocation = [
+    "split_payload", "split_payload",
+    "disruption_pack", "disruption_pack", "disruption_pack",
+    "breach_lance",
+    "adhesive_pod", "adhesive_pod",
+  ] as const;
+  const state = createCommonBattle({
+    matchId: "r3-player-supply-preview",
+    seed: 826,
+    playerSupplyAllocation: allocation,
+  });
+
+  assert.deepEqual(state.supply.allocation, allocation);
+  assert.deepEqual(state.supply.schedules.player.allocation, allocation);
+  assert.deepEqual(state.supply.schedules.enemy.allocation, SUPPLY_BAG);
+  assert.deepEqual(getPlayerSupplyPreview(state), state.supply.schedules.player.order.slice(0, 2));
+  assert.equal(getPlayerSupplyPreview(state).length, 2);
+  assert.equal("enemySupplyPreview" in state, false);
+});
+
+test("R3 two-case preview crosses the end of an eight-case cycle without mutating it", () => {
+  const allocation = [
+    "standard_slug", "standard_slug", "standard_slug",
+    "dense_payload", "dense_payload",
+    "screen_panel", "fast_dart", "fast_dart",
+  ] as const;
+  const initial = createSupplySchedule({ seed: 828, team: "player", allocation });
+  let tail = initial;
+  for (let index = 0; index < 7; index += 1) tail = advanceSupplySchedule(tail);
+  const preview = previewSupplyTypes(tail);
+  const nextCycle = createSupplySchedule({ seed: 828, team: "player", cycle: 1, allocation });
+  assert.deepEqual(preview, [tail.order[7], nextCycle.order[0]]);
+  assert.equal(tail.index, 7);
+  assert.throws(() => previewSupplyTypes(tail, 3), /between zero and two/);
 });
 
 test("R3 blocked physical supply leaves the shared schedule in place and resumes one case per port", () => {
