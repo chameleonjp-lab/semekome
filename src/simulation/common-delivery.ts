@@ -200,3 +200,67 @@ export function commonDeliveryMovementInputs(battle: BattleState): MoveActorInpu
   }
   return inputs.sort((left, right) => ordered(left.actorId, right.actorId));
 }
+
+function queueKey(team: TeamId, turretId: string): string {
+  return `${team}:${turretId}`;
+}
+
+function queuedCounts(battle: BattleState): Map<string, number> {
+  const counts = new Map<string, number>();
+  for (const object of Object.values(battle.world.objects)) {
+    if (object.location.kind !== "queue") continue;
+    const key = queueKey(object.location.team, object.location.turretId);
+    counts.set(key, (counts.get(key) ?? 0) + 1);
+  }
+  return counts;
+}
+
+/**
+ * Enqueue a reserved case once its carrier is in the target turret room.
+ *
+ * The common model has no physical handoff-floor location. Arrival at the
+ * authored turret room is therefore the common handoff boundary: the case is
+ * either accepted into the turret queue, or remains reserved-carried while
+ * the carrier waits for capacity or equipment recovery.
+ */
+export function commonDeliveryHandoffInputs(battle: BattleState): ObjectTransitionInput[] {
+  const inputs: ObjectTransitionInput[] = [];
+  const counts = queuedCounts(battle);
+  const reservations = Object.values(battle.world.reservations)
+    .filter((reservation) => reservation.kind === "delivery")
+    .sort((left, right) => ordered(left.ownerActorId, right.ownerActorId) || ordered(left.id, right.id));
+
+  for (const reservation of reservations) {
+    const actor = battle.world.actors[reservation.ownerActorId];
+    const objectId = reservation.objectIds.length === 1 ? reservation.objectIds[0] : undefined;
+    const object = objectId ? battle.world.objects[objectId] : undefined;
+    if (!actor || actor.role !== "ammo_carrier" || !actor.alive || actor.location.area !== "castle" ||
+        actor.location.castleTeam !== actor.team || !object || !object.weaponId ||
+        !Object.hasOwn(battle.catalog, object.weaponId) || object.location.kind !== "reserved-carried" ||
+        object.location.actorId !== actor.id || object.location.reservationId !== reservation.id ||
+        !actor.cargoIds.includes(object.id) || !reservation.targetTurretId ||
+        actor.currentRoomId !== (actor.team === "player" ? battle.world.layout.home : battle.world.layout.enemy).turrets
+          .find((turret) => turret.id === reservation.targetTurretId)?.roomId) continue;
+
+    const layout = actor.team === "player" ? battle.world.layout.home : battle.world.layout.enemy;
+    const turret = layout.turrets.find((candidate) => candidate.id === reservation.targetTurretId);
+    const runtime = turret ? battle.turrets[actor.team][turret.id] : undefined;
+    if (!turret || !runtime || runtime.disabledUntilTick !== null && battle.world.tick <= runtime.disabledUntilTick) continue;
+
+    const key = queueKey(actor.team, turret.id);
+    const count = counts.get(key) ?? 0;
+    if (count >= turret.queueCapacity) continue;
+
+    inputs.push({
+      kind: "enqueue_object",
+      objectId: object.id,
+      actorId: actor.id,
+      generation: actor.generation,
+      team: actor.team,
+      turretId: turret.id,
+      matchId: battle.world.matchId,
+    });
+    counts.set(key, count + 1);
+  }
+  return inputs;
+}
