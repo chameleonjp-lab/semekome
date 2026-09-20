@@ -34,6 +34,57 @@ test("common ammo carrier picks up a same-room case and reserves the preferred t
   assertBattleConsistent(next);
 });
 
+test("reserved common carrier advances one authored room link toward the turret", () => {
+  const spawnedState = runThroughFirstEnemySpawn();
+  let state = stepBattle(spawnedState);
+  const reservation = Object.values(state.world.reservations).find((candidate) => candidate.kind === "delivery");
+  assert.ok(reservation);
+  const targetTurret = state.world.layout.enemy.turrets.find((turret) => turret.id === reservation.targetTurretId);
+  assert.ok(targetTurret);
+  assert.equal(state.world.actors.E09.currentRoomId, "ammo_a");
+
+  const next = stepBattle(state);
+  assert.equal(next.world.lastStep.rejected.length, 0);
+  assert.equal(next.world.lastStep.acceptedInputKinds.includes("move_actor"), true);
+  assert.equal(next.world.actors.E09.currentRoomId, targetTurret.roomId);
+  assert.deepEqual(next.world.actors.E09.location.pathRooms.slice(-2), ["ammo_a", targetTurret.roomId]);
+  assert.equal(next.world.objects[reservation.objectIds[0]]?.location.kind, "reserved-carried");
+  assert.equal(next.world.reservations[reservation.id]?.targetTurretId, targetTurret.id);
+  assertObjectLocationsUnique(next.world);
+  assertBattleConsistent(next);
+});
+
+test("reserved common carrier does not skip an intermediate room", () => {
+  let state = createBattle({ matchId: "r3-common-delivery-route", seed: 1221 });
+  state.turrets.enemy.T1.disabledUntilTick = 120;
+  state.world = createFloorObject(state.world, {
+    id: "manual-common-route-case",
+    weaponId: "standard_slug",
+    sourceTeam: "enemy",
+    weight: 1,
+    originGroupId: "manual-common-route-group",
+    roomId: "ammo_a",
+    position: { x: 90, y: 13 },
+  });
+
+  state = stepBattle(state);
+  const reservation = Object.values(state.world.reservations).find((candidate) => candidate.kind === "delivery");
+  assert.ok(reservation);
+  assert.equal(reservation.targetTurretId, "T2");
+  assert.equal(state.world.actors.E09.currentRoomId, "ammo_a");
+
+  state = stepBattle(state);
+  assert.equal(state.world.lastStep.rejected.length, 0);
+  assert.equal(state.world.actors.E09.currentRoomId, "central_corridor");
+
+  state = stepBattle(state);
+  assert.equal(state.world.lastStep.rejected.length, 0);
+  assert.equal(state.world.actors.E09.currentRoomId, "battery_b");
+  assert.equal(state.world.objects["manual-common-route-case"]?.location.kind, "reserved-carried");
+  assertObjectLocationsUnique(state.world);
+  assertBattleConsistent(state);
+});
+
 test("two common carriers claim separate staging slots without duplicating a case", () => {
   let state = createBattle({ matchId: "r3-common-delivery-slots", seed: 1207 });
   const roomId = "ammo_a";
