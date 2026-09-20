@@ -11,7 +11,7 @@
 |型検査|`npm run typecheck` 通過|
 |資料検査|`npm run check:docs` 通過（57/57）|
 |製品ビルド|`npm run build` 通過|
-|ブラウザ|ローカルは未実施。GitHub Actions の Chromium / WebKit はDraft PR作成後に確認|
+|ブラウザ|ローカルは未実施。GitHub Actions Quality #105 の Chromium / WebKit 合計18件が成功|
 |実機・試遊|未実施。運搬表示、実機、通常戦の試遊は別段階の残件|
 
 共通運搬手は到達と同じ更新で瞬間的に待ち列へ入らず、次の更新で対象砲台の状態を再検証する。満杯・停止中は入力を作らず、ケースと配送予約を保持するため、待ち列の空き更新で同じ境界を再試行できる。このDraft PRを共通物流全体、R3全体、R2全体、通常戦完成とは扱わない。
