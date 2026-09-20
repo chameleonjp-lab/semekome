@@ -11,7 +11,7 @@
 |型検査|`npm run typecheck` 通過|
 |資料検査|`npm run check:docs` 通過（57/57）|
 |製品ビルド|`npm run build` 通過|
-|ブラウザ|ローカルは未実施。GitHub Actions Qualityで実行予定|
+|ブラウザ|ローカルは未実施。GitHub Actions Quality #111 のChromium / WebKit検査を含む全工程が成功|
 |実機・試遊|未実施。補給設定表示、実機、通常戦の試遊は別段階の残件|
 
 `playerSupplyAllocation` は共通ルールの生成入口で4種類・各1〜3個・合計8個へ正規化せず検証し、標準配分を省略した場合だけ既定値を使う。`getPlayerSupplyPreview` は自車の現在カーソルから2個を参照し、敵の予定を返す入口を持たない。このDraft PRを補給選択画面、物理操作確認版への全面反映、共通物流全体、R3全体、R2全体、通常戦完成とは扱わない。
