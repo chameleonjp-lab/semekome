@@ -1,5 +1,11 @@
 # R2a 共通ルールの接続契約
 
+## Draft PR：R3選択補給の物理配送・発射境界
+
+出撃準備画面で検証した `playerSupplyAllocation` は、物理 `createBattle` の自車バッグへ入り、補給口の共通 `spawn_supply` 検証を通った後に実物ケースになる。`tests/rules/r3-player-supply-flow.test.ts` はそのケースをP1が拾い、物理距離・見通しと共通 `reserve_delivery` を通して砲台の受渡し床へ置き、自動装填・P1の操作位置確認・共有発射枠を通ることを確認する。発射後は同じケースIDと由来グループを保ったまま `split_payload` の分裂処理へ進む。
+
+この境界で敵の予定を返すAPIや、共通側のプレイヤー配送AIは作らない。P2/P3の味方命令はR4の別単位とし、共通 `stepWorld` と物理 `stepBattle` を同じ試合へ重ねない。全面配送、R3全体、通常戦の終局、観戦・結果・ランキングは未完了である。
+
 PR #4のR2aは8武器の共通ルール層であり、通常戦を遊べる完成版ではない。PR #5は別の物理処理による4種の運搬・砲撃の操作確認画面を追加する。以下の `createBattle` / `stepBattle` と `BattleState` はPR #4の契約を保持し、この画面からはまだ呼ばない。
 
 ## 操作確認版との境界
