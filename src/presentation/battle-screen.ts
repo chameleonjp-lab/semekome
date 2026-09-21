@@ -1,9 +1,11 @@
-import { createBattle, getInteraction, pauseBattle, resumeBattle, setBattleVisibility, stepBattle } from '../simulation/physical-battle.ts';
+import { createBattle, getInteraction, getPlayerSupplyPreview, pauseBattle, resumeBattle, setBattleVisibility, stepBattle } from '../simulation/physical-battle.ts';
 import type { BattleEquipmentKind, BattleHandle, BattleIntent, BattleRoute } from '../simulation/physical-battle.ts';
+import { CASE_TYPES, SUPPLY_BAG, type CaseType } from '../content/cases.ts';
 import { PART_IDS } from '../domain/types.ts';
 import type { PartId } from '../domain/types.ts';
 import { bindMovement } from '../input/battle-input.ts';
 import { SessionClock, validatePlayerName } from '../input/session-clock.ts';
+import { validateSupplyAllocation } from '../logistics/supply-schedule.ts';
 import { caseLabels, createBattleRenderer } from './battle-renderer.ts';
 import './battle.css';
 
@@ -11,16 +13,56 @@ const actionLabels: Record<BattleHandle, string> = {
   pickup: '弾を拾う', drop: '弾を置く', deliver: '砲台へ渡す', load: '砲台へ装填', repair: '修理する', launch: '砲撃する', intercept: '迎撃する',
 };
 
+const allocationCounts = [1, 2, 3] as const;
+
+function allocationErrorMessage(error: unknown): string {
+  const message = error instanceof Error ? error.message : '';
+  if (message.includes('exactly four')) return '異なる4種類を選んでください。';
+  if (message.includes('between one and three')) return '各種類は1〜3個にしてください。';
+  if (message.includes('exactly eight')) return '合計8個にしてください。';
+  return '補給配分を確認してください。';
+}
+
+function readSupplyAllocation(root: ParentNode): CaseType[] {
+  const types = [...root.querySelectorAll<HTMLSelectElement>('[data-supply-type]')].map((select) => select.value as CaseType);
+  const counts = [...root.querySelectorAll<HTMLSelectElement>('[data-supply-count]')].map((select) => Number(select.value));
+  return types.flatMap((type, index) => Array.from({ length: counts[index] ?? 0 }, () => type));
+}
+
+function refreshSupplyAllocationSummary(root: ParentNode): void {
+  const types = [...root.querySelectorAll<HTMLSelectElement>('[data-supply-type]')].map((select) => select.value);
+  const total = [...root.querySelectorAll<HTMLSelectElement>('[data-supply-count]')]
+    .reduce((sum, select) => sum + Number(select.value), 0);
+  root.querySelector('#supply-summary')!.textContent = `選択 ${new Set(types).size}/4種類・合計 ${total}/8個`;
+}
+
+function supplyAllocationRows(): string {
+  return Array.from({ length: 4 }, (_, index) => {
+    const selectedType = SUPPLY_BAG[index === 0 ? 0 : index === 1 ? 3 : index === 2 ? 5 : 7];
+    const selectedCount = SUPPLY_BAG.filter((type) => type === selectedType).length;
+    return `<div class="supply-row"><label><span>種類${index + 1}</span><select data-supply-type aria-label="補給${index + 1}の種類">${CASE_TYPES.map((type) => `<option value="${type}"${type === selectedType ? ' selected' : ''}>${caseLabels[type]}</option>`).join('')}</select></label><label class="supply-count"><span>個数</span><select data-supply-count aria-label="補給${index + 1}の個数">${allocationCounts.map((count) => `<option value="${count}"${count === selectedCount ? ' selected' : ''}>${count}個</option>`).join('')}</select></label></div>`;
+  }).join('');
+}
+
 export function openBattleSetup(app: HTMLElement, goHome: () => void): () => void {
   let disposeBattle = () => {};
   let started = false;
-  app.innerHTML = `<section class="battle-setup" aria-label="名前入力"><p class="eyebrow">運搬・砲撃・修理の操作確認版</p>
+  app.innerHTML = `<section class="battle-setup" aria-label="名前と補給の編成"><p class="eyebrow">運搬・砲撃・修理の操作確認版</p>
     <h1>出撃の準備</h1><p>弾薬庫で弾を拾い、隣の砲台へ運びます。<br>補助員と敵も、同じ戦場で作業します。</p>
     <form novalidate><label for="player-name">あなたの名前</label><input id="player-name" name="playerName" autocomplete="nickname" aria-describedby="name-hint name-error" placeholder="1〜20文字" required>
     <p id="name-hint">前後の空白は取り除きます。名前の外部送信は行いません。</p><p id="name-error" role="alert"></p>
+    <section class="supply-setup" aria-labelledby="supply-setup-title"><h2 id="supply-setup-title">補給の編成</h2><p>使う種類を4つ選び、合計8個にします。標準配分をそのまま使うこともできます。</p><div class="supply-allocation">${supplyAllocationRows()}</div><p id="supply-summary" aria-live="polite"></p><p id="supply-error" aria-live="polite"></p></section>
     <button type="submit" class="primary">確認を開始する</button><button type="button" id="cancel-setup">ホームへ戻る</button></form>
     <p class="scope-note">今回は運搬・砲撃・外装修理・設備修理まで。広場の戦い・敵陣への侵入・核攻撃・結果とランキングは未実装です。</p></section>`;
   const input = app.querySelector<HTMLInputElement>('#player-name')!;
+  const supplyError = app.querySelector<HTMLElement>('#supply-error')!;
+  refreshSupplyAllocationSummary(app);
+  for (const control of app.querySelectorAll<HTMLSelectElement>('[data-supply-type], [data-supply-count]')) {
+    control.addEventListener('change', () => {
+      refreshSupplyAllocationSummary(app);
+      supplyError.textContent = '';
+    });
+  }
   app.querySelector('#cancel-setup')!.addEventListener('click', goHome);
   app.querySelector('form')!.addEventListener('submit', event => {
     event.preventDefault();
@@ -29,15 +71,24 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
     app.querySelector('#name-error')!.textContent = validation.error ?? '';
     input.setAttribute('aria-invalid', String(Boolean(validation.error)));
     if (validation.error) { input.focus(); return; }
-    started = true;
-    disposeBattle = mountBattle(app, validation.name, goHome);
+    const allocation = readSupplyAllocation(app);
+    try {
+      const validatedAllocation = validateSupplyAllocation(allocation);
+      supplyError.textContent = '';
+      started = true;
+      disposeBattle = mountBattle(app, validation.name, validatedAllocation, goHome);
+    } catch (error) {
+      supplyError.textContent = allocationErrorMessage(error);
+      app.querySelector<HTMLSelectElement>('[data-supply-type]')?.focus();
+      return;
+    }
   });
   return () => disposeBattle();
 }
 
-function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => void {
+function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: readonly CaseType[], goHome: () => void): () => void {
   const random = new Uint32Array(1); crypto.getRandomValues(random);
-  let state = createBattle({ matchId: crypto.randomUUID(), seed: random[0] });
+  let state = createBattle({ matchId: crypto.randomUUID(), seed: random[0], playerSupplyAllocation });
   let countdown = 180;
   let paused = false;
   let disposed = false;
@@ -51,7 +102,7 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
   const clock = new SessionClock();
   const events = new AbortController();
   const options = { signal: events.signal };
-  app.innerHTML = `<section class="battle" aria-label="運搬と砲撃と修理"><header class="battle-header"><div><strong class="player-label"></strong><span class="battle-stage">運搬・砲撃・修理の確認</span></div><output class="battle-time" aria-label="経過時間">0:00</output><button id="pause-battle">一時停止</button></header>
+  app.innerHTML = `<section class="battle" aria-label="運搬と砲撃と修理"><header class="battle-header"><div><strong class="player-label"></strong><span class="battle-stage">運搬・砲撃・修理の確認</span></div><output id="supply-preview" class="supply-preview" aria-label="次に届く補給"></output><output class="battle-time" aria-label="経過時間">0:00</output><button id="pause-battle">一時停止</button></header>
     <div class="battle-armor" aria-label="両城の外装">${(['player', 'enemy'] as const).map(team => `<div data-team="${team}"><span>${team === 'player' ? '自陣' : '敵陣'}</span><div class="armor">${PART_IDS.map(id => `<span data-part="${id}"></span>`).join('')}</div><output class="battle-gates"></output></div>`).join('')}</div>
     <div class="battle-map"><canvas aria-label="あなたを中心とした自陣の城内と、直通・迂回の砲撃経路"></canvas><span class="current-room"></span></div>
     <p class="battle-hint" aria-live="polite">上の弾薬庫Aへ。弾の近くで「弾を拾う」。</p>
@@ -77,6 +128,8 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
   const help = app.querySelector<HTMLDialogElement>('.battle-help-dialog')!;
   const equipmentTargetControl = app.querySelector<HTMLElement>('#equipment-target-control')!;
   const equipmentTargetSelect = app.querySelector<HTMLSelectElement>('#equipment-target')!;
+  const supplyPreviewOutput = app.querySelector<HTMLOutputElement>('#supply-preview')!;
+  screen.dataset.playerSupplyAllocation = state.logistics.playerAllocation.join(',');
   let lastHud = '';
   let overlayWasVisible: boolean | null = null;
   const canInteract = () => !paused && countdown === 0 && state.phase === 'running';
@@ -181,15 +234,18 @@ function mountBattle(app: HTMLElement, name: string, goHome: () => void): () => 
     const actor = state.actors.P1;
     const cargo = [0, 1].map(index => Object.values(state.objects).find(item => (item.location.kind === 'carried' || item.location.kind === 'reserved-carried') && item.location.actorId === 'P1' && item.location.slot === index));
     const nearest = interaction.cases.find(item => item.id === interaction.pickupCaseId);
+    const supplyPreview = getPlayerSupplyPreview(state);
     const equipmentTargetsSignature = interaction.equipmentRepairTargets.map(target => `${target.kind}:${target.id}:${target.health}:${target.disabledUntilTick}`);
-    const signature = JSON.stringify([Math.floor(state.tick / 60), actor.currentRoomId, available, nearest?.id, cargo.map(item => item?.id), slot, equipmentTargetsSignature, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health])]);
+    const signature = JSON.stringify([Math.floor(state.tick / 60), actor.currentRoomId, available, nearest?.id, cargo.map(item => item?.id), slot, equipmentTargetsSignature, state.logistics.bagCycles.player, state.logistics.bagIndices.player, supplyPreview, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health])]);
     screen.dataset.tick = String(state.tick); screen.dataset.phase = countdown ? 'countdown' : paused ? 'paused' : state.phase;
     screen.dataset.playerX = String(state.fixedActors.P1.position.x); screen.dataset.playerY = String(state.fixedActors.P1.position.y);
     screen.dataset.playerOperatedLaunches = String(playerOperatedLaunches);
+    screen.dataset.playerSupplyPreview = supplyPreview.join(',');
     if (signature === lastHud) return;
     lastHud = signature;
     const seconds = Math.floor(state.tick / 60);
     app.querySelector('.battle-time')!.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+    supplyPreviewOutput.textContent = `次の補給：${supplyPreview.map(type => caseLabels[type]).join('・')}`;
     action.disabled = !available; action.dataset.handle = available ?? ''; action.textContent = available === 'pickup' && nearest ? `${caseLabels[nearest.type]}を拾う` : available ? actionLabels[available] : '弾に近づく';
     drop.disabled = !cargo[slot] || !interaction.handles.includes('drop');
     for (const button of app.querySelectorAll<HTMLButtonElement>('[data-slot]')) {

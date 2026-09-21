@@ -1,5 +1,36 @@
 import { test, expect } from '@playwright/test';
 
+test('補給の4種類と配分を選び、物理戦と次の2個の表示へ引き継ぐ', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  const types = page.locator('[data-supply-type]');
+  const counts = page.locator('[data-supply-count]');
+  await page.getByLabel('あなたの名前').fill('補給編成');
+
+  await types.nth(0).selectOption('split_payload');
+  await types.nth(1).selectOption('split_payload');
+  await page.getByRole('button', { name: '確認を開始する' }).click();
+  await expect(page.locator('#supply-error')).toContainText('異なる4種類');
+  await expect(page.locator('.battle')).toHaveCount(0);
+
+  await types.nth(1).selectOption('disruption_pack');
+  await types.nth(2).selectOption('breach_lance');
+  await types.nth(3).selectOption('adhesive_pod');
+  await counts.nth(0).selectOption('2');
+  await counts.nth(1).selectOption('3');
+  await counts.nth(2).selectOption('1');
+  await counts.nth(3).selectOption('2');
+  await expect(page.locator('#supply-summary')).toHaveText('選択 4/4種類・合計 8/8個');
+  await page.getByRole('button', { name: '確認を開始する' }).click();
+
+  const battle = page.locator('.battle');
+  await expect(battle).toHaveAttribute('data-player-supply-allocation', 'split_payload,split_payload,disruption_pack,disruption_pack,disruption_pack,breach_lance,adhesive_pod,adhesive_pod');
+  const preview = (await battle.getAttribute('data-player-supply-preview'))?.split(',') ?? [];
+  expect(preview).toHaveLength(2);
+  expect(preview.every(type => ['split_payload', 'disruption_pack', 'breach_lance', 'adhesive_pod'].includes(type))).toBe(true);
+  await expect(page.getByLabel('次に届く補給')).toContainText('次の補給：');
+});
+
 test('名前の境界検証とカウントダウン中止、二重開始を防ぐ', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
