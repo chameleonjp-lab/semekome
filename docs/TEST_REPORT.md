@@ -11,7 +11,7 @@
 |型検査|`npm run typecheck` 通過|
 |資料検査|`npm run check:docs` 通過（57/57）|
 |製品ビルド|`npm run build` 通過|
-|ブラウザ|Draft PRのGitHub Actionsで確認|
+|ブラウザ|GitHub Actions Quality #117 のChromium / WebKit検査を含む全工程が成功|
 |実機・試遊|未実施。補給選択表示、実機、通常戦の試遊は別段階の残件|
 
 `physicalBattle.createBattle` は指定を省略した場合と敵側で標準配分を使い、プレイヤー配分だけを周期再生成へ引き継ぐ。`physicalBattle.getPlayerSupplyPreview` は最大2個を読み取るだけで物理バッグ・カーソル・周期を進めない。このDraft PRを補給選択画面、物理側の全面物流、R3全体、通常戦完成とは扱わない。
