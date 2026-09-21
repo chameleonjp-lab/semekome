@@ -1,5 +1,11 @@
 # 実装担当への引き継ぎ / 第5版
 
+## Draft PR：R3選択補給を共通床生成まで通す回帰検査（2026-09-21）
+
+PR #28で確定した `playerSupplyAllocation` が、共通 `createBattle` の陣営別スケジュールから実際の `spawn_supply` と床ケースへ届くことを `tests/rules/r3-common-selected-supply-flow.test.ts` で固定した。シード915の特殊配分を共通 `stepBattle` へ渡し、自陣4補給口を同じ更新で準備して、補給口ID順の `case_spawned`、ケースの `weaponId`、生成元グループ、床所在、プレイヤー側カーソルの4個消費を確認する。敵側は標準配分と未消費カーソルを保持し、敵予定は公開しない。
+
+この単位は、選択配分から共通WorldStateの床生成までの回帰検査であり、共通運搬AIの全面接続、P2/P3への味方命令、物理操作確認版との同一試合統合ではない。R3全体、通常戦の終局、観戦・結果・ランキング、実機・試遊は残件である。
+
 ## Draft PR：R3選択補給を物理発射まで通す回帰検査（2026-09-21）
 
 PR #28で確定した `playerSupplyAllocation` が、物理側の実物ケース生成からP1の取得・配送・装填・発射へそのまま引き継がれることを `tests/rules/r3-player-supply-flow.test.ts` で固定した。シード915の特殊配分から最初の `split_payload` を選び、`case_spawned`、P1の `pickup` / `deliver`、P1を射手とする `projectile_launched`、その後の `projectile_split` と親ケース消費を一つの固定更新列で確認する。

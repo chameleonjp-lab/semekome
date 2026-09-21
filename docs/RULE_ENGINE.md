@@ -1,5 +1,11 @@
 # R2a 共通ルールの接続契約
 
+## Draft PR：R3選択補給の共通床生成境界
+
+`createBattle` が受け取った `playerSupplyAllocation` は、共通 `SupplySchedule` の自陣順序として保持され、`stepBattle` の `prepareCommonSupplySpawns` が4補給口へ補給口ID順に割り当てる。共通 `stepWorld` が `spawn_supply` を受け入れたケースだけ、ケースID・生成元グループ・床所在を作成し、`commitCommonSupplySpawns` が自陣カーソルを進める。今回の回帰検査はこの順序と、選択した `weaponId` が床ケースへ届くことを固定する。
+
+敵側は独立した `SUPPLY_BAG` のスケジュールを使い、プレイヤーの選択値・予定を共有しない。床上限、停止、共通遷移の拒否ではカーソルを進めない既存契約を維持する。物理操作確認版の固定座標・時計・ケース所在、共通運搬AIの全面接続、P2/P3への味方命令、R3全体、通常戦の終局はこの単位に含めない。
+
 ## Draft PR：R3選択補給の物理配送・発射境界
 
 出撃準備画面で検証した `playerSupplyAllocation` は、物理 `createBattle` の自車バッグへ入り、補給口の共通 `spawn_supply` 検証を通った後に実物ケースになる。`tests/rules/r3-player-supply-flow.test.ts` はそのケースをP1が拾い、物理距離・見通しと共通 `reserve_delivery` を通して砲台の受渡し床へ置き、自動装填・P1の操作位置確認・共有発射枠を通ることを確認する。発射後は同じケースIDと由来グループを保ったまま `split_payload` の分裂処理へ進む。
