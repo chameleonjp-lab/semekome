@@ -1,5 +1,5 @@
 import { createWorld, stepWorld } from "./world.ts";
-import { caseDefinition, CASE_TYPES, type CaseType } from "../content/cases.ts";
+import { caseDefinition, CASE_TYPES, SUPPLY_BAG, type CaseType } from "../content/cases.ts";
 import layoutSource from "../../docs/plans/current/INTERIOR_LAYOUTS.json" with { type: "json" };
 import { padById } from "../domain/layout.ts";
 import { assertObjectLocationsUnique } from "../domain/objects.ts";
@@ -43,7 +43,7 @@ import {
   carryingSpeedMultiplier,
   canCarry,
 } from "../logistics/logistics.ts";
-import { supplyBagForCycle } from "../logistics/supply-schedule.ts";
+import { supplyBagForCycle, validateSupplyAllocation } from "../logistics/supply-schedule.ts";
 import {
   ARTILLERY_ROUTES,
   MAX_FLIGHT_COUNT,
@@ -90,11 +90,16 @@ function xorshift32(value: number): number {
   return next >>> 0;
 }
 
-function seededSupplyBag(seed: number, team: TeamId, cycle: number): CaseType[] {
+function seededSupplyBag(
+  seed: number,
+  team: TeamId,
+  cycle: number,
+  allocation: readonly CaseType[] = SUPPLY_BAG,
+): CaseType[] {
   // One shared schedule is consumed by all four ports in stable port order.
   // This wrapper keeps the physical state shape stable while the schedule
   // generation itself lives in the common logistics module.
-  return supplyBagForCycle(seed, team, cycle);
+  return supplyBagForCycle(seed, team, cycle, allocation);
 }
 
 export interface FixedPoint {
@@ -304,6 +309,8 @@ export interface BattleLogisticsState {
   bags: Record<TeamId, CaseType[]>;
   bagIndices: Record<TeamId, number>;
   bagCycles: Record<TeamId, number>;
+  /** Player-only allocation; the enemy schedule remains the internal default. */
+  playerAllocation: CaseType[];
   /** Supply disruption and movement zones are separate from equipment stops. */
   supplyStops: Record<TeamId, BattleSupplyStop>;
   slowZones: Partial<Record<TeamId, BattleSlowZone>>;
@@ -380,6 +387,28 @@ export interface BattleState extends WorldState {
   launchSelections: Record<string, { route?: BattleRoute; part?: PartId }>;
   nextLaunchTick: Record<TeamId, number>;
   eventLogLimit: number;
+}
+
+export function getPlayerSupplyPreview(state: BattleState, count = 2): CaseType[] {
+  if (!Number.isInteger(count) || count < 0 || count > 2) {
+    throw new RangeError("supply preview count must be between zero and two");
+  }
+  const preview: CaseType[] = [];
+  let cycle = state.logistics.bagCycles.player;
+  let index = state.logistics.bagIndices.player;
+  let bag = state.logistics.bags.player;
+  for (let offset = 0; offset < count; offset += 1) {
+    if (index >= bag.length) {
+      cycle += 1;
+      bag = seededSupplyBag(state.seed, PLAYER_TEAM, cycle, state.logistics.playerAllocation);
+      index = 0;
+    }
+    const type = bag[index];
+    if (!type) throw new RangeError("player supply cursor is outside its bag");
+    preview.push(type);
+    index += 1;
+  }
+  return preview;
 }
 
 function cloneBattle<T extends BattleState>(state: T): T {
@@ -2254,7 +2283,12 @@ function spawnSupply(state: BattleState, events: WorldEvent[]): void {
     state.logistics.bagIndices[port.team] += 1;
     if (state.logistics.bagIndices[port.team] >= state.logistics.bags[port.team].length) {
       state.logistics.bagCycles[port.team] += 1;
-      state.logistics.bags[port.team] = seededSupplyBag(state.seed, port.team, state.logistics.bagCycles[port.team]);
+      state.logistics.bags[port.team] = seededSupplyBag(
+        state.seed,
+        port.team,
+        state.logistics.bagCycles[port.team],
+        port.team === PLAYER_TEAM ? state.logistics.playerAllocation : SUPPLY_BAG,
+      );
       state.logistics.bagIndices[port.team] = 0;
     }
     port.nextSpawnTick = state.tick + SUPPLY_PERIOD_TICKS;
@@ -3347,7 +3381,15 @@ function makeCrew(state: BattleState): BattleCrewState {
   return { assignments };
 }
 
-export function createBattle(options: { matchId: string; seed: number }): BattleState {
+export interface CreateBattleOptions {
+  matchId: string;
+  seed: number;
+  /** Player-only eight-case allocation; enemy supply stays on the standard bag. */
+  playerSupplyAllocation?: readonly CaseType[];
+}
+
+export function createBattle(options: CreateBattleOptions): BattleState {
+  const playerAllocation = validateSupplyAllocation(options.playerSupplyAllocation ?? SUPPLY_BAG);
   const world = createWorld({ matchId: options.matchId, seed: options.seed });
   const state = {
     ...world,
@@ -3359,9 +3401,13 @@ export function createBattle(options: { matchId: string; seed: number }): Battle
     logistics: {
       ports: {},
       groups: {},
-      bags: { player: seededSupplyBag(world.seed, PLAYER_TEAM, 0), enemy: seededSupplyBag(world.seed, ENEMY_TEAM, 0) },
+      bags: {
+        player: seededSupplyBag(world.seed, PLAYER_TEAM, 0, playerAllocation),
+        enemy: seededSupplyBag(world.seed, ENEMY_TEAM, 0, SUPPLY_BAG),
+      },
       bagIndices: { player: 0, enemy: 0 },
       bagCycles: { player: 0, enemy: 0 },
+      playerAllocation,
       supplyStops: {
         player: { disruptedUntilTick: 0, immuneUntilTick: 0 },
         enemy: { disruptedUntilTick: 0, immuneUntilTick: 0 },
