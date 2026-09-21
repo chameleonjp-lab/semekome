@@ -5,11 +5,12 @@ import {
   createSupplySchedule,
   currentSupplyType,
   previewSupplyTypes,
+  supplyBagForCycle,
 } from "../../src/logistics/supply-schedule.ts";
 import { SUPPLY_BAG } from "../../src/content/cases.ts";
 import { createBattle as createCommonBattle } from "../../src/simulation/battle.ts";
-import { getPlayerSupplyPreview } from "../../src/simulation/common-supply.ts";
-import { createBattle, stepBattle, type BattleState } from "../../src/simulation/physical-battle.ts";
+import { getPlayerSupplyPreview as getCommonPlayerSupplyPreview } from "../../src/simulation/common-supply.ts";
+import { createBattle, getPlayerSupplyPreview as getPhysicalPlayerSupplyPreview, stepBattle, type BattleState } from "../../src/simulation/physical-battle.ts";
 
 function counts(values: readonly string[]): Record<string, number> {
   return values.reduce<Record<string, number>>((result, value) => {
@@ -93,8 +94,8 @@ test("R3 player loadout validation and preview keep the enemy schedule private",
   assert.deepEqual(state.supply.allocation, allocation);
   assert.deepEqual(state.supply.schedules.player.allocation, allocation);
   assert.deepEqual(state.supply.schedules.enemy.allocation, SUPPLY_BAG);
-  assert.deepEqual(getPlayerSupplyPreview(state), state.supply.schedules.player.order.slice(0, 2));
-  assert.equal(getPlayerSupplyPreview(state).length, 2);
+  assert.deepEqual(getCommonPlayerSupplyPreview(state), state.supply.schedules.player.order.slice(0, 2));
+  assert.equal(getCommonPlayerSupplyPreview(state).length, 2);
   assert.equal("enemySupplyPreview" in state, false);
 });
 
@@ -112,6 +113,46 @@ test("R3 two-case preview crosses the end of an eight-case cycle without mutatin
   assert.deepEqual(preview, [tail.order[7], nextCycle.order[0]]);
   assert.equal(tail.index, 7);
   assert.throws(() => previewSupplyTypes(tail, 3), /between zero and two/);
+});
+
+test("R3 physical battle applies the player allocation and keeps its two-case preview private", () => {
+  const allocation = [
+    "split_payload", "split_payload",
+    "disruption_pack", "disruption_pack", "disruption_pack",
+    "breach_lance",
+    "adhesive_pod", "adhesive_pod",
+  ] as const;
+  let state = createBattle({
+    matchId: "r3-physical-player-supply-preview",
+    seed: 829,
+    playerSupplyAllocation: allocation,
+  });
+  const initialOrder = supplyBagForCycle(829, "player", 0, allocation);
+  assert.deepEqual(state.logistics.playerAllocation, allocation);
+  assert.deepEqual(state.logistics.bags.player, initialOrder);
+  assert.deepEqual(state.logistics.bags.enemy, supplyBagForCycle(829, "enemy"));
+  assert.deepEqual(getPhysicalPlayerSupplyPreview(state), initialOrder.slice(0, 2));
+
+  for (const port of Object.values(state.logistics.ports)) {
+    if (port.team === "player") port.nextSpawnTick = 0;
+  }
+  state.logistics.bagIndices.player = 7;
+  const nextOrder = supplyBagForCycle(829, "player", 1, allocation);
+  const beforePreview = [...state.logistics.bags.player];
+  assert.deepEqual(getPhysicalPlayerSupplyPreview(state), [initialOrder[7], nextOrder[0]]);
+  assert.deepEqual(state.logistics.bags.player, beforePreview);
+  assert.equal(state.logistics.bagIndices.player, 7);
+
+  state = stepBattle(state);
+  assert.deepEqual(playerSupplyEvents(state).map((event) => event.caseType), [initialOrder[7], ...nextOrder.slice(0, 3)]);
+  assert.equal(state.logistics.bagCycles.player, 1);
+  assert.equal(state.logistics.bagIndices.player, 3);
+  assert.deepEqual(state.logistics.playerAllocation, allocation);
+  assert.throws(() => getPhysicalPlayerSupplyPreview(state, 3), /between zero and two/);
+  assert.throws(
+    () => createBattle({ matchId: "r3-physical-invalid-allocation", seed: 830, playerSupplyAllocation: ["standard_slug"] }),
+    /exactly eight cases/,
+  );
 });
 
 test("R3 blocked physical supply leaves the shared schedule in place and resumes one case per port", () => {
