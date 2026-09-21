@@ -1,5 +1,11 @@
 # R2a 共通ルールの接続契約
 
+## Draft PR：R3選択補給の共通砲台発射境界
+
+PR #30で生成された共通床ケースは、`stepBattle` のP1公開コマンドを通じて通常のケース所有遷移を使う。`pickup` がケースをP1の所持枠へ移し、`load` がT1の待ち列と現在の砲台設定を記録し、`operate` がP1を有効な操作者として登録する。共有発射枠が到来すると `launchReadyTurrets` が同じケースIDの `projectile` と `Flight` を作り、ケースの `weaponId` に対応する効果を飛翔へコピーする。
+
+今回の回帰検査では、移動AIの代わりに信頼済みのテスト配置だけを使い、床ケースをP1/T1の距離へ置く。発射後はケースが飛翔物だけから参照され、`BattleState.queued` とP1の所持枠には残らないことを `assertBattleConsistent` と合わせて確認する。共通運搬AIの全面接続、物理操作確認版との同一試合統合、P2/P3への味方命令、R3全体、通常戦の終局は未接続である。
+
 ## Draft PR：R3選択補給の共通床生成境界
 
 `createBattle` が受け取った `playerSupplyAllocation` は、共通 `SupplySchedule` の自陣順序として保持され、`stepBattle` の `prepareCommonSupplySpawns` が4補給口へ補給口ID順に割り当てる。共通 `stepWorld` が `spawn_supply` を受け入れたケースだけ、ケースID・生成元グループ・床所在を作成し、`commitCommonSupplySpawns` が自陣カーソルを進める。今回の回帰検査はこの順序と、選択した `weaponId` が床ケースへ届くことを固定する。
