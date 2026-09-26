@@ -1,6 +1,7 @@
 import blueprint from '../docs/plans/current/INTERIOR_LAYOUTS.json' with { type: 'json' };
 import roster from '../docs/plans/current/ENEMY_ROSTER.json' with { type: 'json' };
 import './presentation/style.css';
+import { GAME_ART_URLS } from './presentation/game-art.ts';
 import { createWorld } from './simulation/world.ts';
 import { openBattleSetup } from './presentation/battle-screen.ts';
 
@@ -17,6 +18,31 @@ const descriptions: Record<string, string> = {
   repair: '運んだ弾を使い、壊れていない外装や設備を修理する場所です。',
   command: '補助員へ仕事を任せるための部屋です。',
 };
+type ArtId = keyof typeof GAME_ART_URLS;
+const artCatalog: ReadonlyArray<{ id: ArtId; name: string; group: string; description: string }> = [
+  { id: 'hero', name: '主人公', group: '人物', description: 'プレイヤーが操作する作業員ロボット。' },
+  { id: 'helper', name: '補助員', group: '人物', description: '自陣で仕事を手伝う作業員ロボット。' },
+  { id: 'gunner', name: '射手', group: '敵の役割', description: '担当する砲台を操作する敵の作業員。' },
+  { id: 'guard', name: '護衛', group: '敵の役割', description: '射手の近くを守る敵の作業員。' },
+  { id: 'carrier', name: '運び手', group: '敵の役割', description: '弾を運ぶ敵の作業員。' },
+  { id: 'soldier', name: '内部兵', group: '敵の役割', description: '城内を守る敵の作業員。' },
+  { id: 'turret', name: '砲台', group: '設備', description: '運んだ弾を装填して砲撃する設備。' },
+  { id: 'supply', name: '補給口', group: '設備', description: '弾薬庫にある補給設備。' },
+  { id: 'core', name: '核', group: '設備', description: '7つの門の先にある勝敗目標。' },
+  { id: 'gate', name: '門', group: '設備', description: '外装部位の破壊に応じて開く、核への通路。' },
+  { id: 'repair', name: '修理設備', group: '設備', description: '弾を使って設備や外装を修理する場所の目印。' },
+  { id: 'floor', name: '床', group: '環境', description: '城内の部屋と通路を示す床の絵。' },
+  { id: 'stage', name: '戦場', group: '環境', description: 'ホームで自陣・広場・敵陣の位置関係を示す絵。' },
+  { id: 'impact', name: '衝突効果', group: '環境', description: '砲弾がぶつかる場面に使う効果の絵。' },
+  { id: 'standard_slug', name: '標準弾', group: '弾', description: '軽く、標準的な威力の弾。' },
+  { id: 'dense_payload', name: '重量弾', group: '弾', description: '重く、外装への威力が高い弾。' },
+  { id: 'screen_panel', name: '防護板', group: '弾', description: '迎撃に強く、外装への損傷を与えない弾。' },
+  { id: 'fast_dart', name: '高速杭', group: '弾', description: '軽く、速く飛ぶ弾。' },
+  { id: 'split_payload', name: '分割弾', group: '弾', description: '飛行中に複数へ分かれる弾。' },
+  { id: 'disruption_pack', name: '補給妨害', group: '弾', description: '命中した敵城の補給を一時停止させる弾。' },
+  { id: 'breach_lance', name: '貫通杭', group: '弾', description: '重く、迎撃に耐えやすい弾。' },
+  { id: 'adhesive_pod', name: '通路妨害', group: '弾', description: '敵城の正面入口付近に歩行が遅くなる範囲を作る弾。' },
+];
 // The preview retains one initial world. Changing the camera never steps or recreates it.
 const previewWorld = createWorld({ matchId: 'r1-layout-preview', seed: 1 });
 let area: Area = 'player';
@@ -37,18 +63,8 @@ function home(): void {
     <section class="home" aria-label="ホーム">
       <div class="home-intro"><p class="eyebrow">城内作業と砲撃のゲーム</p><h1>セメコメ</h1>
       <p class="home-copy">弾を運んで撃ち合い、<br>7つの門を開いて、敵の核へ。</p></div>
-      <svg class="home-art" viewBox="0 0 460 145" aria-label="左の自陣と右の敵陣が広場を挟んで向かい合う" role="img">
-        <path d="M124 37 Q230 -1 336 37 M336 56 Q230 18 124 56" fill="none" stroke="#5b7684" stroke-width="2" stroke-dasharray="5 6"/>
-        <rect x="21" y="43" width="130" height="66" rx="9" fill="#87bdaf"/>
-        <path d="M28 46V34H45V46M63 46V34H80V46M98 46V34H115V46" fill="#87bdaf"/>
-        <path d="M138 68H163V81H138" fill="#b5e0d1"/>
-        <rect x="309" y="43" width="130" height="66" rx="9" fill="#c28d85"/>
-        <path d="M323 46V34H340V46M358 46V34H375V46M393 46V34H410V46" fill="#c28d85"/>
-        <path d="M322 68H297V81H322" fill="#e4b9b0"/>
-        <path d="M178 98H282" stroke="#cfbd8d" stroke-width="3"/>
-        <text x="86" y="136" text-anchor="middle">自陣</text><text x="230" y="136" text-anchor="middle">広場</text><text x="374" y="136" text-anchor="middle">敵陣</text>
-      </svg>
-      <div class="home-actions"><button class="primary" id="open-battle" aria-label="運搬・砲撃を試す">運搬・砲撃・修理を試す</button><button id="open-preview">配置を確認する</button><button id="open-rules">ルール説明</button></div>
+      <figure class="home-stage"><img class="home-art" src="${GAME_ART_URLS.stage}" alt="自陣と敵陣が広場を挟んで向かい合う戦場" /><figcaption class="home-stage-labels"><span>自陣</span><span>広場</span><span>敵陣</span></figcaption></figure>
+      <div class="home-actions"><button class="primary" id="open-battle" aria-label="運搬・砲撃を試す">運搬・砲撃・修理を試す</button><button id="open-preview">配置を確認する</button><button id="open-atlas">素材図鑑</button><button id="open-rules">ルール説明</button></div>
       <p class="home-notice">運搬・砲撃・外装修理・設備修理の操作確認版です。<br>核攻撃までの通常対戦はまだ遊べません。</p>
     </section>
     <dialog aria-labelledby="rules-title"><div class="dialog-head"><h2 id="rules-title">セメコメのルール</h2><button id="close-rules">閉じる</button></div>
@@ -60,9 +76,19 @@ function home(): void {
     </dialog>`;
   document.querySelector('#open-preview')!.addEventListener('click', preview);
   document.querySelector('#open-battle')!.addEventListener('click', () => { disposePreview(); disposePreview = openBattleSetup(app, home); });
+  document.querySelector('#open-atlas')!.addEventListener('click', atlas);
   const dialog = document.querySelector('dialog')!;
   document.querySelector('#open-rules')!.addEventListener('click', () => dialog.showModal());
   document.querySelector('#close-rules')!.addEventListener('click', () => dialog.close());
+}
+
+function atlas(): void {
+  app.innerHTML = `<section class="asset-atlas" aria-label="素材図鑑">
+    <header class="masthead"><div><h1>素材図鑑</h1><p class="eyebrow">ゲーム内表示の絵と役割</p></div><button id="atlas-home">ホーム</button></header>
+    <p class="atlas-note">運搬・砲撃・外装修理・設備修理の操作確認版です。通常対戦の完成を示す画面ではありません。</p>
+    <div class="atlas-grid">${artCatalog.map(({ id, name, group, description }) => `<figure class="atlas-card" data-art-card="${id}"><div class="atlas-image"><img src="${GAME_ART_URLS[id]}" alt="" loading="lazy" decoding="async"></div><figcaption><span>${group}</span><strong>${name}</strong><p>${description}</p></figcaption></figure>`).join('')}</div>
+  </section>`;
+  document.querySelector('#atlas-home')!.addEventListener('click', home);
 }
 
 function teamCard(team: 'player' | 'enemy'): string {
@@ -157,12 +183,30 @@ function updateView(svg: SVGSVGElement): void {
   svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
 }
 
+function actorArt(role: string): ArtId {
+  if (role === 'player') return 'hero';
+  if (role === 'support') return 'helper';
+  if (role === 'shooter') return 'gunner';
+  if (role === 'shooter_guard') return 'guard';
+  if (role === 'ammo_carrier') return 'carrier';
+  return 'soldier';
+}
+
+function artImage(id: ArtId, x: number, y: number, width: number, height: number, opacity = 1): SVGImageElement {
+  return el('image', {
+    href: GAME_ART_URLS[id], x, y, width, height,
+    preserveAspectRatio: 'xMidYMid meet', opacity,
+    'data-art': id, 'pointer-events': 'none',
+  });
+}
+
 function draw(svg: SVGSVGElement): void {
   svg.replaceChildren();
   svg.setAttribute('aria-label', `${labels[area]}の配置。矢印キーまたはドラッグで表示範囲を動かせます。`);
   document.querySelector('.map-caption')!.textContent = area === 'player' ? '自陣の正面 → 広場' : area === 'enemy' ? '広場 ← 敵陣の正面' : '自陣 → 広場 ← 敵陣';
   if (area === 'plaza') {
     svg.append(el('rect', {x:25,y:22,width:76,height:40,rx:3,fill:'#c9bc93'}));
+    svg.append(artImage('floor', 25, 22, 76, 40, .2));
     svg.append(el('rect', {x:2,y:22,width:21,height:40,rx:2,fill:'#8fbdad'}), el('rect', {x:103,y:22,width:21,height:40,rx:2,fill:'#c39791'}));
     svg.append(el('path', {d:'M17 22 Q63 -3 109 22 M17 17 Q63 -16 109 17',fill:'none',stroke:'#90acbb','stroke-width':.8,'stroke-dasharray':'2 2'}));
     for (const [x,label] of [[12,'自城'],[63,'広場'],[114,'敵城']] as const) svg.append(el('text',{x,y:42,'text-anchor':'middle',fill:'#14303b','font-size':4},label));
@@ -174,11 +218,18 @@ function draw(svg: SVGSVGElement): void {
   for (const passage of [...blueprint.corridor_geometry, ...blueprint.passages]) {
     const r = displayRect(passage.rect_cells);
     svg.append(el('rect',{x:r[0],y:r[1],width:r[2]-r[0],height:r[3]-r[1],fill:'#a9bac0'}));
+    svg.append(artImage('floor', r[0], r[1], r[2]-r[0], r[3]-r[1], .22));
   }
   for (const room of blueprint.rooms) {
     const r=displayRect(room.rect_cells);
     const color=({core:'#edcd8c',respawn:'#c5b7d4',battery:'#b0cad1',supply:'#c7d0ad',repair:'#b5c7c1',command:'#b4c3da',corridor:'#d3ddd8'} as Record<string,string>)[room.kind] ?? '#ccd4cf';
     svg.append(el('rect',{x:r[0],y:r[1],width:r[2]-r[0],height:r[3]-r[1],fill:color,class:`room-floor ${room.id===selectedRoom?'selected-room':''}`,'data-room':room.id}));
+    svg.append(artImage('floor', r[0], r[1], r[2]-r[0], r[3]-r[1], .2));
+    if (room.kind === 'core') {
+      svg.append(artImage('core', (r[0]+r[2])/2-2.4, r[1]+1.2, 4.8, 4.8));
+    } else if (room.kind === 'repair') {
+      svg.append(artImage('repair', r[0]+1.1, r[1]+1.1, 3.2, 3.2, .92));
+    }
     svg.append(el('text',{x:(r[0]+r[2])/2,y:r[3]-2,'text-anchor':'middle','font-size':room.id==='central_corridor'?3:2.25,class:'room-label'},room.label_ja));
   }
   for (const link of blueprint.links.filter(link => link.gate_id)) {
@@ -186,7 +237,10 @@ function draw(svg: SVGSVGElement): void {
     const r = displayRect(passage.rect_cells);
     const x = (r[0] + r[2]) / 2;
     svg.append(el('rect',{x:r[0],y:r[1],width:r[2]-r[0],height:r[3]-r[1],fill:'#e0bb75','data-gate':link.gate_id!}));
-    svg.append(el('text',{x,y:r[1]-1.5,'text-anchor':'middle','font-size':1.9,fill:'#f0d4a0'},`門${link.gate_id!.slice(1)}`));
+    const gateWidth = Math.max(2.8, Math.min(4, r[2]-r[0]+1));
+    const gateHeight = Math.max(2.8, Math.min(4, r[3]-r[1]+1));
+    svg.append(artImage('gate', x-gateWidth/2, (r[1]+r[3])/2-gateHeight/2, gateWidth, gateHeight, .96));
+    svg.append(el('text',{x,y:r[1]-2.1,'text-anchor':'middle','font-size':1.9,fill:'#f0d4a0'},`門${link.gate_id!.slice(1)}`));
   }
   const entry=blueprint.front_entry.cell;
   svg.append(el('text',{x:area==='enemy'?126-entry[0]:entry[0],y:entry[1],'text-anchor':'middle','font-size':3,fill:'#123342'},area==='enemy'?'←':'→'));
@@ -197,22 +251,21 @@ function draw(svg: SVGSVGElement): void {
   }
   for (const actor of Object.values(previewWorld.actors).filter(a => a.team === area)) {
     const x=actor.position.x+.5, y=actor.position.y+.5;
-    const fill=area==='enemy'?'#633c40':'#214e51';
-    let marker: SVGElement;
-    if(actor.role==='shooter') marker=el('polygon',{points:`${x},${y-1.2} ${x+1.2},${y} ${x},${y+1.2} ${x-1.2},${y}`,fill});
-    else if(actor.role==='shooter_guard') marker=el('circle',{cx:x,cy:y,r:1.1,fill});
-    else if(actor.role==='internal_soldier') marker=el('polygon',{points:`${x},${y-1.2} ${x+1.1},${y+1} ${x-1.1},${y+1}`,fill});
-    else marker=el('rect',{x:x-1,y:y-1,width:2,height:2,rx:actor.role==='player'?.8:.1,fill});
-    marker.setAttribute('data-actor-id',actor.id); marker.setAttribute('data-role',actor.role);
+    const art = actorArt(actor.role);
+    const size = actor.role === 'player' ? 3.2 : 2.7;
+    const marker=el('g',{'data-actor-id':actor.id,'data-role':actor.role,'data-art':art,'data-x':x,'data-y':y});
+    marker.append(artImage(art, x-size/2, y-size/2, size, size));
     marker.append(el('title',{},`${actor.id} ${roleLabels[actor.role] ?? (actor.role==='player'?'主人公':'補助員')}`)); svg.append(marker);
   }
   for (const turret of blueprint.turrets) {
     const equipment = turret as typeof turret & { cell?: number[] };
     if (!equipment.cell) continue;
     const x=area==='enemy'?125-equipment.cell[0]+.5:equipment.cell[0]+.5, y=equipment.cell[1]+.5;
-    const g=el('g',{'data-turret':turret.id});
-    g.append(el('rect',{x:x-1.2,y:y-1.2,width:2.4,height:2.4,rx:.4,fill:'#385462'}));
-    g.append(el('path',{d:`M${x} ${y} h${area==='enemy'?-2.5:2.5}`,stroke:'#233e4b','stroke-width':1.2}));
+    const attrs: Record<string, string | number> = {'data-turret':turret.id};
+    if (area === 'enemy') attrs.transform = `translate(${2*x} 0) scale(-1 1)`;
+    const g=el('g',attrs);
+    if (area === 'enemy') g.append(el('circle',{cx:x,cy:y,r:2.65,fill:'#a85c52','fill-opacity':.28,stroke:'#e6a79d','stroke-width':.5,'data-team-accent':'enemy'}));
+    g.append(artImage('turret',x-2,y-2,4,4));
     g.append(el('title',{},turret.label_ja));svg.append(g);
   }
   for (const port of blueprint.supply_ports) {
@@ -220,8 +273,8 @@ function draw(svg: SVGSVGElement): void {
     if (!equipment.cell) continue;
     const x=area==='enemy'?125-equipment.cell[0]+.5:equipment.cell[0]+.5,y=equipment.cell[1]+.5;
     const g=el('g',{'data-supply-port':port.id});
-    g.append(el('rect',{x:x-1.2,y:y-1.2,width:2.4,height:2.4,fill:'#566648'}));
-    g.append(el('path',{d:`M${x-1} ${y} h2 M${x} ${y-1} v2`,stroke:'#d7e5ba','stroke-width':.35}));
+    if (area === 'enemy') g.append(el('circle',{cx:x,cy:y,r:2.35,fill:'#a85c52','fill-opacity':.28,stroke:'#e6a79d','stroke-width':.5,'data-team-accent':'enemy'}));
+    g.append(artImage('supply',x-1.8,y-1.8,3.6,3.6));
     g.append(el('title',{},'補給口'));svg.append(g);
   }
 

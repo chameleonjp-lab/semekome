@@ -1,0 +1,116 @@
+{
+  "date": "2026-09-27",
+  "method": "built-in image_gen",
+  "assets": [
+    {
+      "id": "hero",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. A friendly compact round maintenance robot protagonist, ivory armored round helmet, dark teal glass face with two warm amber eyes, short teal scarf, brass utility belt, stubby mechanical limbs. Distinct unmistakable protagonist silhouette. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "helper",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. A compact friendly service robot assistant, squat turquoise body, square backpack, cream round head, two cyan eyes, small wrench in its hand. Clear work helper silhouette. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "gunner",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. A compact enemy artillery gunner robot, brick red armor, round gunner helmet with a single brass sight and dark visor, heavy brass gauntlets, squat mechanical legs. No handheld gun, its job is operating cannons. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "guard",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. A compact enemy bodyguard robot with brick red and dark graphite armor, wide octagonal shoulder shield and broad helmet, two amber eyes. A protective shield silhouette clearly unlike a gunner. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "carrier",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. A compact enemy ammunition carrier robot, brick red utility apron, small cream round head, big two-strap brass cargo backpack, slim arms and two short legs. Hands empty, strong cargo carrier silhouette. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "soldier",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. A compact enemy interior patrol robot, brick red and graphite armor, pointed angular helmet with a short vertical brass crest, light armored legs, small rounded impact baton. Distinct patrol silhouette. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "turret",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One compact castle artillery turret viewed from above at 70 degrees. A circular teal armored base with brass rivets, a short thick cream cannon barrel pointing to the RIGHT, visible loading breech and stout mechanical feet. Silhouette recognizable at 24 pixels. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "supply",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One compact ammunition supply machine viewed from above at 70 degrees. A square brass and teal mechanical floor hatch with four sturdy corners, short open conveyor lip, soft warm yellow glow inside. No loose ammunition, just the machine. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "core",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One castle power core viewed from above at 70 degrees. A luminous faceted cyan crystal globe protected by 3 curved brass ribs on a dark teal round mechanical pedestal. Strong clear central shape, small contained halo, no floor plane. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "gate",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One shut security gate as a top-down game object, viewed at 70 degrees. A narrow vertical barrier in the image, brass and dark teal two-leaf mechanical shutter with a center amber lock, heavy square caps at top and bottom. Closed and solid, isolated. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "repair",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One compact engineering repair workbench viewed from above at 70 degrees, dark teal cabinet, brass rim, cream wrench and small neatly mounted cogs, small green status lamp, no letters. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "standard_slug",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One standard artillery ammunition capsule, short rounded brass cylinder with a cream nose pointing right and a dark teal band, chunky simple silhouette. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "dense_payload",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One heavy artillery ammunition block, broad octagonal dark iron body with copper armor bands and a thick square brass nose pointing right. Bulky weight visibly unlike a cylinder. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "screen_panel",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One defensive projectile armor panel, wide blue-grey hexagonal shield plate with silver rim, a bright cyan center line and two tiny metal brackets. Broad shield silhouette. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "fast_dart",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One fast artillery dart projectile, slender white silver needle pointing right, two swept-back teal triangular fins and a brass rear collar. Long clear dart silhouette. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "split_payload",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One splitting artillery projectile: a unified triangular cluster of three violet metal pods held by one brass coupling, noses pointing right. All three pod noses distinctly visible. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "disruption_pack",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One supply disruption projectile canister: rounded brick red steel cylinder pointing right, brass coil wrapped around the center, a tiny amber lightning-shaped inlay, no text. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "breach_lance",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One penetration artillery lance projectile: long dark bronze broad tapered spear pointing right, three raised cream armor ridges and heavy octagonal brass collar. Heavier and thicker than a dart. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "adhesive_pod",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One adhesive artillery pod: round transparent moss green tank containing luminous green gel, held in a brass three-clamp frame, short blunt nozzle points right. Strong rounded capsule silhouette. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "impact",
+      "transparent": true,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. One small stylized artillery impact burst for a top-down mechanical game. Cream and amber star-shaped spark explosion with 5 short orange rays and 3 graphite fragments, crisp silhouette, contained subtle glow. Single isolated object, centered, occupying 78% of square canvas with clear padding, three-quarter overhead view at 70 degrees, facing right for side-view robot, no ground plane or cast ground shadow. Genuine transparent background."
+    },
+    {
+      "id": "floor",
+      "transparent": false,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. Seamless top-down square texture of a castle workshop floor. Large charcoal teal iron plates, subtle bevels, sparse brass rivets at corners, restrained worn surfaces. Flat orthographic, even lighting across entire image, low contrast, no objects, no glowing lines, no writing."
+    },
+    {
+      "id": "stage",
+      "transparent": false,
+      "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. Wide scene of two original mobile mechanical fortress castles facing each other across a central stone plaza. Left castle teal and brass with barrels facing RIGHT, right castle brick red and brass with barrels facing LEFT. Miniature cutaway workshop character, seven discernible armor segments per castle, visible wheeled bases, warm light through portholes, rugged slate foundation. Coherent landscape establishing art. Unoccupied central plaza kept clear. Calm moody midnight teal atmosphere with warm amber highlights. No characters, no text, no interface."
+    }
+  ]
+}

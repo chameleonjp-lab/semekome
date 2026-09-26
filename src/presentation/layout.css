@@ -19,7 +19,8 @@
 @media (orientation: landscape) and (max-height: 650px) {
   .home { padding: 18px 24px; display: grid; grid-template-columns: 1fr 1fr; align-content: center; gap: 8px 24px; }
   .home-intro { grid-column: 1; grid-row: 1 / 4; }
-  .home-art { grid-column: 2; margin: 0; max-height: 120px; }
+  .home-stage { grid-column: 2; margin: 0; }
+  .home-art { max-height: 120px; height: 120px; }
   .home-actions, .home-notice { grid-column: 2; }
   .home h1 { font-size: 2.7rem; }
   .home-copy { font-size: .9rem; }
