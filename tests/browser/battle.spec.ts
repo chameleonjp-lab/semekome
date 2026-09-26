@@ -8,6 +8,7 @@ test('補給の4種類と配分を選び、物理戦と次の2個の表示へ引
   await page.getByLabel('あなたの名前').fill('補給編成');
 
   await types.nth(0).selectOption('split_payload');
+  await expect(page.locator('.supply-row').nth(0).locator('[data-supply-art]')).toHaveAttribute('src', /split_payload\.webp/);
   await types.nth(1).selectOption('split_payload');
   await page.getByRole('button', { name: '確認を開始する' }).click();
   await expect(page.locator('#supply-error')).toContainText('異なる4種類');
@@ -29,6 +30,31 @@ test('補給の4種類と配分を選び、物理戦と次の2個の表示へ引
   expect(preview).toHaveLength(2);
   expect(preview.every(type => ['split_payload', 'disruption_pack', 'breach_lance', 'adhesive_pod'].includes(type))).toBe(true);
   await expect(page.getByLabel('次に届く補給')).toContainText('次の補給：');
+  await expect(page.locator('.supply-preview-item img')).toHaveCount(2);
+  for (const icon of await page.locator('.supply-preview-item img').all()) await expect(icon).toHaveAttribute('src', /(?:split_payload|disruption_pack|breach_lance|adhesive_pod)\.webp/);
+});
+
+test('生成画像が読み込めなくてもCanvasの代替描画と移動操作を保つ', async ({ page }) => {
+  await page.route('**/assets/generated/*.webp', route => route.fulfill({ status: 404, contentType: 'text/plain', body: 'missing test image' }));
+  await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
+  await page.goto('/');
+  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByLabel('あなたの名前').fill('画像なし検査');
+  await page.getByRole('button', { name: '確認を開始する' }).click();
+  const battle = page.locator('.battle');
+  await page.clock.runFor(3100);
+  await expect(battle).toHaveAttribute('data-phase', 'running');
+  const beforeX = Number(await battle.getAttribute('data-player-x'));
+  await page.keyboard.down('ArrowRight');
+  await page.clock.runFor(1000);
+  await page.keyboard.up('ArrowRight');
+  const afterX = Number(await battle.getAttribute('data-player-x'));
+  expect(afterX).toBeGreaterThan(beforeX);
+  expect(await page.locator('.battle-map canvas').evaluate(node => {
+    const canvas = node as HTMLCanvasElement;
+    return canvas.width > 0 && canvas.height > 0 && canvas.getContext('2d') !== null;
+  })).toBe(true);
 });
 
 test('名前の境界検証とカウントダウン中止、二重開始を防ぐ', async ({ page }) => {

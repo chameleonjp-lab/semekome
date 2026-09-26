@@ -6,6 +6,7 @@ import type { PartId } from '../domain/types.ts';
 import { bindMovement } from '../input/battle-input.ts';
 import { SessionClock, validatePlayerName } from '../input/session-clock.ts';
 import { validateSupplyAllocation } from '../logistics/supply-schedule.ts';
+import { GAME_ART_URLS } from './game-art.ts';
 import { caseLabels, createBattleRenderer } from './battle-renderer.ts';
 import './battle.css';
 
@@ -40,7 +41,7 @@ function supplyAllocationRows(): string {
   return Array.from({ length: 4 }, (_, index) => {
     const selectedType = SUPPLY_BAG[index === 0 ? 0 : index === 1 ? 3 : index === 2 ? 5 : 7];
     const selectedCount = SUPPLY_BAG.filter((type) => type === selectedType).length;
-    return `<div class="supply-row"><label><span>種類${index + 1}</span><select data-supply-type aria-label="補給${index + 1}の種類">${CASE_TYPES.map((type) => `<option value="${type}"${type === selectedType ? ' selected' : ''}>${caseLabels[type]}</option>`).join('')}</select></label><label class="supply-count"><span>個数</span><select data-supply-count aria-label="補給${index + 1}の個数">${allocationCounts.map((count) => `<option value="${count}"${count === selectedCount ? ' selected' : ''}>${count}個</option>`).join('')}</select></label></div>`;
+    return `<div class="supply-row"><label><span>種類${index + 1}</span><span class="supply-type-picker"><img data-supply-art src="${GAME_ART_URLS[selectedType]}" alt="" aria-hidden="true"><select data-supply-type aria-label="補給${index + 1}の種類">${CASE_TYPES.map((type) => `<option value="${type}"${type === selectedType ? ' selected' : ''}>${caseLabels[type]}</option>`).join('')}</select></span></label><label class="supply-count"><span>個数</span><select data-supply-count aria-label="補給${index + 1}の個数">${allocationCounts.map((count) => `<option value="${count}"${count === selectedCount ? ' selected' : ''}>${count}個</option>`).join('')}</select></label></div>`;
   }).join('');
 }
 
@@ -59,6 +60,10 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
   refreshSupplyAllocationSummary(app);
   for (const control of app.querySelectorAll<HTMLSelectElement>('[data-supply-type], [data-supply-count]')) {
     control.addEventListener('change', () => {
+      if (control.matches('[data-supply-type]')) {
+        const art = control.closest('.supply-row')?.querySelector<HTMLImageElement>('[data-supply-art]');
+        if (art) art.src = GAME_ART_URLS[control.value as CaseType];
+      }
       refreshSupplyAllocationSummary(app);
       supplyError.textContent = '';
     });
@@ -102,12 +107,12 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   const clock = new SessionClock();
   const events = new AbortController();
   const options = { signal: events.signal };
-  app.innerHTML = `<section class="battle" aria-label="運搬と砲撃と修理"><header class="battle-header"><div><strong class="player-label"></strong><span class="battle-stage">運搬・砲撃・修理の確認</span></div><output id="supply-preview" class="supply-preview" aria-label="次に届く補給"></output><output class="battle-time" aria-label="経過時間">0:00</output><button id="pause-battle">一時停止</button></header>
+  app.innerHTML = `<section class="battle" aria-label="運搬と砲撃と修理"><header class="battle-header"><div><strong class="player-label"></strong><span class="battle-stage">運搬・砲撃・修理の確認</span></div><output id="supply-preview" class="supply-preview" aria-label="次に届く補給"><span class="supply-preview-title">次の補給：</span><span class="supply-preview-items"></span></output><output class="battle-time" aria-label="経過時間">0:00</output><button id="pause-battle">一時停止</button></header>
     <div class="battle-armor" aria-label="両城の外装">${(['player', 'enemy'] as const).map(team => `<div data-team="${team}"><span>${team === 'player' ? '自陣' : '敵陣'}</span><div class="armor">${PART_IDS.map(id => `<span data-part="${id}"></span>`).join('')}</div><output class="battle-gates"></output></div>`).join('')}</div>
     <div class="battle-map"><canvas aria-label="あなたを中心とした自陣の城内と、直通・迂回の砲撃経路"></canvas><span class="current-room"></span></div>
     <p class="battle-hint" aria-live="polite">上の弾薬庫Aへ。弾の近くで「弾を拾う」。</p>
-    <div class="cargo-controls" aria-label="所持する弾"><button data-slot="0" aria-pressed="true">左：空</button><button data-slot="1" aria-pressed="false">右：空</button></div>
-    <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled>弾に近づく</button><button id="battle-drop" disabled>選択中の弾を置く</button></div></div>
+    <div class="cargo-controls" aria-label="所持する弾"><button data-slot="0" aria-pressed="true"><img class="cargo-icon" alt="" hidden><span class="cargo-label">左：空</span></button><button data-slot="1" aria-pressed="false"><img class="cargo-icon" alt="" hidden><span class="cargo-label">右：空</span></button></div>
+    <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled><img class="action-icon" alt="" hidden><span class="action-label">弾に近づく</span></button><button id="battle-drop" disabled><img class="drop-icon" src="${GAME_ART_URLS.supply}" alt="" aria-hidden="true"><span>選択中の弾を置く</span></button></div></div>
     <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵外装 ${id}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><button id="battle-help" aria-label="操作説明">?</button></div>
     <div class="battle-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div><p id="overlay-title" class="overlay-title" role="status">開始まで</p><strong class="countdown-number">3</strong><p class="overlay-description">左のパッドで移動・右のボタンで弾を扱う</p><button id="resume-battle" class="primary" hidden>再開する</button><button id="leave-battle">準備を中止する</button></div></div>
     <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">運搬・砲撃・修理</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>上の弾薬庫Aで、床の弾に近づいて拾います。</li><li>通路を通って隣の砲撃室Aへ。砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動・近接戦・核攻撃は次段階です。外装7部位が壊れても勝利ではありません。</p></div></dialog></section>`;
@@ -128,7 +133,9 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   const help = app.querySelector<HTMLDialogElement>('.battle-help-dialog')!;
   const equipmentTargetControl = app.querySelector<HTMLElement>('#equipment-target-control')!;
   const equipmentTargetSelect = app.querySelector<HTMLSelectElement>('#equipment-target')!;
-  const supplyPreviewOutput = app.querySelector<HTMLOutputElement>('#supply-preview')!;
+  const supplyPreviewItems = app.querySelector<HTMLElement>('.supply-preview-items')!;
+  const actionIcon = action.querySelector<HTMLImageElement>('.action-icon')!;
+  const actionLabel = action.querySelector<HTMLElement>('.action-label')!;
   screen.dataset.playerSupplyAllocation = state.logistics.playerAllocation.join(',');
   let lastHud = '';
   let overlayWasVisible: boolean | null = null;
@@ -245,13 +252,29 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     lastHud = signature;
     const seconds = Math.floor(state.tick / 60);
     app.querySelector('.battle-time')!.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
-    supplyPreviewOutput.textContent = `次の補給：${supplyPreview.map(type => caseLabels[type]).join('・')}`;
-    action.disabled = !available; action.dataset.handle = available ?? ''; action.textContent = available === 'pickup' && nearest ? `${caseLabels[nearest.type]}を拾う` : available ? actionLabels[available] : '弾に近づく';
+    supplyPreviewItems.replaceChildren(...supplyPreview.map(type => {
+      const item = document.createElement('span'); item.className = 'supply-preview-item'; item.dataset.caseType = type;
+      const image = document.createElement('img'); image.src = GAME_ART_URLS[type]; image.alt = ''; image.setAttribute('aria-hidden', 'true');
+      const label = document.createElement('span'); label.textContent = caseLabels[type];
+      item.append(image, label); return item;
+    }));
+    action.disabled = !available; action.dataset.handle = available ?? '';
+    actionLabel.textContent = available === 'pickup' && nearest ? `${caseLabels[nearest.type]}を拾う` : available ? actionLabels[available] : '弾に近づく';
+    const actionArt = available === 'pickup' && nearest ? nearest.type
+      : available === 'repair' ? 'repair'
+        : available === 'deliver' || available === 'load' ? 'turret'
+          : undefined;
+    actionIcon.hidden = !actionArt;
+    if (actionArt) actionIcon.src = GAME_ART_URLS[actionArt];
     drop.disabled = !cargo[slot] || !interaction.handles.includes('drop');
     for (const button of app.querySelectorAll<HTMLButtonElement>('[data-slot]')) {
       const index = Number(button.dataset.slot); const item = cargo[index];
       const type = item ? state.battleCases[item.id]?.type : undefined;
-      button.textContent = `${index === 0 ? '左' : '右'}：${type ? caseLabels[type] ?? type : '空'}`;
+      const icon = button.querySelector<HTMLImageElement>('.cargo-icon')!;
+      const label = button.querySelector<HTMLElement>('.cargo-label')!;
+      label.textContent = `${index === 0 ? '左' : '右'}：${type ? caseLabels[type] ?? type : '空'}`;
+      icon.hidden = !type;
+      if (type) icon.src = GAME_ART_URLS[type];
       button.setAttribute('aria-pressed', String(index === slot));
     }
     const room = state.layout.home.rooms.find(item => item.id === actor.currentRoomId);

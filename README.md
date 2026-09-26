@@ -4,6 +4,8 @@
 
 [計画書と図面の目次](docs/plans/current/README.md) / [実装担当への引き継ぎ](docs/plans/current/AI_HANDOFF.md) / [過去版](docs/plans/archive/)
 
+表示要素を [素材一覧](docs/VISUAL_ASSET_INVENTORY.md) に整理し、ステージ・人物6種・設備5種・弾8種・床・効果の計22画像を個別素材として実装しました。ホームの「素材図鑑」で全点を確認でき、配置確認・出撃準備・運搬と砲撃の操作確認に反映しています。[制作と実装の記録](docs/ART_IMPLEMENTATION_REPORT.md) に対応箇所と検査範囲をまとめています。
+
 現行は第5版。自陣は左、広場が中央、敵陣は右。敵30人は20秒で復活し、主人公は5秒の観戦後に自陣で復活します。画面・広場・スコア・結果・上位10位ランキングを計画へ反映しています。
 
 実装範囲は [進捗](docs/IMPLEMENTATION_PROGRESS.md)、検査の実施範囲は [検査記録](docs/TEST_REPORT.md)、採用した補足案は [実装判断](docs/DESIGN_DECISIONS.md) を参照してください。ランキング未接続・実機未検査です。mainへ直接変更せずDraft PRで進めます。
