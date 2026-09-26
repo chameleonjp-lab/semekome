@@ -277,6 +277,49 @@ test("common delivery retargets an existing reservation after its turret is disa
   assertBattleConsistent(next);
 });
 
+test("retargeted common carrier completes the alternate turret handoff", () => {
+  let state = createBattle({ matchId: "r3-common-delivery-retarget-handoff", seed: 1231 });
+  state.world = createFloorObject(state.world, {
+    id: "manual-common-retarget-handoff-case",
+    weaponId: "standard_slug",
+    sourceTeam: "enemy",
+    weight: 1,
+    originGroupId: "manual-common-retarget-handoff-group",
+    roomId: "ammo_a",
+    position: { x: 90, y: 13 },
+  });
+
+  state = stepBattle(state);
+  const reservation = Object.values(state.world.reservations).find((candidate) =>
+    candidate.kind === "delivery" && candidate.objectIds.includes("manual-common-retarget-handoff-case"),
+  );
+  assert.ok(reservation);
+  assert.equal(reservation.targetTurretId, "T1");
+  const actorId = reservation.ownerActorId;
+  state.turrets.enemy.T1.disabledUntilTick = state.world.tick + 10;
+
+  state = stepBattle(state);
+  assert.equal(state.world.reservations[reservation.id]?.targetTurretId, "T2");
+  assert.equal(state.world.objects["manual-common-retarget-handoff-case"]?.location.kind, "reserved-carried");
+  assert.equal(state.world.lastStep.rejected.length, 0);
+
+  for (let steps = 0; steps < 20 && state.world.reservations[reservation.id]; steps += 1) {
+    state = stepBattle(state);
+    assert.equal(state.world.lastStep.rejected.length, 0);
+    assertObjectLocationsUnique(state.world);
+    assertBattleConsistent(state);
+  }
+
+  const object = state.world.objects["manual-common-retarget-handoff-case"];
+  assert.ok(object);
+  assert.deepEqual(object.location, { kind: "queue", team: "enemy", turretId: "T2", index: 0 });
+  assert.equal(state.world.reservations[reservation.id], undefined);
+  assert.deepEqual(state.world.actors[actorId].cargoIds, []);
+  assert.deepEqual(state.queued[object.id], state.turrets.enemy.T2.settings);
+  assertObjectLocationsUnique(state.world);
+  assertBattleConsistent(state);
+});
+
 test("common delivery keeps its reservation and cargo when every turret is disabled", () => {
   let state = createBattle({ matchId: "r3-common-delivery-retarget-unavailable", seed: 1225 });
   state.world = createFloorObject(state.world, {
