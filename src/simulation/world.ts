@@ -183,6 +183,7 @@ function inputKind(input: WorldInput): string {
     pickup_object: "pickup_object",
     reserve_object: "reserve_object",
     reserve_delivery: "reserve_delivery",
+    retarget_delivery: "retarget_delivery",
     spawn_supply: "spawn_supply",
     enqueue_object: "enqueue_object",
     fly_object: "fly_object",
@@ -761,6 +762,50 @@ function processObjectTransition(
     };
     object.location = { kind: "reserved-carried", actorId: actor.id, slot: object.location.slot, reservationId };
     actor.reservationIds = [...actor.reservationIds, reservationId];
+  } else if (input.kind === "retarget_delivery") {
+    const reservation = input.reservationId ? world.reservations[input.reservationId] : undefined;
+    const turretId = input.turretId;
+    const team = input.team ?? actor?.team;
+    if (!actor || actor.role !== "ammo_carrier" || actor.location.area !== "castle" ||
+        actor.location.castleTeam !== actor.team || !reservation || reservation.kind !== "delivery" ||
+        reservation.ownerActorId !== actor.id || reservation.objectIds.length !== 1 ||
+        !reservation.objectIds.includes(object.id) || !actor.reservationIds.includes(reservation.id) ||
+        object.sourceTeam !== actor.team || team !== actor.team ||
+        object.location.kind !== "reserved-carried" || object.location.actorId !== actor.id ||
+        object.location.reservationId !== reservation.id || !actor.cargoIds.includes(object.id) || !turretId) {
+      reject(report, index, "invalid_object_transition", "retarget requires the owning ammo carrier and its reserved case");
+      return;
+    }
+    const turret = layoutForTeam(world, team).turrets.find((candidate) => candidate.id === turretId);
+    const stagingSlot = input.stagingSlot;
+    if (!turret) {
+      reject(report, index, "invalid_object_transition", "delivery turret does not belong to actor team");
+      return;
+    }
+    if (stagingSlot !== 0 && stagingSlot !== 1 || stagingSlot >= turret.stagingFloorSlots) {
+      reject(report, index, "invalid_object_transition", "delivery staging slot is outside the authored floor");
+      return;
+    }
+    if (Object.values(world.reservations).some((candidate) =>
+      candidate.id !== reservation.id && candidate.kind === "delivery" && candidate.targetTurretId === turret.id &&
+        world.actors[candidate.ownerActorId]?.team === team && candidate.targetStagingSlot === stagingSlot,
+    )) {
+      reject(report, index, "invalid_object_transition", "delivery staging slot already reserved");
+      return;
+    }
+    const fromTurretId = reservation.targetTurretId;
+    reservation.targetTurretId = turret.id;
+    reservation.targetStagingSlot = stagingSlot;
+    events.push({
+      type: "delivery_retargeted",
+      reservationId: reservation.id,
+      objectId: object.id,
+      actorId: actor.id,
+      team,
+      fromTurretId,
+      toTurretId: turret.id,
+      stagingSlot,
+    });
   } else if (input.kind === "enqueue_object") {
     const turretId = input.turretId;
     const team = input.team ?? actor?.team;
@@ -855,7 +900,7 @@ function processObjectTransition(
     actor.cargoIds = actor.cargoIds.filter((id) => id !== object.id);
     if (previousLocation.kind === "reserved-carried") releaseReservation(previousLocation.reservationId);
   }
-  events.push({ type: "object_moved", objectId: object.id, location: clone(object.location) });
+  if (input.kind !== "retarget_delivery") events.push({ type: "object_moved", objectId: object.id, location: clone(object.location) });
   report.acceptedInputKinds.push(input.kind);
 }
 
@@ -1011,7 +1056,7 @@ export function stepWorld(world: WorldState, input?: WorldInput | readonly World
       report.acceptedInputKinds.push(kind);
     } else if (kind === "move_actor") {
       processMove(next, candidate as unknown as MoveActorInput, startCastles, report, index);
-    } else if (["pickup_object", "reserve_object", "reserve_delivery", "spawn_supply", "enqueue_object", "fly_object", "consume_object", "drop_object"].includes(kind)) {
+    } else if (["pickup_object", "reserve_object", "reserve_delivery", "retarget_delivery", "spawn_supply", "enqueue_object", "fly_object", "consume_object", "drop_object"].includes(kind)) {
       processObjectTransition(next, { ...(candidate as unknown as ObjectTransitionInput), kind: kind as ObjectTransitionInput["kind"] }, report, index, events);
     } else {
       reject(report, index, "unsupported_in_r1");
