@@ -20,7 +20,9 @@ import {
   commonDeliveryHandoffInputs,
   commonDeliveryInputs,
   commonDeliveryMovementInputs,
+  commonDeliveryRetargetInputs,
   prepareCommonDeliveryPlans,
+  prepareCommonDeliveryRetargets,
 } from "./common-delivery.ts";
 
 export interface CreateBattleOptions extends CreateWorldOptions {
@@ -125,10 +127,12 @@ export function stepBattle(battle: BattleState, inputs: readonly unknown[] = [])
   const damage = advanceArtillery(next);
   launchReadyTurrets(next);
   const deliveryPlans = prepareCommonDeliveryPlans(next);
+  const deliveryRetargets = prepareCommonDeliveryRetargets(next, deliveryPlans);
   const deliveryInputs = [
     ...commonDeliveryInputs(deliveryPlans),
-    ...commonDeliveryMovementInputs(next),
-    ...commonDeliveryHandoffInputs(next),
+    ...commonDeliveryRetargetInputs(deliveryRetargets),
+    ...commonDeliveryMovementInputs(next, deliveryRetargets),
+    ...commonDeliveryHandoffInputs(next, deliveryRetargets),
   ];
   const supplyPlans = prepareCommonSupplySpawns(next);
   next.world = stepWorld(next.world, [...damage, ...deliveryInputs, ...commonSupplyInputs(supplyPlans)]);

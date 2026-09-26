@@ -305,6 +305,16 @@ export type WorldEvent =
   | { type: "core_hit_candidate"; attackerId: ActorId; targetTeam: TeamId }
   | { type: "outcome"; outcome: Exclude<Outcome, "ongoing">; tick: number }
   | { type: "object_moved"; objectId: string; location: ObjectLocation }
+  | {
+      type: "delivery_retargeted";
+      reservationId: string;
+      objectId: string;
+      actorId: ActorId;
+      team: TeamId;
+      fromTurretId: string | undefined;
+      toTurretId: string;
+      stagingSlot: 0 | 1;
+    }
   | { type: "object_consumed"; objectId: string; reason: string }
   | {
       type: "repair_started";
@@ -532,6 +542,7 @@ export interface ObjectTransitionInput {
     | "pickup_object"
     | "reserve_object"
     | "reserve_delivery"
+    | "retarget_delivery"
     | "spawn_supply"
     | "enqueue_object"
     | "fly_object"
