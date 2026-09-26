@@ -65,7 +65,7 @@ function commonSupplyReady(battle: BattleState, team: TeamId): boolean {
 
 function floorCaseCount(world: WorldState, team: TeamId, roomId: string): number {
   return Object.values(world.objects).filter((object) =>
-    object.location.kind === "floor" && object.location.team === team && object.location.roomId === roomId,
+    object.location.kind === "floor" && object.location.area !== "plaza" && object.location.team === team && object.location.roomId === roomId,
   ).length;
 }
 
@@ -94,7 +94,7 @@ function spawnPosition(
   ]);
   const occupied = new Set(
     Object.values(world.objects)
-      .filter((object) => object.location.kind === "floor" && object.location.team === team && object.location.roomId === roomId)
+      .filter((object) => object.location.kind === "floor" && object.location.area !== "plaza" && object.location.team === team && object.location.roomId === roomId)
       .map((object) => object.location.kind === "floor" ? pointKey(object.location.position) : ""),
   );
   return layout.floorCells

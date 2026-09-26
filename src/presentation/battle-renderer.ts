@@ -2,12 +2,31 @@ import { getInteraction } from '../simulation/physical-battle.ts';
 import type { BattleState } from '../simulation/physical-battle.ts';
 import type { ActorState, CastleLayout, PartId, Point, TeamId } from '../domain/types.ts';
 import { PART_IDS } from '../domain/types.ts';
-import { EQUIPMENT_BODY_SIZE_SUBUNITS } from '../actors/geometry.ts';
-import { getHandoffPosition } from '../artillery/positions.ts';
 import {
   drawGameArt, getGameArt, requestGameArtLoad,
   type GameArtName,
 } from './game-art.ts';
+import {
+  ACTOR_HITBOX_RADIUS_CELLS,
+  EQUIPMENT_HITBOX_SIZE_CELLS,
+  actorRespawnAnchor,
+  actorVisibleToPlayer,
+  castlePartWorldPoint,
+  coreWorldPoint,
+  equipmentIsDisabledAt,
+  equipmentIsStoppedAt,
+  equipmentWorldPoint,
+  floorCaseAnchor,
+  gateWorldPoint,
+  getCoreAccessProjection,
+  plazaFacadePartWorldPoint,
+  projectStepRenderEffects,
+  snapshotFlights,
+  turretQueueWorldPoint,
+  type FlightRenderSnapshot,
+  type RenderAnchor,
+  type RenderEffect,
+} from './battle-projection.ts';
 
 export const caseLabels: Record<string, string> = {
   standard_slug: '標準弾', dense_payload: '重量弾', screen_panel: '防護板', fast_dart: '高速杭',
@@ -28,17 +47,6 @@ const roomLabels: Record<string, string> = {
   security: '警備室', front_corridor: '前部通路', rear_corridor: '後部通路',
 };
 
-type RenderEffect = {
-  key: string;
-  tick: number;
-  kind: string;
-  team?: TeamId;
-  actorId?: string;
-  world?: Point;
-  route?: 'direct' | 'detour';
-  progress?: number;
-};
-type FlightSnapshot = { team: TeamId; route: 'direct' | 'detour'; progress: number };
 type FloorSurface = { canvas: HTMLCanvasElement; hasFloorArt: boolean };
 const FLOOR_TEXTURE_UNIT = 12;
 let cachedFloorTextureSource: HTMLImageElement | undefined;
@@ -59,6 +67,12 @@ function roomCenter(room: CastleLayout['rooms'][number]): Point {
 function formatClock(ticks: number, ticksPerSecond: number): string {
   const seconds = Math.ceil(Math.max(0, ticks) / ticksPerSecond);
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+export interface BattleRenderer {
+  (state: BattleState, target: PartId, slot?: number): void;
+  /** Capture each fixed simulation step before a later step overwrites lastStep. */
+  observeStep(state: BattleState): void;
 }
 
 /** Downsamples the authored floor image once so cell generation copies only a 12px tile. */
@@ -161,7 +175,7 @@ function drawPerson(
   const imageForRole: Record<string, GameArtName> = {
     player: 'hero', support: 'helper', shooter: 'gunner', shooter_guard: 'guard', ammo_carrier: 'carrier', internal_soldier: 'soldier',
   };
-  const size = Math.max(21, scale * (actor.id === 'P1' ? 2.5 : 2));
+  const size = Math.max(19, scale * (actor.id === 'P1' ? 2.25 : 1.95));
   const imageName = imageForRole[actor.role] ?? 'soldier';
   const color = teamColor(actor.team);
   context.save();
@@ -173,13 +187,15 @@ function drawPerson(
     context.fillStyle = color; context.beginPath(); context.roundRect(x - size * 0.25, y, size * 0.5, size * 0.39, size * 0.12); context.fill(); context.stroke();
   }
   context.globalAlpha = 1;
-  context.strokeStyle = highlighted ? '#fff2aa' : color; context.lineWidth = highlighted ? 2 : 1.2;
-  context.beginPath(); context.arc(x, y, size * 0.56, 0, Math.PI * 2); context.stroke();
+  // The sprite stays readable, while this small center outline shows the
+  // actual movement/collision radius instead of suggesting the whole image is solid.
+  context.strokeStyle = highlighted ? '#fff2aa' : color; context.lineWidth = highlighted ? 1.7 : 1;
+  context.beginPath(); context.arc(x, y, ACTOR_HITBOX_RADIUS_CELLS * scale, 0, Math.PI * 2); context.stroke();
   if (actor.damageImmuneUntilTick !== null && state.tick < actor.damageImmuneUntilTick) {
     context.strokeStyle = '#9ddcff'; context.lineWidth = 1.5; context.setLineDash([2, 2]);
     context.beginPath(); context.arc(x, y, size * 0.72, 0, Math.PI * 2); context.stroke(); context.setLineDash([]);
   }
-  if (actor.alive && scale >= 7) {
+  if (actor.alive && actor.id === 'P1' && scale >= 7) {
     const barWidth = size * 1.05, barY = y + size * 0.52;
     context.fillStyle = '#101c27cc'; context.fillRect(x - barWidth / 2, barY, barWidth, 2.5);
     context.fillStyle = actor.team === 'player' ? '#a8ded1' : '#e2a49c';
@@ -249,6 +265,14 @@ function drawEquipmentTeamRing(context: CanvasRenderingContext2D, x: number, y: 
   context.restore();
 }
 
+function drawEquipmentFootprint(context: CanvasRenderingContext2D, x: number, y: number, scale: number): void {
+  const size = EQUIPMENT_HITBOX_SIZE_CELLS * scale;
+  context.save();
+  context.strokeStyle = '#f5ebbfbb'; context.lineWidth = 1; context.setLineDash([2, 2]);
+  context.strokeRect(x - size / 2, y - size / 2, size, size);
+  context.restore();
+}
+
 function drawFortressFacade(context: CanvasRenderingContext2D, state: BattleState, team: TeamId, doorX: number, centerY: number, scale: number): void {
   const castle = state.castles[team];
   const w = 9, h = 20;
@@ -277,18 +301,59 @@ function drawFortressFacade(context: CanvasRenderingContext2D, state: BattleStat
   context.restore();
 }
 
+function effectPoint(effect: RenderEffect, area: 'castle' | 'plaza', team?: TeamId): Point | undefined {
+  if (area === 'plaza') {
+    if (effect.plazaAnchor) return effect.plazaAnchor;
+    return effect.anchor?.area === 'plaza' ? effect.anchor.point : undefined;
+  }
+  return effect.anchor?.area === 'castle' && effect.anchor.team === team ? effect.anchor.point : undefined;
+}
+
+function drawStepEffect(context: CanvasRenderingContext2D, effect: RenderEffect, x: number, y: number, scale: number, age: number): void {
+  const size = Math.max(8, scale * (0.82 + age * 0.055));
+  const alpha = Math.max(0, 1 - age / 23);
+  const color = effect.kind === 'screen_panel' || effect.caseType === 'screen_panel' ? '#9edbff'
+    : effect.kind === 'gate_opened' || effect.kind === 'core_unlocked' || effect.kind.includes('repair') ? '#a8e3bd'
+      : effect.kind === 'projectile_no_target' ? '#c2c9c8'
+        : effect.kind === 'actor_died' ? '#ff8279'
+          : '#ffd08c';
+  context.save(); context.globalAlpha = alpha;
+  if (effect.kind === 'screen_panel' || effect.caseType === 'screen_panel') {
+    context.strokeStyle = color; context.lineWidth = 1.7; context.beginPath(); context.arc(x, y, size * 0.44, 0, Math.PI * 2); context.stroke();
+    context.beginPath(); context.moveTo(x - size * 0.35, y); context.lineTo(x + size * 0.35, y); context.stroke();
+    context.restore(); return;
+  }
+  if (effect.kind === 'projectile_no_target') {
+    context.strokeStyle = color; context.lineWidth = 1.3; context.setLineDash([2, 2]);
+    context.beginPath(); context.arc(x, y, size * 0.36, 0, Math.PI * 2); context.stroke(); context.setLineDash([]);
+    context.restore(); return;
+  }
+  if (effect.kind === 'gate_opened' || effect.kind === 'core_unlocked' || effect.kind.includes('repair') || effect.kind === 'equipment_restored') {
+    context.strokeStyle = color; context.lineWidth = 1.7;
+    context.beginPath(); context.arc(x, y, size * 0.42, -Math.PI * 0.85, Math.PI * 0.85); context.stroke();
+    context.restore(); return;
+  }
+  if (!drawGameArt(context, 'impact', x - size / 2, y - size / 2, size, size, alpha)) {
+    context.strokeStyle = color; context.lineWidth = effect.kind === 'part_destroyed' ? 2.4 : 1.7;
+    context.beginPath(); context.arc(x, y, size * 0.42, 0, Math.PI * 2); context.stroke();
+  }
+  context.restore();
+}
+
 /** Static battleground projection plus live values, built without mutating state. */
 export function createBattleRenderer(
   canvas: HTMLCanvasElement,
   initial: BattleState,
-): (state: BattleState, target: PartId, slot?: number) => void {
+): BattleRenderer {
   const context = canvas.getContext('2d')!;
   if (!context) throw new Error('battle canvas 2D context is unavailable');
   requestGameArtLoad();
   const floorSurfaces = new Map<CastleLayout, FloorSurface>();
   const effects: RenderEffect[] = [];
   const seenEffects = new Set<string>();
-  const previousFlights = new Map<string, FlightSnapshot>();
+  const observedEnemyDeaths = new Set<string>();
+  let previousFlights: ReadonlyMap<string, FlightRenderSnapshot> = snapshotFlights(initial);
+  let lastObservedTick: number | null = null;
 
   const floorSurface = (layout: CastleLayout): FloorSurface => {
     const existing = floorSurfaces.get(layout);
@@ -299,41 +364,24 @@ export function createBattleRenderer(
     return next;
   };
 
-  function recordEffects(state: BattleState): void {
-    const observedTick = state.lastStep.processedTick ?? Math.max(0, state.tick - 1);
-    for (const event of state.lastStep.events) {
-      const key = `${observedTick}:${JSON.stringify(event)}`;
-      if (seenEffects.has(key)) continue;
-      seenEffects.add(key);
-      let effect: RenderEffect | undefined;
-      if (event.type === 'actor_damaged' || event.type === 'actor_died' || event.type === 'actor_respawned') {
-        effect = { key, tick: observedTick, kind: event.type, actorId: event.actorId };
-      } else if (event.type === 'part_damaged' || event.type === 'part_destroyed') {
-        effect = { key, tick: observedTick, kind: event.type, team: event.team };
-      } else if (event.type === 'projectile_impacted') {
-        effect = { key, tick: observedTick, kind: event.type, team: event.targetTeam };
-      } else if (event.type === 'equipment_damaged' || event.type === 'equipment_restored' || event.type === 'equipment_repair_completed') {
-        const layout = event.team === 'player' ? state.layout.home : state.layout.enemy;
-        const entity = event.equipmentKind === 'turret'
-          ? layout.turrets.find((item) => item.id === event.equipmentId)
-          : layout.supplyPorts.find((item) => item.id === event.equipmentId);
-        if (entity) effect = { key, tick: observedTick, kind: event.type, team: event.team, world: entity.cell };
-      } else if (event.type === 'repair_completed') {
-        effect = { key, tick: observedTick, kind: event.type, team: event.team };
-      } else if (event.type === 'projectile_intercepted') {
-        const first = previousFlights.get(event.firstProjectileId);
-        const second = previousFlights.get(event.secondProjectileId);
-        if (first && second && first.route === second.route) {
-          const firstScreenProgress = first.team === 'player' ? first.progress : 1 - first.progress;
-          const secondScreenProgress = second.team === 'player' ? second.progress : 1 - second.progress;
-          effect = {
-            key, tick: observedTick, kind: event.type, route: first.route,
-            progress: clamp((firstScreenProgress + secondScreenProgress) / 2, 0, 1),
-          };
-        }
+  function observeStep(state: BattleState): void {
+    const observedTick = state.lastStep.processedTick;
+    if (!state.lastStep.advanced || observedTick === null || (lastObservedTick !== null && observedTick <= lastObservedTick)) return;
+    for (const effect of projectStepRenderEffects(state, previousFlights)) {
+      if (effect.actorId && state.actors[effect.actorId]?.team === 'enemy') {
+        if (!actorVisibleToPlayer(state, effect.actorId)) continue;
+        if (effect.kind === 'actor_died') observedEnemyDeaths.add(`${effect.actorId}:${state.actors[effect.actorId].generation}`);
       }
-      if (effect) effects.push(effect);
+      if (seenEffects.has(effect.key)) continue;
+      seenEffects.add(effect.key);
+      effects.push(effect);
     }
+    previousFlights = snapshotFlights(state);
+    for (const key of observedEnemyDeaths) {
+      const [id, generation] = key.split(':');
+      if (!state.actors[id] || state.actors[id].alive || state.actors[id].generation !== Number(generation)) observedEnemyDeaths.delete(key);
+    }
+    lastObservedTick = observedTick;
     for (let index = effects.length - 1; index >= 0; index -= 1) {
       if (state.tick - effects[index].tick > 42) effects.splice(index, 1);
     }
@@ -367,14 +415,20 @@ export function createBattleRenderer(
       const progress = clamp(flight.progress, 0, 1);
       const x = laneLeft + laneWidth * (flight.team === 'player' ? progress : 1 - progress);
       const item = state.battleCases[flight.objectId];
-      const artSize = 15;
-      if (item) drawCase(context, item.type, x, lane.y, artSize, 1, flight.team === 'enemy');
+      const splitChild = !!state.objects[flight.objectId]?.parentObjectId;
+      const artSize = splitChild ? 2.6 : 15;
+      if (splitChild) {
+        context.fillStyle = teamColor(flight.team); context.strokeStyle = '#f5efda'; context.lineWidth = 0.8;
+        context.beginPath(); context.arc(x, lane.y, artSize / 2, 0, Math.PI * 2); context.fill(); context.stroke();
+      } else if (item) drawCase(context, item.type, x, lane.y, artSize, 1, flight.team === 'enemy');
       else {
         const direction = flight.team === 'player' ? 1 : -1;
         context.fillStyle = teamColor(flight.team); context.beginPath(); context.moveTo(x + direction * 6, lane.y);
         context.lineTo(x - direction * 5, lane.y - 4); context.lineTo(x - direction * 5, lane.y + 4); context.closePath(); context.fill();
       }
-      context.fillStyle = teamColor(flight.team); context.globalAlpha = 0.72; context.fillRect(x - 7, lane.y + 8, 14, 1); context.globalAlpha = 1;
+      if (!splitChild) {
+        context.fillStyle = teamColor(flight.team); context.globalAlpha = 0.72; context.fillRect(x - 7, lane.y + 8, 14, 1); context.globalAlpha = 1;
+      }
     }
     for (const effect of effects) {
       if (effect.kind !== 'projectile_intercepted' || state.tick - effect.tick > 24 || !effect.route || effect.progress === undefined) continue;
@@ -402,8 +456,6 @@ export function createBattleRenderer(
     const sy = (worldY: number) => top + (worldY - cameraY) * scale;
     context.save(); context.beginPath(); context.rect(0, top, width, mapHeight); context.clip();
     context.fillStyle = '#111f29'; context.fillRect(0, top, width, mapHeight);
-    // Faint stage art frames the authored indoor floor without changing its map.
-    drawGameArt(context, 'stage', 0, top, width, mapHeight, 0.1);
     context.drawImage(staticFloor, -cameraX * scale, top - cameraY * scale,
       layout.widthCells * scale, layout.heightCells * scale);
 
@@ -411,9 +463,18 @@ export function createBattleRenderer(
       const r = room.rect;
       const center = roomCenter(room);
       if (room.kind === 'core') {
-        drawEquipmentIcon(context, 'core', sx(center.x), sy(center.y), Math.max(18, scale * 1.5), '#edcd8c');
+        const corePoint = coreWorldPoint(layout) ?? center;
+        const cx = sx(corePoint.x), cy = sy(corePoint.y);
+        const access = getCoreAccessProjection(state, team);
+        drawEquipmentIcon(context, 'core', cx, cy, Math.max(18, scale * 1.5), '#edcd8c');
+        context.strokeStyle = access.attackable ? '#f1987d' : '#9ec9df'; context.lineWidth = 1.5;
+        context.setLineDash(access.attackable ? [] : [3, 2]); context.beginPath(); context.arc(cx, cy, Math.max(10, scale * 0.92), 0, Math.PI * 2); context.stroke(); context.setLineDash([]);
+        context.font = 'bold 8px -apple-system, "Noto Sans JP", sans-serif'; context.textAlign = 'left';
+        context.fillStyle = access.attackable ? '#ffc2a9' : '#c4e4f0'; context.strokeStyle = '#142630'; context.lineWidth = 2.5;
+        const status = access.attackable ? '攻撃可能' : access.hit ? '核損傷' : `保護中 ${access.openGateCount}/7`;
+        context.strokeText(status, cx + Math.max(12, scale * 1.1), cy + 3); context.fillText(status, cx + Math.max(12, scale * 1.1), cy + 3);
         if (state.castles[team].core.hit) {
-          drawGameArt(context, 'impact', sx(center.x) - scale, sy(center.y) - scale, scale * 2, scale * 2);
+          drawGameArt(context, 'impact', cx - scale, cy - scale, scale * 2, scale * 2);
         }
       } else if (room.kind === 'repair') {
         drawEquipmentIcon(context, 'repair', sx(center.x), sy(center.y), Math.max(15, scale * 1.15), '#a9d8bc');
@@ -431,63 +492,82 @@ export function createBattleRenderer(
       if (!gateCells.length) continue;
       const center = gateCells.reduce((sum, cell) => ({ x: sum.x + cell.x, y: sum.y + cell.y }), { x: 0, y: 0 });
       center.x /= gateCells.length; center.y /= gateCells.length;
-      const size = Math.max(11, scale * 0.92);
-      const alpha = gate?.open ? 0.24 : 1;
-      drawEquipmentIcon(context, 'gate', sx(center.x + 0.5), sy(center.y + 0.5), size, gate?.open ? '#97d2b8' : '#d8b36f', alpha);
+      const cx = sx(center.x + 0.5), cy = sy(center.y + 0.5);
       if (!gate?.open) {
-        context.strokeStyle = '#e2bc77'; context.lineWidth = 1.6; context.beginPath();
+        // Gate cells become a clear aperture when open. Closed gates are
+        // drawn as bars across the actual passage cells only.
+        context.strokeStyle = '#efc779'; context.lineWidth = 2;
+        context.beginPath();
         for (const cell of gateCells) {
-          context.moveTo(sx(cell.x + 0.25), sy(cell.y + 0.5)); context.lineTo(sx(cell.x + 0.75), sy(cell.y + 0.5));
+          context.moveTo(sx(cell.x + 0.2), sy(cell.y + 0.5)); context.lineTo(sx(cell.x + 0.8), sy(cell.y + 0.5));
         }
         context.stroke();
       } else {
-        context.strokeStyle = '#a8dfc2aa'; context.lineWidth = 1; context.strokeRect(sx(center.x) - size * 0.4, sy(center.y) - size * 0.4, size * 0.8, size * 0.8);
+        context.fillStyle = '#bde6ca'; context.beginPath(); context.arc(cx, cy, 2, 0, Math.PI * 2); context.fill();
       }
       context.globalAlpha = 1;
-      context.fillStyle = '#fff1cc'; context.font = '8px sans-serif'; context.textAlign = 'center'; context.fillText(gateId, sx(center.x + 0.5), sy(center.y - 0.25));
+      context.fillStyle = gate?.open ? '#d1ecd4' : '#fff1cc'; context.font = '8px sans-serif'; context.textAlign = 'center'; context.fillText(gateId, cx, sy(center.y - 0.25));
+    }
+
+    const slowZone = state.logistics.slowZones[team];
+    if (slowZone && state.tick < slowZone.expiresAtTick) {
+      const center = { x: slowZone.center.x / 1000, y: slowZone.center.y / 1000 };
+      const x = sx(center.x), y = sy(center.y), radius = slowZone.radiusSubunits / 1000 * scale;
+      context.save(); context.fillStyle = '#8dc89e14'; context.strokeStyle = '#a7d9b9aa'; context.lineWidth = 1.5; context.setLineDash([4, 3]);
+      context.beginPath(); context.arc(x, y, radius, 0, Math.PI * 2); context.fill(); context.stroke(); context.setLineDash([]);
+      const label = `速度 ${Math.round(slowZone.multiplier * 100)}% · ${formatClock(slowZone.expiresAtTick - state.tick, state.rules.ticksPerSecond)}`;
+      const labelHalf = Math.min(58, Math.max(0, width / 2 - 2)), labelX = clamp(x, labelHalf, width - labelHalf);
+      const labelY = clamp(y + radius + 14, top + 12, height - 22);
+      context.font = 'bold 8px -apple-system, "Noto Sans JP", sans-serif'; context.textAlign = 'center'; context.textBaseline = 'bottom';
+      context.lineWidth = 2.5; context.strokeStyle = '#11232a'; context.fillStyle = '#c4e8cb';
+      context.strokeText(label, labelX, labelY); context.fillText(label, labelX, labelY); context.restore();
     }
 
     const interaction = state.actors.P1?.alive ? getInteraction(state, 'P1', slot) : undefined;
     const highlighted = interaction?.cases.find((item) => item.id === interaction.pickupCaseId);
     for (const definition of layout.supplyPorts) {
       const runtime = state.logistics.ports[objectKey(team, definition.id)];
-      const bodySize = EQUIPMENT_BODY_SIZE_SUBUNITS / 1000;
-      const cx = definition.cell.x + 0.5, cy = definition.cell.y + 0.5;
+      const point = equipmentWorldPoint(state, team, 'supply_port', definition.id) ?? { x: definition.cell.x + 0.5, y: definition.cell.y + 0.5 };
+      const cx = point.x, cy = point.y;
       const wx = sx(cx), wy = sy(cy), size = Math.max(15, scale * 1.15);
       drawEquipmentIcon(context, 'supply', wx, wy, size, '#d0d59b');
       drawEquipmentTeamRing(context, wx, wy, size, team);
+      drawEquipmentFootprint(context, wx, wy, scale);
       if (runtime) {
-        const disabled = runtime.disabledUntilTick !== null && state.tick <= runtime.disabledUntilTick;
+        const disabled = equipmentIsDisabledAt(runtime, state.tick);
         drawHealthPips(context, wx, wy + size * 0.48, size * 0.9, runtime.health, state.rules.equipmentHealth, disabled);
-        if (disabled || state.tick < (runtime.stoppedUntilTick ?? 0)) {
+        if (disabled || equipmentIsStoppedAt(runtime, state.tick)) {
           context.fillStyle = '#e98f7c'; context.font = 'bold 8px sans-serif'; context.textAlign = 'center'; context.fillText('停止', wx, wy - size * 0.45);
         }
       }
       const interrupted = state.logistics.supplyStops[team]?.disruptedUntilTick ?? 0;
       if (state.tick < interrupted) {
         context.strokeStyle = '#dc8d83'; context.lineWidth = 1.5; context.beginPath(); context.arc(wx, wy, size * 0.72, 0, Math.PI * 2); context.stroke();
+        context.fillStyle = '#ffc1a8'; context.font = 'bold 8px sans-serif'; context.textAlign = 'center';
+        context.fillText(`妨害 ${formatClock(interrupted - state.tick, state.rules.ticksPerSecond)}`, wx, wy - size * 0.66);
       }
       const label = definition.id.split('_').at(-1)?.toUpperCase() ?? '';
       context.fillStyle = '#f2e6bd'; context.font = '8px sans-serif'; context.textAlign = 'center'; context.fillText(label, wx, wy + size * 0.7);
-      void bodySize;
     }
 
     for (const definition of layout.turrets) {
       const runtime = state.artillery.turrets[objectKey(team, definition.id)];
       if (!runtime) continue;
-      const wx = sx(definition.cell.x + 0.5), wy = sy(definition.cell.y + 0.5), size = Math.max(16, scale * 1.28);
+      const position = equipmentWorldPoint(state, team, 'turret', definition.id) ?? { x: definition.cell.x + 0.5, y: definition.cell.y + 0.5 };
+      const wx = sx(position.x), wy = sy(position.y), size = Math.max(14, scale * 1.05);
       drawEquipmentIcon(context, 'turret', wx, wy, size, teamColor(team), 1, layout.frontDirection < 0);
       drawEquipmentTeamRing(context, wx, wy, size, team);
-      const disabled = runtime.disabledUntilTick !== null && state.tick <= runtime.disabledUntilTick;
+      drawEquipmentFootprint(context, wx, wy, scale);
+      const disabled = equipmentIsDisabledAt(runtime, state.tick);
       drawHealthPips(context, wx, wy + size * 0.46, size * 0.95, runtime.health, state.rules.equipmentHealth, disabled);
       const queued = runtime.queueIds.length;
       context.fillStyle = '#f4f0de'; context.font = '8px sans-serif'; context.textAlign = 'center';
       context.fillText(`${definition.label} ${queued}/${definition.queueCapacity}`, wx, wy - size * 0.54);
-      if (disabled || state.tick < (runtime.stoppedUntilTick ?? 0)) {
+      if (disabled || equipmentIsStoppedAt(runtime, state.tick)) {
         context.fillStyle = '#ef968b'; context.font = 'bold 8px sans-serif'; context.fillText('停止', wx, wy + size * 0.75);
       }
       for (const [index, stagedId] of runtime.stagingSlots.entries()) {
-        const handoff = getHandoffPosition(runtime, index as 0 | 1);
+        const handoff = runtime.stagingPositions[index as 0 | 1];
         const hx = sx(handoff.x / 1000), hy = sy(handoff.y / 1000);
         const item = stagedId ? state.battleCases[stagedId] : undefined;
         if (item) drawCase(context, item.type, hx, hy, Math.max(10, scale * 0.7));
@@ -497,13 +577,12 @@ export function createBattleRenderer(
       }
     }
 
-    const floorCases = Object.values(state.battleCases).filter((item) => {
-      const worldObject = state.objects[item.id];
-      return item.currentPosition && worldObject?.location.kind === 'floor' && worldObject.location.team === team;
+    const floorCases = Object.values(state.battleCases).flatMap((item) => {
+      const anchor = floorCaseAnchor(state, item.id);
+      return anchor?.area === 'castle' && anchor.team === team ? [{ item, point: anchor.point }] : [];
     });
-    for (const item of floorCases) {
-      const point = item.currentPosition!;
-      const cx = sx(point.x / 1000), cy = sy(point.y / 1000), size = Math.max(9, scale * 0.76);
+    for (const { item, point } of floorCases) {
+      const cx = sx(point.x), cy = sy(point.y), size = Math.max(9, scale * 0.76);
       drawCase(context, item.type, cx, cy, size);
       if (item.id === highlighted?.id) {
         context.strokeStyle = '#fff0ac'; context.lineWidth = 2; context.strokeRect(cx - size * 0.72, cy - size * 0.72, size * 1.44, size * 1.44);
@@ -519,16 +598,21 @@ export function createBattleRenderer(
       if (!definition) continue;
       for (const [index, objectId] of turret.queueIds.entries()) {
         const item = state.battleCases[objectId]; if (!item) continue;
-        const x = sx(definition.cell.x + 0.5 + layout.frontDirection * (0.7 + index * 0.45));
-        const y = sy(definition.cell.y + 0.62); drawCase(context, item.type, x, y, Math.max(9, scale * 0.65));
+        const point = turretQueueWorldPoint(turret, layout.frontDirection, index);
+        const x = sx(point.x), y = sy(point.y); drawCase(context, item.type, x, y, Math.max(7, scale * 0.5));
       }
     }
 
-    const relevantActors = Object.values(state.actors).filter((candidate) => candidate.location.area === 'castle' && candidate.location.castleTeam === team);
+    const relevantActors = Object.values(state.actors).filter((candidate) => candidate.alive
+      ? candidate.location.area === 'castle' && candidate.location.castleTeam === team && actorVisibleToPlayer(state, candidate.id)
+      : actorRespawnAnchor(state, candidate.id)?.team === team &&
+        (candidate.team === 'player' || observedEnemyDeaths.has(`${candidate.id}:${candidate.generation}`)));
     for (const candidate of relevantActors) {
       const fixed = state.fixedActors[candidate.id]?.position;
       if (!fixed) continue;
-      const wx = sx(fixed.x / 1000), wy = sy(fixed.y / 1000);
+      const respawnAnchor = candidate.alive ? undefined : actorRespawnAnchor(state, candidate.id);
+      const world = respawnAnchor?.point ?? { x: fixed.x / 1000, y: fixed.y / 1000 };
+      const wx = sx(world.x), wy = sy(world.y);
       const dash = state.dashes[candidate.id];
       if (candidate.alive && dash) {
         for (let trail = 1; trail <= 3; trail += 1) {
@@ -540,7 +624,7 @@ export function createBattleRenderer(
         }
       }
       if (candidate.alive) drawPerson(context, candidate, wx, wy, scale, state, candidate.id === 'P1' || candidate.team !== team);
-      else if (candidate.respawnAtTick !== null && candidate.respawnAtTick > state.tick) {
+      else if (candidate.respawnAtTick !== null && candidate.respawnAtTick > state.tick && respawnAnchor) {
         const artNameForGhost: GameArtName = candidate.id === 'P1' ? 'hero' : candidate.role === 'support' ? 'helper' : candidate.role === 'shooter' ? 'gunner' : candidate.role === 'shooter_guard' ? 'guard' : candidate.role === 'ammo_carrier' ? 'carrier' : 'soldier';
         if (!drawGameArt(context, artNameForGhost, wx - scale * 0.65, wy - scale * 0.65, scale * 1.3, scale * 1.3, 0.24)) {
           context.strokeStyle = '#bdcbd0'; context.setLineDash([2, 2]); context.beginPath(); context.arc(wx, wy, scale * 0.42, 0, Math.PI * 2); context.stroke(); context.setLineDash([]);
@@ -565,20 +649,8 @@ export function createBattleRenderer(
     for (const effect of effects) {
       const age = state.tick - effect.tick;
       if (age < 0 || age > 22) continue;
-      let ex: number | undefined, ey: number | undefined;
-      if (effect.actorId) {
-        const fixed = state.fixedActors[effect.actorId]?.position;
-        const targetActor = state.actors[effect.actorId];
-        if (fixed && targetActor?.location.castleTeam === team) { ex = sx(fixed.x / 1000); ey = sy(fixed.y / 1000); }
-      } else if (effect.team === team && effect.world) { ex = sx(effect.world.x + 0.5); ey = sy(effect.world.y + 0.5); }
-      else if (effect.team === team && (effect.kind === 'part_damaged' || effect.kind === 'part_destroyed' || effect.kind === 'projectile_impacted')) {
-        ex = sx(facadeX); ey = sy(35);
-      }
-      if (ex === undefined || ey === undefined) continue;
-      const size = scale * (0.9 + age * 0.08), alpha = Math.max(0, 1 - age / 23);
-      if (!drawGameArt(context, 'impact', ex - size / 2, ey - size / 2, size, size, alpha)) {
-        context.strokeStyle = `rgba(255,198,126,${alpha})`; context.lineWidth = 2; context.beginPath(); context.arc(ex, ey, size / 2, 0, Math.PI * 2); context.stroke();
-      }
+      const point = effectPoint(effect, 'castle', team);
+      if (point) drawStepEffect(context, effect, sx(point.x), sy(point.y), scale, age);
     }
     for (const task of Object.values(state.repairs.tasks)) {
       const repairingActor = state.actors[task.actorId];
@@ -629,7 +701,7 @@ export function createBattleRenderer(
 
   function drawPlazaMap(state: BattleState, width: number, height: number, top: number, player: ActorState): void {
     const mapHeight = Math.max(1, height - top);
-    const p = player.alive || player.location.area === 'plaza'
+    const p = player.alive && player.location.area === 'plaza'
       ? state.fixedActors[player.id]?.position ?? { x: 63_000, y: 35_000 }
       : { x: 63_000, y: 35_000 };
     const scale = clamp(width / 32, 7, 15);
@@ -640,7 +712,22 @@ export function createBattleRenderer(
     const sy = (y: number) => top + (y - cameraY) * scale;
     context.save(); context.beginPath(); context.rect(0, top, width, mapHeight); context.clip();
     context.fillStyle = '#263b40'; context.fillRect(0, top, width, mapHeight);
-    drawGameArt(context, 'stage', 0, top, width, mapHeight, 0.92);
+    const floorImage = getGameArt('floor');
+    if (floorImage) {
+      const tile = getFloorTextureTile(floorImage);
+      for (let y = Math.floor(cameraY); y <= cameraY + cameraWorldHeight; y += 1) {
+        for (let x = Math.floor(cameraX); x <= cameraX + cameraWorldWidth; x += 1) {
+          context.drawImage(tile, sx(x), sy(y), scale, scale);
+        }
+      }
+    } else {
+      context.fillStyle = '#3b5050';
+      for (let y = Math.floor(cameraY); y <= cameraY + cameraWorldHeight; y += 1) {
+        for (let x = Math.floor(cameraX); x <= cameraX + cameraWorldWidth; x += 1) {
+          if ((x + y) % 2 === 0) context.fillRect(sx(x), sy(y), scale, scale);
+        }
+      }
+    }
     const plaza = state.layout.plaza;
     const left = sx(plaza.x0), upper = sy(plaza.y0), w = (plaza.x1 - plaza.x0) * scale, h = (plaza.y1 - plaza.y0) * scale;
     context.fillStyle = '#b1a87c66'; context.fillRect(left, upper, w, h);
@@ -650,30 +737,22 @@ export function createBattleRenderer(
     // entities. Each slot visibly disappears as its matching part is lost.
     drawFortressFacade(context, state, 'player', sx(8.8), sy(35), scale);
     drawFortressFacade(context, state, 'enemy', sx(117.2), sy(35), scale);
-    for (const candidate of Object.values(state.actors).filter((actorState) => actorState.location.area === 'plaza')) {
+    for (const candidate of Object.values(state.actors).filter((actorState) => actorState.location.area === 'plaza' && actorState.alive)) {
       const fixed = state.fixedActors[candidate.id]?.position; if (!fixed) continue;
       const wx = sx(fixed.x / 1000), wy = sy(fixed.y / 1000);
-      if (candidate.alive) drawPerson(context, candidate, wx, wy, scale, state, candidate.id === 'P1');
-      else if (candidate.respawnAtTick !== null && candidate.respawnAtTick > state.tick) {
-        const size = Math.max(12, scale);
-        if (!drawGameArt(context, candidate.team === 'player' ? candidate.id === 'P1' ? 'hero' : 'helper' : 'soldier', wx - size / 2, wy - size / 2, size, size, 0.22)) {
-          context.strokeStyle = teamColor(candidate.team); context.setLineDash([2, 2]); context.beginPath(); context.arc(wx, wy, size * 0.34, 0, Math.PI * 2); context.stroke(); context.setLineDash([]);
-        }
-      }
+      drawPerson(context, candidate, wx, wy, scale, state, candidate.id === 'P1');
+    }
+    for (const item of Object.values(state.battleCases)) {
+      const anchor = floorCaseAnchor(state, item.id);
+      if (anchor?.area !== 'plaza') continue;
+      const x = sx(anchor.point.x), y = sy(anchor.point.y), size = Math.max(8, scale * 0.72);
+      drawCase(context, item.type, x, y, size);
     }
     for (const effect of effects) {
       const age = state.tick - effect.tick;
       if (age < 0 || age > 23 || effect.kind === 'projectile_intercepted') continue;
-      let point: Point | undefined;
-      if (effect.actorId) {
-        const subject = state.actors[effect.actorId], fixed = state.fixedActors[effect.actorId]?.position;
-        if (subject?.location.area === 'plaza' && fixed) point = { x: fixed.x / 1000, y: fixed.y / 1000 };
-      }
-      if (!point) continue;
-      const x = sx(point.x), y = sy(point.y), size = scale * (1 + age * 0.08), alpha = 1 - age / 24;
-      if (!drawGameArt(context, 'impact', x - size / 2, y - size / 2, size, size, alpha)) {
-        context.strokeStyle = `rgba(255,204,134,${alpha})`; context.lineWidth = 2; context.beginPath(); context.arc(x, y, size / 2, 0, Math.PI * 2); context.stroke();
-      }
+      const point = effectPoint(effect, 'plaza');
+      if (point) drawStepEffect(context, effect, sx(point.x), sy(point.y), scale, age);
     }
     context.restore();
 
@@ -700,20 +779,25 @@ export function createBattleRenderer(
     context.font = '8px sans-serif'; context.textAlign = 'left'; context.fillStyle = '#e1ebe6'; context.fillText('自城', miniX, miniY + miniHeight + 10);
     context.textAlign = 'right'; context.fillText('敵城', miniX + miniWidth, miniY + miniHeight + 10);
 
-    const countdown = player.alive ? '' : ` · 復活 ${formatClock((player.respawnAtTick ?? state.tick) - state.tick, state.rules.ticksPerSecond)}`;
-    context.fillStyle = '#0d1b24df'; context.fillRect(5, height - 21, Math.min(185, width * 0.6), 16);
+    const lastDeath = effects.filter((effect) => effect.actorId === player.id && effect.kind === 'actor_died').at(-1);
+    const deathOrigin = lastDeath?.anchor?.area === 'castle'
+      ? lastDeath.anchor.team === 'player' ? '自城' : '敵城'
+      : lastDeath?.anchor?.area === 'plaza' ? '広場'
+        : player.location.area === 'castle' ? player.location.castleTeam === 'player' ? '自城' : '敵城' : '広場';
+    const respawnClock = formatClock((player.respawnAtTick ?? state.tick) - state.tick, state.rules.ticksPerSecond);
+    const spectator = player.alive ? '' : width < 300
+      ? `観戦 · ${deathOrigin} · ${respawnClock}`
+      : `観戦 · ${deathOrigin}で撃破 · 復活 ${respawnClock}`;
+    const footer = player.alive
+      ? `広場 · 自城 ${state.castles.player.openGateIds.length}/7門 · 敵 ${Object.values(state.actors).filter((item) => item.team === 'enemy' && item.alive).length}人`
+      : spectator;
+    context.fillStyle = '#0d1b24df'; context.fillRect(5, height - 21, Math.min(width - 10, player.alive ? 185 : 218), 16);
     context.font = '9px -apple-system, "Noto Sans JP", sans-serif'; context.fillStyle = '#ecf0de'; context.textAlign = 'left';
-    context.fillText(`広場 · ${state.castles.player.openGateIds.length}/7門 · 敵 ${Object.values(state.actors).filter((item) => item.team === 'enemy' && item.alive).length}人${countdown}`, 10, height - 10);
+    context.fillText(footer, 10, height - 10);
   }
 
-  function rememberFlights(state: BattleState): void {
-    previousFlights.clear();
-    for (const flight of Object.values(state.artillery.flights)) {
-      previousFlights.set(flight.id, { team: flight.team, route: flight.route, progress: flight.progress });
-    }
-  }
-
-  return (state, target, slot = 0) => {
+  const render = ((state: BattleState, target: PartId, slot = 0) => {
+    observeStep(state);
     const width = canvas.clientWidth, height = canvas.clientHeight;
     if (!width || !height) return;
     const ratio = Math.min(globalThis.devicePixelRatio || 1, 2);
@@ -723,13 +807,13 @@ export function createBattleRenderer(
     context.setTransform(ratio, 0, 0, ratio, 0, 0);
     context.imageSmoothingEnabled = true;
     context.fillStyle = '#101c27'; context.fillRect(0, 0, width, height);
-    recordEffects(state);
     drawFlightLanes(state, width);
     const top = Math.min(52, Math.max(39, width * 0.13));
     const player = state.actors.P1;
-    if (!player) { rememberFlights(state); return; }
+    if (!player) return;
     if (!player.alive || player.location.area === 'plaza') drawPlazaMap(state, width, height, top, player);
     else drawCastleMap(state, player.location.castleTeam ?? player.team, target, slot, width, height, top, player);
-    rememberFlights(state);
-  };
+  }) as BattleRenderer;
+  render.observeStep = observeStep;
+  return render;
 }

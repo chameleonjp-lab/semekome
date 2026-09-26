@@ -109,6 +109,16 @@
     },
     {
       "id": "stage",
+      "revision": 2,
+      "transparent": false,
+      "prompt": "Use case: precise-object-edit. Asset type: decorative home-screen illustration for the original game Semekome, wide 2:1 composition. Edit target: provided stage image. Primary request: remove the distant THIRD CASTLE on the central mountain completely and replace its area with natural bare rocky peaks and dark conifer trees. Also remove the distant village buildings and lit architectural structures behind the two foreground mobile fortresses, leaving natural mountains, waterfall and lake only. Keep exactly the TWO foreground wheeled mechanical fortresses: left teal/brass facing right, right rust-red/brass facing left. Preserve their design, positions, the open circular stone plaza, moon, painterly miniature craftsmanship style, lighting and composition. The two foreground opposing fortresses are the only buildings/fortresses in the scene; no central castle, no distant towers, no extra vehicles, no people, no text, no watermark. This is decorative concept art; accurate gate, cannon and armor counts will be rendered in code elsewhere. Opaque background. Landscape 2:1.",
+      "reference": "public/assets/generated/stage.webp (revision 1)",
+      "method": "built-in image_gen edit"
+    }
+  ],
+  "superseded_revisions": [
+    {
+      "id": "stage",
       "transparent": false,
       "prompt": "Use case: stylized-concept. Asset type: original 2D browser game asset for Semekome. Style: premium hand-painted miniature mechanical toy, crisp dark contour, simplified broad forms, subtle beveled metal, restrained texture, soft upper-left light, polished indie game illustration. No existing franchise characters, no logos, no letters or numbers, no watermark. Wide scene of two original mobile mechanical fortress castles facing each other across a central stone plaza. Left castle teal and brass with barrels facing RIGHT, right castle brick red and brass with barrels facing LEFT. Miniature cutaway workshop character, seven discernible armor segments per castle, visible wheeled bases, warm light through portholes, rugged slate foundation. Coherent landscape establishing art. Unoccupied central plaza kept clear. Calm moody midnight teal atmosphere with warm amber highlights. No characters, no text, no interface."
     }

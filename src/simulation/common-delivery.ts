@@ -89,7 +89,7 @@ export function prepareCommonDeliveryPlans(battle: BattleState): CommonDeliveryP
     for (const actor of carriers) {
       if (usedActors.has(actor.id)) continue;
       const object = Object.values(battle.world.objects)
-        .filter((candidate) => candidate.location.kind === "floor" && candidate.sourceTeam === team && candidate.weaponId &&
+        .filter((candidate) => candidate.location.kind === "floor" && candidate.location.area !== "plaza" && candidate.location.team === team && candidate.weaponId &&
           Object.hasOwn(battle.catalog, candidate.weaponId) && candidate.location.roomId === actor.currentRoomId && !usedObjects.has(candidate.id))
         .sort((left, right) => ordered(left.id, right.id))[0];
       if (!object || object.location.kind !== "floor") continue;

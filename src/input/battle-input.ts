@@ -1,8 +1,9 @@
 import type { BattleDirection } from '../simulation/physical-battle.ts';
 
 /** One movement pointer; action pointers never replace it. */
-export function bindMovement(pad: HTMLElement): { direction: () => BattleDirection; clear: () => void; dispose: () => void } {
+export function bindMovement(pad: HTMLElement): { direction: () => BattleDirection; clear: () => void; setEnabled: (enabled: boolean) => void; dispose: () => void } {
   let pointer: number | null = null;
+  let enabled = true;
   let value: BattleDirection = { x: 0, y: 0 };
   const keys = new Set<string>();
   const controller = new AbortController();
@@ -21,7 +22,7 @@ export function bindMovement(pad: HTMLElement): { direction: () => BattleDirecti
     pad.style.setProperty('--stick-x', '0px'); pad.style.setProperty('--stick-y', '0px');
   };
   pad.addEventListener('pointerdown', event => {
-    if (pointer !== null || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    if (!enabled || pointer !== null || (event.pointerType === 'mouse' && event.button !== 0)) return;
     pointer = event.pointerId; pad.setPointerCapture(pointer); update(event); event.preventDefault();
   }, options);
   pad.addEventListener('pointermove', event => { if (pointer === event.pointerId) update(event); }, options);
@@ -30,18 +31,19 @@ export function bindMovement(pad: HTMLElement): { direction: () => BattleDirecti
   }
   const movementKeys = ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'w', 'a', 's', 'd'];
   window.addEventListener('keydown', event => {
-    if (!movementKeys.includes(event.key) || event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
+    if (!enabled || !movementKeys.includes(event.key) || event.target instanceof HTMLInputElement || event.target instanceof HTMLSelectElement) return;
     keys.add(event.key); event.preventDefault();
   }, options);
   window.addEventListener('keyup', event => { keys.delete(event.key); }, options);
   window.addEventListener('blur', clear, options);
   document.addEventListener('visibilitychange', clear, options);
   return {
-    direction: () => pointer !== null ? { ...value } : {
+    direction: () => !enabled ? { x: 0, y: 0 } : pointer !== null ? { ...value } : {
       x: (Number(keys.has('ArrowRight') || keys.has('d')) - Number(keys.has('ArrowLeft') || keys.has('a'))) as -1 | 0 | 1,
       y: (Number(keys.has('ArrowDown') || keys.has('s')) - Number(keys.has('ArrowUp') || keys.has('w'))) as -1 | 0 | 1,
     },
     clear,
+    setEnabled: (next) => { enabled = next; if (!enabled) clear(); },
     dispose: () => { clear(); controller.abort(); },
   };
 }

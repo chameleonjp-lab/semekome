@@ -32,7 +32,7 @@ export function observeEnemy(battle: BattleState, actor: ActorState): EnemyObser
       const location = battle.world.objects[id].location.kind;
       return location === "carried" || location === "reserved-carried";
     }),
-    nearbyCases: Object.values(battle.world.objects).filter(o => o.weaponId && Object.hasOwn(battle.catalog, o.weaponId) && o.location.kind === "floor" &&
+    nearbyCases: Object.values(battle.world.objects).filter(o => o.weaponId && Object.hasOwn(battle.catalog, o.weaponId) && o.location.kind === "floor" && o.location.area !== "plaza" &&
       actor.location.area === "castle" && o.location.team === actor.location.castleTeam && o.location.roomId === actor.location.roomId && near(actor.position, o.location.position))
       .map(o => o.id).sort(ordered),
     turret: turret ? { id: turret.id, roomId: turret.roomId, atPosition: atTurret(actor, turret), hasCapacity: queueFor(battle, actor.team, turret.id).length < turret.queueCapacity } : undefined,

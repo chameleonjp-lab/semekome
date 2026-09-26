@@ -340,7 +340,8 @@ function destroyPartsAndOpenGates(world: WorldState, team: TeamId, events: World
 function objectLocationFloor(world: WorldState, actor: ActorState): ObjectLocation {
   return {
     kind: "floor",
-    team: actor.team,
+    team: actor.location.castleTeam ?? actor.team,
+    ...(actor.location.area === "plaza" ? { area: "plaza" as const } : {}),
     roomId: actor.currentRoomId,
     position: { ...actor.position },
   };
