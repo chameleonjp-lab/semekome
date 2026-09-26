@@ -6,6 +6,7 @@ import { assertObjectLocationsUnique } from "../domain/objects.ts";
 import type {
   ActorId,
   ActorState,
+  EventPhysicalLocation,
   PartId,
   PauseReason,
   Point,
@@ -139,6 +140,7 @@ export interface BattleIntent {
 }
 
 export type BattleCaseLocation = "floor" | "carried" | "handoff" | "queue" | "flying" | "consumed";
+export type BattleCaseFloorLocation = { area: "castle"; castleTeam: TeamId } | { area: "plaza" };
 
 export interface BattleCaseView {
   id: string;
@@ -146,6 +148,8 @@ export interface BattleCaseView {
   sourceTeam: TeamId;
   /** Team currently owning the case; independent from sourceTeam. */
   currentTeam: TeamId;
+  /** Physical floor, independent of ownership and immutable supply origin. */
+  floorLocation?: BattleCaseFloorLocation;
   weight: number;
   location: BattleCaseLocation;
   currentPosition?: FixedPoint;
@@ -628,6 +632,7 @@ function caseView(caseState: BattleCaseState, token?: string): BattleCaseView {
     type: caseState.type,
     sourceTeam: caseState.sourceTeam,
     currentTeam: caseState.currentTeam,
+    floorLocation: caseState.floorLocation ? { ...caseState.floorLocation } : undefined,
     weight: caseState.weight,
     location: caseState.location,
     currentPosition: casePosition(caseState),
@@ -646,9 +651,10 @@ function caseView(caseState: BattleCaseState, token?: string): BattleCaseView {
 }
 
 function caseToken(state: BattleState, actor: ActorState, candidates: BattleCaseState[]): string {
-  return [state.tick, actor.id, actor.generation, ...candidates.map((candidate) => {
+  return [state.tick, actor.id, actor.generation, actor.location.area, actor.location.castleTeam ?? "", ...candidates.map((candidate) => {
     const position = candidate.position ?? candidate.currentPosition;
-    return `${candidate.id}:${candidate.location}:${candidate.ownerGeneration ?? ""}:${candidate.currentTeam}:${position?.x ?? ""},${position?.y ?? ""}`;
+    const floor = caseFloorLocation(candidate);
+    return `${candidate.id}:${candidate.location}:${candidate.ownerGeneration ?? ""}:${candidate.currentTeam}:${floor.area}:${floor.area === "castle" ? floor.castleTeam : ""}:${position?.x ?? ""},${position?.y ?? ""}`;
   })].join("|");
 }
 
@@ -1347,7 +1353,7 @@ function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyO
     ? state.artillery.turrets[turretKey(actor.team, turretDefinition.id)]
     : undefined;
   const nearbyCases = Object.values(state.battleCases)
-    .filter((caseState) => caseState.location === "floor" && caseState.currentTeam === actor.team &&
+    .filter((caseState) => caseState.location === "floor" && caseSharesActorFloor(caseState, actor) &&
       caseState.roomId === actor.currentRoomId && caseState.position !== undefined &&
       withinActionRange(actorFixed(state, actor.id), caseState.position))
     .sort((left, right) => distanceSquared(actorFixed(state, actor.id), left.position!) -
@@ -1643,8 +1649,34 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
 
 function caseRoomPosition(state: BattleState, caseState: BattleCaseState): void {
   if (!caseState.position) return;
-  const room = roomForCell(state, caseState.currentTeam, readCell(caseState.position), caseState.roomId);
+  const floor = caseFloorLocation(caseState);
+  if (floor.area === "plaza") { caseState.roomId = "plaza"; return; }
+  const room = roomForCell(state, floor.castleTeam, readCell(caseState.position), caseState.roomId);
   if (room) caseState.roomId = room;
+}
+
+function caseFloorLocation(caseState: BattleCaseState): BattleCaseFloorLocation {
+  return caseState.floorLocation ?? { area: "castle", castleTeam: caseState.currentTeam };
+}
+
+function actorCaseFloorLocation(actor: ActorState): BattleCaseFloorLocation {
+  return actor.location.area === "plaza" ? { area: "plaza" }
+    : { area: "castle", castleTeam: actor.location.castleTeam ?? actor.team };
+}
+
+function actorEventLocation(state: BattleState, actor: ActorState, position = actorFixed(state, actor.id)): EventPhysicalLocation {
+  return { ...actorCaseFloorLocation(actor), positionSubunits: copyPoint(position) };
+}
+
+function caseOnCastleFloor(caseState: BattleCaseState, team: TeamId): boolean {
+  const floor = caseFloorLocation(caseState);
+  return floor.area === "castle" && floor.castleTeam === team;
+}
+
+function caseSharesActorFloor(caseState: BattleCaseState, actor: ActorState): boolean {
+  const floor = caseFloorLocation(caseState);
+  return floor.area === "plaza" ? actor.location.area === "plaza"
+    : actor.location.area === "castle" && actor.location.castleTeam === floor.castleTeam;
 }
 
 function reservationForCase(state: BattleState, objectId: string): Reservation | undefined {
@@ -1708,7 +1740,10 @@ function syncWorldObject(state: BattleState, caseState: BattleCaseState): void {
   } else if (caseState.location === "consumed") {
     object.location = { kind: "consumed", reason: "retired", tick: state.tick };
   } else {
-    object.location = { kind: "floor", team: caseState.currentTeam, roomId: caseState.roomId, position };
+    const floor = caseFloorLocation(caseState);
+    object.location = floor.area === "plaza"
+      ? { kind: "floor", area: "plaza", team: caseState.currentTeam, roomId: "plaza", position }
+      : { kind: "floor", team: floor.castleTeam, roomId: caseState.roomId, position };
   }
   state.objects[caseState.id] = object;
 }
@@ -1733,9 +1768,9 @@ function carryWeight(state: BattleState, actor: ActorState): number {
   return actor.cargoIds.reduce((sum, id) => sum + (state.battleCases[id]?.weight ?? 0), 0);
 }
 
-function setCaseFloor(state: BattleState, caseState: BattleCaseState, position: FixedPoint, team = caseState.currentTeam): void {
+function setCaseFloor(state: BattleState, caseState: BattleCaseState, position: FixedPoint, floor: BattleCaseFloorLocation): void {
   caseState.location = "floor";
-  caseState.currentTeam = team;
+  caseState.floorLocation = { ...floor };
   caseState.position = copyPoint(position);
   caseState.currentPosition = copyPoint(position);
   caseState.ownerActorId = undefined;
@@ -1776,6 +1811,7 @@ function applyActorKnockback(state: BattleState, attackerId: ActorId, targetId: 
 
 function setCaseCarried(state: BattleState, caseState: BattleCaseState, actor: ActorState, slot: number): void {
   caseState.location = "carried";
+  caseState.floorLocation = undefined;
   caseState.currentTeam = actor.team;
   caseState.position = undefined;
   caseState.currentPosition = copyPoint(actorFixed(state, actor.id));
@@ -2076,6 +2112,7 @@ function processRepairs(state: BattleState, events: WorldEvent[]): void {
 
 function setCaseHandoff(state: BattleState, caseState: BattleCaseState, turret: BattleTurretState, stagingSlot: 0 | 1): void {
   caseState.location = "handoff";
+  caseState.floorLocation = { area: "castle", castleTeam: turret.team };
   caseState.currentTeam = turret.team;
   caseState.position = copyPoint(turret.stagingPositions[stagingSlot]);
   caseState.currentPosition = copyPoint(turret.stagingPositions[stagingSlot]);
@@ -2092,6 +2129,7 @@ function setCaseHandoff(state: BattleState, caseState: BattleCaseState, turret: 
 
 function setCaseQueue(state: BattleState, caseState: BattleCaseState, turret: BattleTurretState): void {
   caseState.location = "queue";
+  caseState.floorLocation = undefined;
   caseState.currentTeam = turret.team;
   caseState.position = copyPoint(turret.position);
   caseState.currentPosition = copyPoint(turret.position);
@@ -2107,6 +2145,7 @@ function setCaseQueue(state: BattleState, caseState: BattleCaseState, turret: Ba
 
 function setCaseConsumed(state: BattleState, caseState: BattleCaseState, reason: string): void {
   caseState.location = "consumed";
+  caseState.floorLocation = undefined;
   caseState.position = undefined;
   caseState.currentPosition = undefined;
   caseState.ownerActorId = undefined;
@@ -2126,7 +2165,7 @@ function setCaseConsumed(state: BattleState, caseState: BattleCaseState, reason:
 }
 
 function totalFloorCasesInRoom(state: BattleState, team: TeamId, roomId: string): number {
-  return Object.values(state.battleCases).filter((item) => item.location === "floor" && item.currentTeam === team && item.roomId === roomId).length;
+  return Object.values(state.battleCases).filter((item) => item.location === "floor" && caseOnCastleFloor(item, team) && item.roomId === roomId).length;
 }
 
 function floorCaseSpawnPosition(state: BattleState, team: TeamId, roomId: string, preferred: FixedPoint): FixedPoint | undefined {
@@ -2137,7 +2176,7 @@ function floorCaseSpawnPosition(state: BattleState, team: TeamId, roomId: string
   ]);
   const occupied = new Set(
     Object.values(state.battleCases)
-      .filter((item) => item.location === "floor" && item.currentTeam === team && item.roomId === roomId && item.position)
+      .filter((item) => item.location === "floor" && caseOnCastleFloor(item, team) && item.roomId === roomId && item.position)
       .map((item) => `${item.position!.x},${item.position!.y}`),
   );
   const cells = layout.floorCells
@@ -2325,7 +2364,7 @@ function dropActorCargo(state: BattleState, actor: ActorState, events: WorldEven
   for (const objectId of [...actor.cargoIds]) {
     const caseState = state.battleCases[objectId];
     if (!caseState) continue;
-    setCaseFloor(state, caseState, actorFixed(state, actor.id), actor.team);
+    setCaseFloor(state, caseState, actorFixed(state, actor.id), actorCaseFloorLocation(actor));
     events.push(event("object_moved", { objectId, location: state.objects[objectId].location }));
   }
   actor.cargoIds = [];
@@ -2336,9 +2375,9 @@ function dropActorCargo(state: BattleState, actor: ActorState, events: WorldEven
 
 function pickCase(state: BattleState, actor: ActorState, caseState: BattleCaseState, events: WorldEvent[], requestedSlot?: number): boolean {
   if (caseState.location !== "floor" && caseState.location !== "handoff") return false;
-  if (actor.location.area !== "castle" || actor.location.castleTeam !== actor.team || caseState.currentTeam !== actor.team) return false;
+  if (!caseSharesActorFloor(caseState, actor)) return false;
   if (!caseState.position || !withinActionRange(actorFixed(state, actor.id), caseState.position)) return false;
-  if (!hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), caseState.position)) return false;
+  if (!hasPhysicalLineOfSight(state, actor, actorFixed(state, actor.id), caseState.position)) return false;
   if (!canCarry(carryWeight(state, actor), caseState.weight, actor.cargoIds.length)) return false;
   const slots = state.cargoSlots[actor.id] ?? [null, null];
   const slot = requestedSlot === undefined ? slots.findIndex((entry) => entry === null) : requestedSlot;
@@ -2346,7 +2385,8 @@ function pickCase(state: BattleState, actor: ActorState, caseState: BattleCaseSt
   // Validate the requested cargo slot before mutating the physical handoff
   // registry. A rejected press must not make a staged case disappear.
   if (caseState.location === "handoff" && caseState.turretId) {
-    const turret = state.artillery.turrets[turretKey(caseState.currentTeam, caseState.turretId)];
+    const floor = caseFloorLocation(caseState);
+    const turret = floor.area === "castle" ? state.artillery.turrets[turretKey(floor.castleTeam, caseState.turretId)] : undefined;
     const stagingSlot = caseState.stagingSlot;
     if (!turret || stagingSlot === undefined || turret.stagingSlots[stagingSlot] !== caseState.id) return false;
     removeFromArray(turret.handoffIds, caseState.id);
@@ -2586,8 +2626,8 @@ function interactionCandidates(state: BattleState, actor: ActorState): BattleCas
   return Object.values(state.battleCases).filter((candidate) => {
     if (candidate.location === "consumed" || candidate.location === "flying" || candidate.location === "queue") return false;
     if (candidate.ownerActorId === actor.id) return candidate.ownerGeneration === actor.generation;
-    if (actor.location.area !== "castle" || actor.location.castleTeam !== actor.team || candidate.currentTeam !== actor.team) return false;
-    return !!candidate.position && withinActionRange(actorPosition, candidate.position) && hasFloorLineOfSight(state, actor.team, actorPosition, candidate.position);
+    if (!caseSharesActorFloor(candidate, actor)) return false;
+    return !!candidate.position && withinActionRange(actorPosition, candidate.position) && hasPhysicalLineOfSight(state, actor, actorPosition, candidate.position);
   }).sort((left, right) => left.id.localeCompare(right.id));
 }
 
@@ -2675,7 +2715,7 @@ function handleIntent(
     }
     removeFromArray(actor.cargoIds, candidate.id);
     clearCargoSlot(state, actor.id, candidate.id);
-    setCaseFloor(state, candidate, actorFixed(state, actor.id), actor.team);
+    setCaseFloor(state, candidate, actorFixed(state, actor.id), actorCaseFloorLocation(actor));
     events.push(event("object_moved", { objectId: candidate.id, location: state.objects[candidate.id].location }));
   } else if (intent.handle === "deliver") {
     const selectedId = state.cargoSlots[actor.id]?.[slot] ?? null;
@@ -3159,7 +3199,7 @@ function actorTargetPath(state: BattleState, actor: ActorState, target: FixedPoi
 
 function chooseCarrierCase(state: BattleState, actor: ActorState): BattleCaseState | undefined {
   const candidates = Object.values(state.battleCases).filter((item) => {
-    if (item.location !== "floor" || item.currentTeam !== actor.team) return false;
+    if (item.location !== "floor" || !caseSharesActorFloor(item, actor)) return false;
     if (actor.role !== "ammo_carrier") return true;
     const port = state.logistics.ports[portKey(actor.team, item.sourcePortId)];
     return port?.roomId === actor.homeRoomId;
@@ -3291,7 +3331,7 @@ function markDeathIfNeeded(state: BattleState, events: WorldEvent[]): void {
     actor.turretControlIds = [];
     resetAssignment(state, actor.id);
     if (actor.team === ENEMY_TEAM) delete state.enemyDecisions[actor.id];
-    events.push(event("actor_died", { actorId: actor.id, generation: actor.generation, respawnAtTick: actor.respawnAtTick }));
+    events.push(event("actor_died", { actorId: actor.id, generation: actor.generation, respawnAtTick: actor.respawnAtTick, physicalLocation: actorEventLocation(state, actor) }));
   }
 }
 
@@ -3317,7 +3357,7 @@ function finishRespawns(state: BattleState, events: WorldEvent[]): void {
     setActorFixed(state, actor, { x: cellCenter(pad.cell.x), y: cellCenter(pad.cell.y) });
     state.fixedActors[actor.id].remainder = { x: 0, y: 0 };
     resetAssignment(state, actor.id);
-    events.push(event("actor_respawned", { actorId: actor.id, generation: actor.generation, tick: state.tick }));
+    events.push(event("actor_respawned", { actorId: actor.id, generation: actor.generation, tick: state.tick, physicalLocation: actorEventLocation(state, actor) }));
   }
 }
 
@@ -3600,11 +3640,17 @@ function applyR2bBridge(
       ) as [string | null, string | null];
     }
     for (const bridgedEvent of bridgedReport.events) {
+      if ((bridgedEvent.type === "actor_damaged" || bridgedEvent.type === "actor_died") && bridgedEvent.actorId === contactEvidence.targetActorId) {
+        bridgedEvent.physicalLocation = actorEventLocation(state, contactTarget!, contactTargetPosition);
+      }
       if (bridgedEvent.type !== "object_moved" || !contactCargoBefore.has(bridgedEvent.objectId)) continue;
       const caseState = state.battleCases[bridgedEvent.objectId];
       if (!caseState || bridgedEvent.location.kind !== "floor") continue;
       clearCargoSlot(state, contactEvidence.targetActorId, bridgedEvent.objectId);
-      setCaseFloor(state, caseState, contactTargetPosition, bridgedEvent.location.team);
+      setCaseFloor(state, caseState, contactTargetPosition, actorCaseFloorLocation(contactTarget!));
+      // Publish the same physical area and pre-knockback floor position as
+      // the final object projection, including plaza drops.
+      bridgedEvent.location = structuredClone(state.objects[caseState.id].location);
     }
     applyActorKnockback(state, contactEvidence.actorId, contactEvidence.targetActorId);
   }
@@ -3618,6 +3664,7 @@ function applyR2bBridge(
       position: { x: cellCenter(actor.position.x), y: cellCenter(actor.position.y) },
       remainder: { x: 0, y: 0 },
     };
+    bridgedEvent.physicalLocation = actorEventLocation(state, actor);
   }
 }
 

@@ -7,7 +7,8 @@
   "review": {
     "reviewer": "Codex",
     "date": "2026-09-27",
-    "scope": "All 22 outputs visually inspected for subject, shape, text absence and intended transparency. Gameplay counts and state are drawn from code, not inferred from art."
+    "scope": "All 22 outputs visually inspected for subject, shape, text absence and intended transparency. Gameplay counts and state are drawn from code, not inferred from art.",
+    "stage_revision_2": "2026-09-26: visually checked two foreground fortresses, no third castle or distant village; not used as live state geometry."
   },
   "assets": [
     {
@@ -308,18 +309,25 @@
       "id": "stage",
       "prompt_id": "stage",
       "prompt_file": "docs/ART_GENERATION_PROMPTS.json",
-      "source_file": "exec-2a43ee94-9ce6-41bc-8bab-6055e5a7a17f.png",
-      "source_sha256": "d8f1d54c68517904b49bd002794d259005b51431de1072a0cc4c5a71b8304cc8",
-      "runtime_file": "public/assets/generated/stage.webp",
+      "source_file": "exec-d7b51319-0412-416a-a2df-95790059b515.png",
+      "source_sha256": "1b9c92416bd42a4aef457050891687b41b78d8686e1a1f5fc1567e17409414ac",
+      "runtime_file": "public/assets/generated/stage-v2.webp",
       "transparent_expected": false,
-      "runtime_sha256": "e145ccbd6430b17a49b6e9f31ded8ccda13170188ef4c69835e9ca51d6e2d3cf",
-      "bytes": 178370,
+      "runtime_sha256": "049609e1a8fcf308da0b3aa791ded73f946ef5a2a3b1edaec41389d8c8b7823e",
+      "bytes": 204214,
       "width": 1200,
       "height": 600,
-      "has_alpha": false
+      "has_alpha": false,
+      "revision": 2,
+      "edit_reference": {
+        "source_file": "exec-2a43ee94-9ce6-41bc-8bab-6055e5a7a17f.png",
+        "source_sha256": "d8f1d54c68517904b49bd002794d259005b51431de1072a0cc4c5a71b8304cc8",
+        "runtime_sha256": "e145ccbd6430b17a49b6e9f31ded8ccda13170188ef4c69835e9ca51d6e2d3cf"
+      },
+      "revision_reason": "Remove the distant third castle and village; use this decorative two-fortress artwork only outside the live battlefield."
     }
   ],
-  "total_runtime_bytes": 577306,
+  "total_runtime_bytes": 603150,
   "conversion": {
     "engine": "sharp",
     "version": "0.35.4",

@@ -93,8 +93,8 @@ test('enemy projectile sprites face left and interception flashes use tracked ro
   const { canvas, scales, arcs } = canvasHarness();
   const initial = createBattle({ matchId: 'renderer-flight-direction', seed: 37 });
   initial.artillery.flights = {
-    playerFlight: { id: 'playerFlight', objectId: 'caseP', team: 'player', route: 'detour', progress: 0.2 } as BattleState['artillery']['flights'][string],
-    enemyFlight: { id: 'enemyFlight', objectId: 'caseE', team: 'enemy', route: 'detour', progress: 0.7 } as BattleState['artillery']['flights'][string],
+    playerFlight: { id: 'playerFlight', objectId: 'caseP', team: 'player', route: 'detour', progress: 0.2, distanceUnits: 1000, speedUnitsPerSecond: 4500 } as BattleState['artillery']['flights'][string],
+    enemyFlight: { id: 'enemyFlight', objectId: 'caseE', team: 'enemy', route: 'detour', progress: 0.7, distanceUnits: 1000, speedUnitsPerSecond: 4500 } as BattleState['artillery']['flights'][string],
   };
   initial.battleCases.caseP = { id: 'caseP', type: 'fast_dart' } as BattleState['battleCases'][string];
   initial.battleCases.caseE = { id: 'caseE', type: 'fast_dart' } as BattleState['battleCases'][string];
@@ -117,7 +117,39 @@ test('enemy projectile sprites face left and interception flashes use tracked ro
   const expectedX = 43 + (360 - 86) * 0.25;
   const expectedY = 43.2 * 0.72;
   assert.ok(arcs.some(([x, y, radius]) => Math.abs(x - expectedX) < 0.01 && Math.abs(y - expectedY) < 0.01 && radius >= 7),
-    'the impact ring is on the tracked detour lane at the midpoint of the opposing flight positions');
+    'the impact ring is on the detour lane at the fixed-step route crossing progress');
+});
+
+test('observeStep preserves an earlier hit anchor when two fixed steps render in one frame', () => {
+  const { canvas, arcs } = canvasHarness();
+  const initial = createBattle({ matchId: 'renderer-batched-events', seed: 39 });
+  initial.actors.P1.location = { area: 'plaza', pathRooms: [], pathGates: [] };
+  initial.actors.P1.currentRoomId = 'plaza';
+  initial.fixedActors.P1.position = { x: 70_000, y: 35_000 };
+  const render = createBattleRenderer(canvas, initial);
+
+  const first = structuredClone(initial);
+  first.tick = 1;
+  first.lastStep = {
+    processedTick: 0,
+    advanced: true,
+    acceptedInputKinds: [],
+    rejected: [],
+    events: [{ type: 'actor_damaged', actorId: 'P1', amount: 1, physicalLocation: { area: 'plaza', positionSubunits: { x: 60_000, y: 35_000 } } }],
+  };
+  render.observeStep(first);
+
+  const second = structuredClone(first);
+  second.tick = 2;
+  second.fixedActors.P1.position = { x: 70_000, y: 35_000 };
+  second.lastStep = { processedTick: 1, advanced: true, acceptedInputKinds: [], rejected: [], events: [] };
+  render.observeStep(second);
+  render(second, 'P1');
+
+  const impactX = 67.5;
+  const impactY = 113.4;
+  assert.ok(arcs.some(([x, y, radius]) => Math.abs(x - impactX) < 0.02 && Math.abs(y - impactY) < 0.02 && radius > 3),
+    'the first step hit remains at its captured plaza position after the actor has moved and a second step ran');
 });
 
 test('tick-based hit effects stay fixed when a paused snapshot is rendered repeatedly', () => {

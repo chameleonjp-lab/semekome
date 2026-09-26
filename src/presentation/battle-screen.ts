@@ -2,11 +2,13 @@ import { createBattle, getInteraction, getPlayerSupplyPreview, pauseBattle, resu
 import type { BattleEquipmentKind, BattleHandle, BattleIntent, BattleRoute } from '../simulation/physical-battle.ts';
 import { CASE_TYPES, SUPPLY_BAG, type CaseType } from '../content/cases.ts';
 import { PART_IDS } from '../domain/types.ts';
-import type { PartId } from '../domain/types.ts';
+import type { PartId, TeamId } from '../domain/types.ts';
 import { bindMovement } from '../input/battle-input.ts';
 import { SessionClock, validatePlayerName } from '../input/session-clock.ts';
 import { validateSupplyAllocation } from '../logistics/supply-schedule.ts';
 import { GAME_ART_URLS } from './game-art.ts';
+import { bindArtImageFallbacks, setArtImageSource, setArtImageVisible } from './art-fallback.ts';
+import { actorStatusName, battleHint, battleMapLabel, partDisplayName } from './battle-hud.ts';
 import { caseLabels, createBattleRenderer } from './battle-renderer.ts';
 import './battle.css';
 
@@ -54,7 +56,8 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
     <p id="name-hint">前後の空白は取り除きます。名前の外部送信は行いません。</p><p id="name-error" role="alert"></p>
     <section class="supply-setup" aria-labelledby="supply-setup-title"><h2 id="supply-setup-title">補給の編成</h2><p>使う種類を4つ選び、合計8個にします。標準配分をそのまま使うこともできます。</p><div class="supply-allocation">${supplyAllocationRows()}</div><p id="supply-summary" aria-live="polite"></p><p id="supply-error" aria-live="polite"></p></section>
     <button type="submit" class="primary">確認を開始する</button><button type="button" id="cancel-setup">ホームへ戻る</button></form>
-    <p class="scope-note">今回は運搬・砲撃・外装修理・設備修理まで。広場の戦い・敵陣への侵入・核攻撃・結果とランキングは未実装です。</p></section>`;
+    <p class="scope-note">今回は運搬・砲撃・外装修理・設備修理の操作確認版です。広場への移動や敵AIの戦闘は進みますが、主人公の近接攻撃操作、通常戦の開始導線・結果画面・ランキングには未接続です。</p></section>`;
+  bindArtImageFallbacks(app);
   const input = app.querySelector<HTMLInputElement>('#player-name')!;
   const supplyError = app.querySelector<HTMLElement>('#supply-error')!;
   refreshSupplyAllocationSummary(app);
@@ -62,7 +65,7 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
     control.addEventListener('change', () => {
       if (control.matches('[data-supply-type]')) {
         const art = control.closest('.supply-row')?.querySelector<HTMLImageElement>('[data-supply-art]');
-        if (art) art.src = GAME_ART_URLS[control.value as CaseType];
+      if (art) setArtImageSource(art, GAME_ART_URLS[control.value as CaseType]);
       }
       refreshSupplyAllocationSummary(app);
       supplyError.textContent = '';
@@ -112,10 +115,10 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     <div class="battle-map"><canvas aria-label="あなたを中心とした自陣の城内と、直通・迂回の砲撃経路"></canvas><span class="current-room"></span></div>
     <p class="battle-hint" aria-live="polite">上の弾薬庫Aへ。弾の近くで「弾を拾う」。</p>
     <div class="cargo-controls" aria-label="所持する弾"><button data-slot="0" aria-pressed="true"><img class="cargo-icon" alt="" hidden><span class="cargo-label">左：空</span></button><button data-slot="1" aria-pressed="false"><img class="cargo-icon" alt="" hidden><span class="cargo-label">右：空</span></button></div>
-    <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled><img class="action-icon" alt="" hidden><span class="action-label">弾に近づく</span></button><button id="battle-drop" disabled><img class="drop-icon" src="${GAME_ART_URLS.supply}" alt="" aria-hidden="true"><span>選択中の弾を置く</span></button></div></div>
-    <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵外装 ${id}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><button id="battle-help" aria-label="操作説明">?</button></div>
+    <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled><img class="action-icon" alt="" hidden><span class="action-label">弾に近づく</span></button><button id="battle-drop" disabled><span class="drop-icon" aria-hidden="true">↓</span><span>選択中の弾を置く</span></button></div></div>
+    <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵 ${partDisplayName(id)}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><button id="battle-help" aria-label="操作説明">?</button></div>
     <div class="battle-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div><p id="overlay-title" class="overlay-title" role="status">開始まで</p><strong class="countdown-number">3</strong><p class="overlay-description">左のパッドで移動・右のボタンで弾を扱う</p><button id="resume-battle" class="primary" hidden>再開する</button><button id="leave-battle">準備を中止する</button></div></div>
-    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">運搬・砲撃・修理</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>上の弾薬庫Aで、床の弾に近づいて拾います。</li><li>通路を通って隣の砲撃室Aへ。砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動・近接戦・核攻撃は次段階です。外装7部位が壊れても勝利ではありません。</p></div></dialog></section>`;
+    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">運搬・砲撃・修理</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>弾薬庫で、床の弾に近づいて拾います。敵陣や広場の床弾も拾えます。</li><li>弾を砲台へ運び、受け渡し枠へ渡すか砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>自陣の修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動と敵AIの戦闘は進みます。主人公の近接攻撃操作と通常戦の勝敗結果画面・ランキングは未接続です。外装7部位を壊しただけでは勝敗は決まりません。</p></div></dialog></section>`;
   const screen = app.querySelector<HTMLElement>('.battle')!;
   screen.dataset.matchId = state.matchId;
   app.querySelector('.player-label')!.textContent = name;
@@ -133,9 +136,12 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   const help = app.querySelector<HTMLDialogElement>('.battle-help-dialog')!;
   const equipmentTargetControl = app.querySelector<HTMLElement>('#equipment-target-control')!;
   const equipmentTargetSelect = app.querySelector<HTMLSelectElement>('#equipment-target')!;
+  const routeToggle = app.querySelector<HTMLButtonElement>('#route-toggle')!;
+  const targetPartSelect = app.querySelector<HTMLSelectElement>('#target-part')!;
   const supplyPreviewItems = app.querySelector<HTMLElement>('.supply-preview-items')!;
   const actionIcon = action.querySelector<HTMLImageElement>('.action-icon')!;
   const actionLabel = action.querySelector<HTMLElement>('.action-label')!;
+  bindArtImageFallbacks(screen);
   screen.dataset.playerSupplyAllocation = state.logistics.playerAllocation.join(',');
   let lastHud = '';
   let overlayWasVisible: boolean | null = null;
@@ -160,13 +166,14 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     for (const child of screen.children) {
       if (child instanceof HTMLElement && child !== overlay && child !== help) child.inert = !overlay.hidden;
     }
+    movement.setEnabled(canInteract() && state.actors.P1.alive);
     if (overlayWasVisible !== !overlay.hidden) {
       overlayWasVisible = !overlay.hidden;
       if (!help.open) (overlay.hidden ? app.querySelector<HTMLButtonElement>('#pause-battle')! : resume.hidden ? leave : resume).focus({ preventScroll: true });
     }
   };
   const queueAction = (handle: BattleHandle) => {
-    if (paused || countdown > 0 || state.phase !== 'running' || pending) return;
+    if (paused || countdown > 0 || state.phase !== 'running' || !state.actors.P1.alive || pending) return;
     const interaction = getInteraction(state, 'P1', slot);
     if (!interaction.handles.includes(handle)) return;
     const target = handle === 'repair' && equipmentTargetSelect.value
@@ -194,17 +201,17 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     button.addEventListener('click', event => { if (event.detail === 0) trigger(); }, options);
   }
   for (const button of app.querySelectorAll<HTMLButtonElement>('[data-slot]')) button.addEventListener('click', () => {
-    if (!canInteract()) return;
+    if (!canInteract() || !state.actors.P1.alive) return;
     slot = Number(button.dataset.slot); lastHud = '';
   }, options);
-  app.querySelector('#route-toggle')!.addEventListener('click', event => {
-    if (!canInteract()) return;
+  routeToggle.addEventListener('click', event => {
+    if (!canInteract() || !state.actors.P1.alive) return;
     route = route === 'direct' ? 'detour' : 'direct';
     (event.currentTarget as HTMLButtonElement).textContent = `経路：${route === 'direct' ? '直通' : '迂回'}`;
   }, options);
-  app.querySelector<HTMLSelectElement>('#target-part')!.addEventListener('change', event => { if (canInteract()) part = (event.target as HTMLSelectElement).value as PartId; }, options);
+  targetPartSelect.addEventListener('change', event => { if (canInteract() && state.actors.P1.alive) part = (event.target as HTMLSelectElement).value as PartId; }, options);
   equipmentTargetSelect.addEventListener('change', event => {
-    if (!canInteract()) return;
+    if (!canInteract() || !state.actors.P1.alive) return;
     const [kind, id] = (event.target as HTMLSelectElement).value.split(':');
     equipmentTarget = kind && id ? { kind: kind as BattleEquipmentKind, id } : undefined;
   }, options);
@@ -243,8 +250,9 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     const nearest = interaction.cases.find(item => item.id === interaction.pickupCaseId);
     const supplyPreview = getPlayerSupplyPreview(state);
     const equipmentTargetsSignature = interaction.equipmentRepairTargets.map(target => `${target.kind}:${target.id}:${target.health}:${target.disabledUntilTick}`);
-    const signature = JSON.stringify([Math.floor(state.tick / 60), actor.currentRoomId, available, nearest?.id, cargo.map(item => item?.id), slot, equipmentTargetsSignature, state.logistics.bagCycles.player, state.logistics.bagIndices.player, supplyPreview, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health])]);
+    const signature = JSON.stringify([Math.floor(state.tick / 60), actor.alive, actor.location, actor.currentRoomId, actor.respawnAtTick, canInteract(), paused, countdown > 0, state.phase, state.visibility, available, nearest?.id, cargo.map(item => item?.id), slot, equipmentTargetsSignature, state.logistics.bagCycles.player, state.logistics.bagIndices.player, supplyPreview, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health])]);
     screen.dataset.tick = String(state.tick); screen.dataset.phase = countdown ? 'countdown' : paused ? 'paused' : state.phase;
+    screen.dataset.spectating = String(!actor.alive);
     screen.dataset.playerX = String(state.fixedActors.P1.position.x); screen.dataset.playerY = String(state.fixedActors.P1.position.y);
     screen.dataset.playerOperatedLaunches = String(playerOperatedLaunches);
     screen.dataset.playerSupplyPreview = supplyPreview.join(',');
@@ -254,55 +262,61 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     app.querySelector('.battle-time')!.textContent = `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
     supplyPreviewItems.replaceChildren(...supplyPreview.map(type => {
       const item = document.createElement('span'); item.className = 'supply-preview-item'; item.dataset.caseType = type;
-      const image = document.createElement('img'); image.src = GAME_ART_URLS[type]; image.alt = ''; image.setAttribute('aria-hidden', 'true');
+      const image = document.createElement('img'); image.alt = ''; image.setAttribute('aria-hidden', 'true'); setArtImageSource(image, GAME_ART_URLS[type]);
       const label = document.createElement('span'); label.textContent = caseLabels[type];
       item.append(image, label); return item;
     }));
-    action.disabled = !available; action.dataset.handle = available ?? '';
+    action.disabled = !canInteract() || !actor.alive || !available; action.dataset.handle = available ?? '';
     actionLabel.textContent = available === 'pickup' && nearest ? `${caseLabels[nearest.type]}を拾う` : available ? actionLabels[available] : '弾に近づく';
     const actionArt = available === 'pickup' && nearest ? nearest.type
       : available === 'repair' ? 'repair'
         : available === 'deliver' || available === 'load' ? 'turret'
           : undefined;
-    actionIcon.hidden = !actionArt;
-    if (actionArt) actionIcon.src = GAME_ART_URLS[actionArt];
-    drop.disabled = !cargo[slot] || !interaction.handles.includes('drop');
+    setArtImageVisible(actionIcon, Boolean(actionArt));
+    if (actionArt) setArtImageSource(actionIcon, GAME_ART_URLS[actionArt]);
+    drop.disabled = !canInteract() || !actor.alive || !cargo[slot] || !interaction.handles.includes('drop');
     for (const button of app.querySelectorAll<HTMLButtonElement>('[data-slot]')) {
       const index = Number(button.dataset.slot); const item = cargo[index];
       const type = item ? state.battleCases[item.id]?.type : undefined;
       const icon = button.querySelector<HTMLImageElement>('.cargo-icon')!;
       const label = button.querySelector<HTMLElement>('.cargo-label')!;
       label.textContent = `${index === 0 ? '左' : '右'}：${type ? caseLabels[type] ?? type : '空'}`;
-      icon.hidden = !type;
-      if (type) icon.src = GAME_ART_URLS[type];
+      setArtImageVisible(icon, Boolean(type));
+      if (type) setArtImageSource(icon, GAME_ART_URLS[type]);
+      button.disabled = !canInteract() || !actor.alive;
       button.setAttribute('aria-pressed', String(index === slot));
     }
-    const room = state.layout.home.rooms.find(item => item.id === actor.currentRoomId);
-    app.querySelector('.current-room')!.textContent = room?.label ?? '通路';
-    equipmentTargetControl.hidden = actor.currentRoomId !== 'repair' || interaction.equipmentRepairTargets.length === 0;
+    app.querySelector('.current-room')!.textContent = actorStatusName(state, actor);
+    canvas.setAttribute('aria-label', battleMapLabel(state, actor));
+    equipmentTargetControl.hidden = actor.location.area !== 'castle' || actor.location.castleTeam !== actor.team || actor.currentRoomId !== 'repair' || interaction.equipmentRepairTargets.length === 0;
     const availableTargetValues = new Set(interaction.equipmentRepairTargets.map(target => `${target.kind}:${target.id}`));
     equipmentTargetSelect.replaceChildren(new Option('外装を修理', ''));
     for (const target of interaction.equipmentRepairTargets) equipmentTargetSelect.add(new Option(`${target.kind === 'turret' ? '砲台' : '補給口'} ${target.id}：${target.health}/${state.rules.equipmentRepairHealth}`, `${target.kind}:${target.id}`));
     const selectedTarget = equipmentTarget && availableTargetValues.has(`${equipmentTarget.kind}:${equipmentTarget.id}`) ? `${equipmentTarget.kind}:${equipmentTarget.id}` : '';
     equipmentTargetSelect.value = selectedTarget;
     equipmentTarget = selectedTarget ? equipmentTarget : undefined;
-    app.querySelector('.battle-hint')!.textContent = available === 'repair' ? '修理室で外装または設備を選び、弾を修理へ回します。' : available === 'load' ? '装填後は、操作位置で待つと自動発射します。' : cargo.some(Boolean) ? '選んだ弾を砲台へ。弾薬庫の隣が砲撃室です。' : actor.currentRoomId === 'central_corridor' ? '上の弾薬庫Aへ。広場への移動は次段階です。' : '床の弾に近づいて拾う → 隣の砲台へ運ぶ。';
+    app.querySelector('.battle-hint')!.textContent = battleHint(state, actor, available, cargo.some(Boolean), interaction.handles.includes('drop'));
     for (const team of ['player', 'enemy'] as const) {
       const card = app.querySelector<HTMLElement>(`[data-team="${team}"]`)!;
       card.querySelector('.battle-gates')!.textContent = `門 ${state.castles[team].openGateIds.length}/7`;
       for (const id of PART_IDS) {
         const armor = state.castles[team].exterior[id]; const bar = card.querySelector<HTMLElement>(`[data-part="${id}"]`)!;
         bar.style.transform = `scaleX(${armor.health / armor.maxHealth})`;
-        bar.title = `${id} 耐久${armor.health}/${armor.maxHealth}`;
+        bar.title = `${partDisplayName(id)} 耐久${armor.health}/${armor.maxHealth}`;
         bar.setAttribute('role', 'img'); bar.setAttribute('aria-label', bar.title);
       }
       card.setAttribute('aria-label', `${team === 'player' ? '自陣' : '敵陣'}、外装${state.castles[team].destroyedPartIds.length}部位破壊、${state.castles[team].openGateIds.length}門開放`);
     }
     for (const option of app.querySelectorAll<HTMLOptionElement>('#target-part option')) {
-      const targetTeam = actor.currentRoomId === 'repair' ? '自' : '敵';
-      const targetArmor = state.castles[targetTeam === '自' ? 'player' : 'enemy'].exterior[option.value as PartId];
-      option.textContent = `${targetTeam} ${option.value}：${targetArmor.health}/${targetArmor.maxHealth}`;
+      const targetTeam: TeamId = actor.location.area === 'castle' && actor.location.castleTeam === actor.team && actor.currentRoomId === 'repair'
+        ? actor.team
+        : actor.team === 'player' ? 'enemy' : 'player';
+      const targetArmor = state.castles[targetTeam].exterior[option.value as PartId];
+      option.textContent = `${targetTeam === 'player' ? '自陣' : '敵陣'} ${partDisplayName(option.value as PartId)}：${targetArmor.health}/${targetArmor.maxHealth}`;
     }
+    routeToggle.disabled = !canInteract() || !actor.alive;
+    targetPartSelect.disabled = !canInteract() || !actor.alive;
+    equipmentTargetSelect.disabled = !canInteract() || !actor.alive;
   };
   const loop = (now: number) => {
     if (disposed) return;
@@ -313,7 +327,11 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
         if (countdown > 0) { countdown--; if (countdown === 0) clearInput(); }
         else {
           const intent: BattleIntent = { ...pending, matchId: state.matchId, actorId: 'P1', generation: pending?.generation ?? state.actors.P1.generation, direction: movement.direction(), slot: pending?.slot ?? slot, route: pending?.route ?? route, part: pending?.part ?? part };
-          pending = undefined; state = stepBattle(state, intent);
+          pending = undefined;
+          const wasAlive = state.actors.P1.alive;
+          state = stepBattle(state, intent);
+          render.observeStep(state);
+          if (wasAlive && !state.actors.P1.alive) { clearInput(); movement.setEnabled(false); lastHud = ''; }
           playerOperatedLaunches += state.lastStep.events.filter(event => event.type === 'projectile_launched' && event.sourceActorId === 'P1').length;
         }
       }

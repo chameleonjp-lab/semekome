@@ -4,8 +4,8 @@ import { ACTOR_RADIUS_SUBUNITS, FLOOR_SUBUNITS } from "./movement.ts";
 
 /**
  * These helpers are physical geometry only. Callers handling a case must
- * first enforce actor.location.castleTeam === caseState.currentTeam; a point
- * being walkable in one castle is not an ownership or interaction permission.
+ * first enforce the actor and case share the same physical floorLocation;
+ * a walkable point is not an ownership or interaction permission.
  */
 
 /** The action range used by interaction and the approach-point helpers. */

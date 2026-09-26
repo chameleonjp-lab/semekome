@@ -6,8 +6,10 @@ test('ホームからルールを閉じ、配置を確認してホームへ戻�
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'セメコメ', exact: true })).toBeVisible();
-  await expect(page.getByText('対戦はまだ遊べません。', { exact: false })).toBeVisible();
-  await expect(page.locator('.home-art')).toHaveAttribute('src', /stage\.webp/);
+  await expect(page.locator('.home-notice')).toContainText('操作確認版');
+  await expect(page.locator('.home-notice')).toContainText('通常戦の開始導線・勝敗結果・ランキングには未接続');
+  await expect(page.locator('.home-art')).toHaveAttribute('src', /stage-v2\.webp/);
+  await expect.poll(() => page.locator('.home-art').evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0)).toBe(true);
   await page.getByRole('button', { name: 'ルール説明' }).click();
   await expect(page.getByRole('dialog')).toBeVisible();
   const dialogBox = (await page.getByRole('dialog').boundingBox())!;

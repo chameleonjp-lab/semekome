@@ -195,7 +195,8 @@ test("R2b actor contact applies one common-world damage and physical knockback",
   assert.deepEqual(next.fixedActors.E29.position, { x: 50_600, y: 57_500 });
   assert.equal(next.lastStep.acceptedInputKinds.includes("bridge:actor_contact"), true);
   assert.deepEqual(next.lastStep.events.filter((event) => event.type === "actor_damaged"), [
-    { type: "actor_damaged", actorId: "E29", amount: 1 },
+    { type: "actor_damaged", actorId: "E29", amount: 1,
+      physicalLocation: { area: "castle", castleTeam: "enemy", positionSubunits: target } },
   ]);
 });
 

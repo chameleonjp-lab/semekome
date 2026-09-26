@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
-import { GAME_ART_NAMES } from '../../src/presentation/game-art.ts';
+import { GAME_ART_NAMES, GAME_ART_URLS, type GameArtName } from '../../src/presentation/game-art.ts';
 
 test('every registered game image ships with matching content and transparent sprites', () => {
   const root = new URL('../../', import.meta.url);
@@ -10,6 +10,7 @@ test('every registered game image ships with matching content and transparent sp
   assert.deepEqual(register.assets.map((a: { id: string }) => a.id).sort(), [...GAME_ART_NAMES].sort());
   let total = 0;
   for (const asset of register.assets) {
+    assert.equal(`public${GAME_ART_URLS[asset.id as GameArtName]}`, asset.runtime_file, `${asset.id} runtime URL must match the verified file`);
     const bytes = readFileSync(new URL(asset.runtime_file, root));
     assert.equal(bytes.toString('ascii', 0, 4), 'RIFF', asset.id);
     assert.equal(bytes.toString('ascii', 8, 12), 'WEBP', asset.id);

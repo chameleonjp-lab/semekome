@@ -1,5 +1,13 @@
 # 実装担当への引き継ぎ / 第5版
 
+## PR #34後の素材・挙動整合監査
+
+今回の変更は `../../ART_BEHAVIOR_AUDIT.md` と `../../ART_BEHAVIOR_REVIEW.md` を参照する。荷物の `currentTeam`（所有）と `floorLocation`（自城・敵城・広場の所在）を混同しない。共通floor投影ではteamが所在城、areaがplazaなら城床から除く。生成元・グループ上限は盗取しても移し替えない。通常drop・被弾・討伐の全経路と、イベント側の所在を合わせる。
+
+敵の視認は `actorVisibleToPlayer`、観測済み討伐は描画側のID/世代集合が担当する。画面とミニマップで同じ視認条件を使い、未発見室の敵や未観測の死亡印を公開しない。
+
+`stage-v2.webp` は第三城を除いたホーム用の装飾。ライブ戦場の城と破壊状態は必ずコード座標から描く。検査結果は `../../TEST_REPORT.md` を正とし、通常戦導線・結果・ランキングや実機まで完成したと解釈しない。
+
 ## Draft PR：表示要素一覧・22画像の生成と個別実装（2026-09-27 JST）
 
 `../../VISUAL_ASSET_INVENTORY.md` に全表示要素と接続状況を整理した。`public/assets/generated/` の22個別WebPは、人物6種、設備5種、弾8種、床・ステージ・効果で構成する。`../../ART_ASSET_REGISTER.json` と `../../ART_GENERATION_PROMPTS.json` に生成指示・元画像の識別子とハッシュ・変換条件・実装素材を対応付ける。

@@ -17,7 +17,7 @@ const viteBase = (import.meta as ImportMeta & { env?: { BASE_URL?: string } }).e
 const basePath = viteBase.endsWith('/') ? viteBase : `${viteBase}/`;
 
 export const GAME_ART_URLS: Readonly<Record<GameArtName, string>> = Object.freeze(
-  Object.fromEntries(GAME_ART_NAMES.map((name) => [name, `${basePath}assets/generated/${name}.webp`])) as Record<GameArtName, string>,
+  Object.fromEntries(GAME_ART_NAMES.map((name) => [name, `${basePath}assets/generated/${name === 'stage' ? 'stage-v2' : name}.webp`])) as Record<GameArtName, string>,
 );
 
 export function gameArtUrl(name: GameArtName): string {
@@ -79,4 +79,3 @@ export function drawGameArt(
 export function requestGameArtLoad(): void {
   for (const name of GAME_ART_NAMES) getGameArt(name);
 }
-
