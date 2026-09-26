@@ -13,13 +13,14 @@
 .supply-row label { min-width: 0; }
 .supply-type-picker { display: flex !important; align-items: center; gap: 5px; }
 .supply-type-picker img { flex: 0 0 42px; width: 42px; height: 42px; object-fit: contain; }
+.supply-type-picker .art-image-fallback { flex: 0 0 42px; width: 42px; height: 42px; }
 .supply-type-picker select { flex: 1; min-width: 0; }
 .supply-row span { display: block; margin: 0 0 3px; color: #b9cdd6; font-size: .72rem; }
 .supply-row select { min-height: 48px; padding: 8px; }
 #supply-summary { color: #d1f2e8; font-variant-numeric: tabular-nums; }
 #supply-error { min-height: 1.2em; color: #ffc6b9; }
 .scope-note { margin-top: 24px; }
-.battle { height: 100%; max-width: 1050px; margin: auto; padding: 8px 10px; display: grid; grid-template-rows: 48px 34px minmax(110px, 1fr) 32px 48px 116px 54px; gap: 6px; position: relative; overflow: hidden; }
+.battle { height: 100%; max-width: 1050px; margin: auto; padding: 8px 10px; display: grid; grid-template-rows: 48px 34px minmax(110px, 1fr) minmax(32px, auto) 48px 116px 54px; gap: 6px; position: relative; overflow: hidden; }
 .battle button, .battle select { font-size: .8rem; min-width: 48px; padding: 8px; }
 .battle-header { min-width: 0; display: flex; align-items: center; gap: 10px; }
 .battle-header > div { flex: 1; min-width: 0; }
@@ -29,7 +30,7 @@
 .supply-preview-title { display: block; color: #a9c2cb; }
 .supply-preview-items { display: flex; justify-content: flex-end; gap: 3px; }
 .supply-preview-item { display: flex; min-width: 0; align-items: center; gap: 2px; white-space: nowrap; }
-.supply-preview-item img { width: 18px; height: 18px; object-fit: contain; }
+.supply-preview-item img, .supply-preview-item .art-image-fallback { width: 18px; height: 18px; flex: 0 0 18px; object-fit: contain; }
 .battle-time { font-variant-numeric: tabular-nums; font-size: .9rem; }
 .battle-armor { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .battle-armor > div { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 6px; font-size: .65rem; }
@@ -38,11 +39,13 @@
 .battle-armor [data-team='enemy'] .armor span { background: #e7b5ab; }
 .battle-map { position: relative; min-height: 0; overflow: hidden; border-radius: 12px; border: 1px solid #48606c; }
 .battle-map canvas { display: block; width: 100%; height: 100%; }
-.current-room { position: absolute; top: 65px; left: 8px; padding: 5px 7px; border-radius: 5px; background: #101c27dd; font-size: .7rem; pointer-events: none; }
+.current-room { position: absolute; top: 65px; left: 8px; max-width: calc(100% - 16px); padding: 5px 7px; border-radius: 5px; background: #101c27dd; font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .battle-hint { margin: 0; font-size: .73rem; color: #c1d2da; line-height: 1.45; align-self: center; }
 .cargo-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .cargo-controls button { display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; }
 .cargo-icon { width: 32px; height: 32px; flex: 0 0 32px; object-fit: contain; }
+.battle .art-image-fallback { display: grid; place-items: center; border-radius: 5px; background: #2e4650; color: #e4d39e; font-weight: 700; line-height: 1; }
+.battle .art-image-fallback[hidden] { display: none; }
 .cargo-icon[hidden], .action-icon[hidden] { display: none; }
 .battle-controls { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 0 5px; }
 .movement-pad { width: 116px; height: 116px; border: 1px solid #789199; border-radius: 50%; background: #253c48; position: relative; flex-shrink: 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
@@ -52,6 +55,7 @@
 .action-controls { display: grid; gap: 6px; flex: 1; max-width: 240px; }
 #battle-action { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 60px; font-size: 1rem; touch-action: none; }
 .action-icon, .drop-icon { width: 28px; height: 28px; flex: 0 0 28px; object-fit: contain; }
+.drop-icon { display: grid; place-items: center; border-radius: 50%; color: #ddede7; background: #33515b; font-size: 1.15rem; font-weight: 700; }
 #battle-drop { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 48px; touch-action: none; }
 .battle-settings { display: flex; gap: 6px; align-items: stretch; }
 .target-control { display: flex; align-items: center; gap: 5px; font-size: .68rem; flex: 1; white-space: nowrap; }

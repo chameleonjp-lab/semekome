@@ -57,6 +57,119 @@ test('生成画像が読み込めなくてもCanvasの代替描画と移動操�
   })).toBe(true);
 });
 
+test('敵役割表示と標的設定を正しく読み、設定変更だけでは戦場を進めない', async ({ page }) => {
+  await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
+  await page.goto('/');
+  await page.getByRole('button', { name: '配置を確認する' }).click();
+  await page.locator('[data-area="enemy"]').click();
+  await page.getByLabel('見たい場所').selectOption('battery_a');
+  await expect(page.locator('.room-detail')).toContainText('射手護衛1人');
+
+  await page.getByRole('button', { name: 'ホーム' }).click();
+  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByLabel('あなたの名前').fill('状態表示');
+  await page.getByRole('button', { name: '確認を開始する' }).click();
+  const battle = page.locator('.battle');
+  await page.clock.runFor(3100);
+  await expect(battle).toHaveAttribute('data-phase', 'running');
+  const before = {
+    tick: await battle.getAttribute('data-tick'),
+    x: await battle.getAttribute('data-player-x'),
+    y: await battle.getAttribute('data-player-y'),
+  };
+  await expect(page.locator('#target-part option').first()).toContainText('敵陣 外装1');
+  await page.locator('#route-toggle').click();
+  await page.getByLabel('狙う部位').selectOption('P7');
+  await expect(page.locator('#route-toggle')).toHaveText('経路：迂回');
+  await expect(page.locator('#target-part')).toHaveValue('P7');
+  await expect(battle).toHaveAttribute('data-tick', before.tick!);
+  await expect(battle).toHaveAttribute('data-player-x', before.x!);
+  await expect(battle).toHaveAttribute('data-player-y', before.y!);
+});
+
+test('観戦・一時停止で入力を無効にすると、復帰後に古い移動が再開しない', async ({ page }) => {
+  await page.goto('/');
+  const vectors = await page.evaluate(async () => {
+    const { bindMovement } = await new Function('return import("/src/input/battle-input.ts")')();
+    const pad = document.createElement('div');
+    document.body.append(pad);
+    const movement = bindMovement(pad);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    const beforeDisabled = movement.direction();
+    movement.setEnabled(false);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight' }));
+    const whileDisabled = movement.direction();
+    movement.setEnabled(true);
+    const afterResume = movement.direction();
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+    const freshInput = movement.direction();
+    movement.setEnabled(false);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft' }));
+    const disabledAgain = movement.direction();
+    movement.setEnabled(true);
+    const afterSecondResume = movement.direction();
+    movement.dispose();
+    pad.remove();
+    return [beforeDisabled, whileDisabled, afterResume, freshInput, disabledAgain, afterSecondResume];
+  });
+  expect(vectors).toEqual([
+    { x: 1, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 },
+    { x: -1, y: 0 }, { x: 0, y: 0 }, { x: 0, y: 0 },
+  ]);
+});
+
+test('DOMとSVGの画像欠損は代替表示になり、弾アイコンも空荷物で消える', async ({ page }) => {
+  await page.route('**/assets/generated/*.webp', route => route.fulfill({ status: 404, contentType: 'text/plain', body: 'missing test image' }));
+  await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
+  await page.goto('/');
+  await expect(page.locator('.home-stage .art-image-fallback')).toBeVisible();
+  await page.getByRole('button', { name: '素材図鑑' }).click();
+  await expect(page.locator('.atlas-card').first().locator('.art-image-fallback')).toBeVisible();
+  await expect(page.locator('.atlas-card').first()).toContainText('主人公');
+
+  await page.getByRole('button', { name: 'ホーム' }).click();
+  await page.getByRole('button', { name: '配置を確認する' }).click();
+  await page.locator('[data-area="enemy"]').click();
+  await expect(page.locator('.map-viewport [data-art-fallback]').first()).toBeVisible();
+  await page.getByRole('button', { name: 'ホーム' }).click();
+  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByLabel('あなたの名前').fill('代替画像');
+  await page.getByRole('button', { name: '確認を開始する' }).click();
+  const battle = page.locator('.battle');
+  await page.clock.runFor(3100);
+  await expect(battle).toHaveAttribute('data-phase', 'running');
+  await expect(page.locator('.supply-preview-item .art-image-fallback')).toHaveCount(2);
+
+  const walk = async (key: string, milliseconds: number) => {
+    await page.keyboard.down(key); await page.clock.runFor(milliseconds); await page.keyboard.up(key);
+  };
+  const walkTo = async (axis: 'x' | 'y', target: number) => {
+    for (let attempt = 0; attempt < 30; attempt++) {
+      const position = Number(await battle.getAttribute(`data-player-${axis}`));
+      const distance = target - position;
+      if (Math.abs(distance) < 25) return;
+      const key = axis === 'x' ? distance > 0 ? 'ArrowRight' : 'ArrowLeft' : distance > 0 ? 'ArrowDown' : 'ArrowUp';
+      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 50) - 1));
+      await walk(key, ticks === 1 ? 16 : ticks * 1000 / 60);
+    }
+    expect(Number(await battle.getAttribute(`data-player-${axis}`)), `normal movement reaches ${axis}=${target}`).toBe(target);
+  };
+  await walkTo('x', 94500);
+  await walkTo('y', 13500);
+  await walk('ArrowLeft', 200);
+  await expect(page.locator('#battle-action')).toContainText('拾う');
+  await page.locator('#battle-action').click();
+  await page.clock.runFor(34);
+  await expect(page.locator('[data-slot="0"] .cargo-label')).not.toHaveText('左：空');
+  await expect(page.locator('[data-slot="0"] .cargo-icon + .art-image-fallback')).toBeVisible();
+  await page.locator('#battle-drop').click();
+  await page.clock.runFor(34);
+  await expect(page.locator('[data-slot="0"] .cargo-label')).toHaveText('左：空');
+  await expect(page.locator('[data-slot="0"] .cargo-icon + .art-image-fallback')).toBeHidden();
+});
+
 test('名前の境界検証とカウントダウン中止、二重開始を防ぐ', async ({ page }) => {
   await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
@@ -154,6 +267,9 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
     await page.getByRole('button', { name: '確認を開始する' }).click();
     await page.clock.runFor(3100);
     await expect(page.locator('.battle-overlay')).toBeHidden();
+    const hintBox = (await page.locator('.battle-hint').boundingBox())!;
+    const cargoBox = (await page.locator('.cargo-controls').boundingBox())!;
+    expect(hintBox.y + hintBox.height, `battle hint overlaps cargo controls at ${viewport.width}px`).toBeLessThanOrEqual(cargoBox.y + 1);
     for (const selector of ['#pause-battle', '[data-slot="0"]', '[data-slot="1"]', '#battle-action', '#battle-drop', '#route-toggle', '#target-part', '#battle-help', '.movement-pad']) {
       const box = (await page.locator(selector).boundingBox())!;
       expect(box.width, selector).toBeGreaterThanOrEqual(48);

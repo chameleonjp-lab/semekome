@@ -2,6 +2,7 @@ import blueprint from '../docs/plans/current/INTERIOR_LAYOUTS.json' with { type:
 import roster from '../docs/plans/current/ENEMY_ROSTER.json' with { type: 'json' };
 import './presentation/style.css';
 import { GAME_ART_URLS } from './presentation/game-art.ts';
+import { bindArtImageFallbacks } from './presentation/art-fallback.ts';
 import { createWorld } from './simulation/world.ts';
 import { openBattleSetup } from './presentation/battle-screen.ts';
 
@@ -10,7 +11,7 @@ type Rect = readonly number[];
 const app = document.querySelector<HTMLElement>('#app')!;
 const ns = 'http://www.w3.org/2000/svg';
 const labels: Record<Area, string> = { player: '自陣', plaza: '広場', enemy: '敵陣' };
-const roleLabels: Record<string, string> = { shooter: '射手', shooter_guard: '護衛', ammo_carrier: '運び手', internal_soldier: '内部兵' };
+const roleLabels: Record<string, string> = { shooter: '射手', shooter_guard: '射手護衛', ammo_carrier: '運び手', internal_soldier: '内部兵' };
 const descriptions: Record<string, string> = {
   core: '7つの門を開いた後、核への有効な一撃で勝敗が決まります。',
   respawn: '主人公は倒れてから5秒後、ここで復活します。核室とは別の部屋です。',
@@ -63,9 +64,9 @@ function home(): void {
     <section class="home" aria-label="ホーム">
       <div class="home-intro"><p class="eyebrow">城内作業と砲撃のゲーム</p><h1>セメコメ</h1>
       <p class="home-copy">弾を運んで撃ち合い、<br>7つの門を開いて、敵の核へ。</p></div>
-      <figure class="home-stage"><img class="home-art" src="${GAME_ART_URLS.stage}" alt="自陣と敵陣が広場を挟んで向かい合う戦場" /><figcaption class="home-stage-labels"><span>自陣</span><span>広場</span><span>敵陣</span></figcaption></figure>
+      <figure class="home-stage" role="img" aria-label="自陣と敵陣が広場を挟んで向かい合う戦場"><img class="home-art" src="${GAME_ART_URLS.stage}" alt="" aria-hidden="true" /><figcaption class="home-stage-labels"><span>自陣</span><span>広場</span><span>敵陣</span></figcaption></figure>
       <div class="home-actions"><button class="primary" id="open-battle" aria-label="運搬・砲撃を試す">運搬・砲撃・修理を試す</button><button id="open-preview">配置を確認する</button><button id="open-atlas">素材図鑑</button><button id="open-rules">ルール説明</button></div>
-      <p class="home-notice">運搬・砲撃・外装修理・設備修理の操作確認版です。<br>核攻撃までの通常対戦はまだ遊べません。</p>
+      <p class="home-notice">運搬・砲撃・外装修理・設備修理の操作確認版です。<br>通常戦の開始導線・勝敗結果・ランキングには未接続です。</p>
     </section>
     <dialog aria-labelledby="rules-title"><div class="dialog-head"><h2 id="rules-title">セメコメのルール</h2><button id="close-rules">閉じる</button></div>
       <div class="rules-body"><ol>
@@ -74,6 +75,8 @@ function home(): void {
         <li><strong>広場を突破し、核を攻撃する</strong><br>広場の敵を倒して敵陣へ。7つの門がすべて開いてから、核へ突進を当てると勝利します。自陣の核を同じ条件で攻撃されると敗北します。</li>
       </ol><p class="rules-note">敵は30人。それぞれ倒されてから20秒後に復活します。主人公は5秒間、進行中の戦場を見た後に自陣で復活します。<br><br>外装をすべて壊しただけでは決着しません。</p></div>
     </dialog>`;
+  const homeStage = document.querySelector<HTMLImageElement>('.home-art');
+  if (homeStage) bindArtImageFallbacks(homeStage.parentElement!, '自陣 · 広場 · 敵陣');
   document.querySelector('#open-preview')!.addEventListener('click', preview);
   document.querySelector('#open-battle')!.addEventListener('click', () => { disposePreview(); disposePreview = openBattleSetup(app, home); });
   document.querySelector('#open-atlas')!.addEventListener('click', atlas);
@@ -88,6 +91,7 @@ function atlas(): void {
     <p class="atlas-note">運搬・砲撃・外装修理・設備修理の操作確認版です。通常対戦の完成を示す画面ではありません。</p>
     <div class="atlas-grid">${artCatalog.map(({ id, name, group, description }) => `<figure class="atlas-card" data-art-card="${id}"><div class="atlas-image"><img src="${GAME_ART_URLS[id]}" alt="" loading="lazy" decoding="async"></div><figcaption><span>${group}</span><strong>${name}</strong><p>${description}</p></figcaption></figure>`).join('')}</div>
   </section>`;
+  bindArtImageFallbacks(app);
   document.querySelector('#atlas-home')!.addEventListener('click', home);
 }
 
@@ -193,11 +197,50 @@ function actorArt(role: string): ArtId {
 }
 
 function artImage(id: ArtId, x: number, y: number, width: number, height: number, opacity = 1): SVGImageElement {
-  return el('image', {
+  const image = el('image', {
     href: GAME_ART_URLS[id], x, y, width, height,
     preserveAspectRatio: 'xMidYMid meet', opacity,
     'data-art': id, 'pointer-events': 'none',
   });
+  const fallback = svgArtFallback(id, x, y, width, height, opacity);
+  image.addEventListener('error', () => {
+    if (image.parentNode && !fallback.isConnected) image.parentNode.insertBefore(fallback, image);
+    image.setAttribute('visibility', 'hidden');
+  }, { once: true });
+  image.addEventListener('load', () => { fallback.remove(); image.removeAttribute('visibility'); }, { once: true });
+  return image;
+}
+
+function svgArtFallback(id: ArtId, x: number, y: number, width: number, height: number, opacity: number): SVGGElement {
+  const group = el('g', { 'data-art-fallback': id, opacity, 'pointer-events': 'none' });
+  const cx = x + width / 2, cy = y + height / 2, size = Math.min(width, height);
+  if (id === 'floor') {
+    group.append(el('rect', { x, y, width, height, fill: '#84979a', 'fill-opacity': .18, stroke: '#e2ece5', 'stroke-opacity': .26, 'stroke-width': .18 }));
+  } else if (id === 'turret') {
+    group.append(el('rect', { x: x + width * .14, y: y + height * .28, width: width * .56, height: height * .46, rx: size * .12, fill: '#5d7882', stroke: '#d4ded8', 'stroke-width': size * .06 }));
+    group.append(el('path', { d: `M ${cx} ${cy} L ${x + width * .94} ${cy}`, stroke: '#e5cf99', 'stroke-width': size * .13, 'stroke-linecap': 'round' }));
+  } else if (id === 'supply') {
+    group.append(el('rect', { x: x + width * .15, y: y + height * .23, width: width * .7, height: height * .6, rx: size * .1, fill: '#638f88', stroke: '#d8e3d8', 'stroke-width': size * .06 }));
+    group.append(el('rect', { x: x + width * .32, y: y + height * .39, width: width * .36, height: height * .25, rx: size * .04, fill: '#d7dfc7' }));
+  } else if (id === 'hero' || id === 'helper' || id === 'gunner' || id === 'guard' || id === 'carrier' || id === 'soldier') {
+    const fill = id === 'gunner' || id === 'guard' || id === 'carrier' || id === 'soldier' ? '#ac7770' : '#79a89f';
+    group.append(el('circle', { cx, cy: y + height * .33, r: size * .21, fill: '#d9bf9b', stroke: '#263a42', 'stroke-width': size * .045 }));
+    group.append(el('ellipse', { cx, cy: y + height * .72, rx: width * .31, ry: height * .2, fill, stroke: '#263a42', 'stroke-width': size * .05 }));
+    group.append(el('circle', { cx: cx - size * .07, cy: y + height * .32, r: size * .022, fill: '#182933' }));
+    group.append(el('circle', { cx: cx + size * .07, cy: y + height * .32, r: size * .022, fill: '#182933' }));
+  } else if (id === 'gate') {
+    group.append(el('rect', { x: x + width * .12, y: y + height * .12, width: width * .76, height: height * .76, rx: size * .08, fill: '#a7834d', stroke: '#f0d6a2', 'stroke-width': size * .06 }));
+    for (const offset of [.34, .5, .66]) group.append(el('path', { d: `M ${x + width * offset} ${y + height * .2} L ${x + width * offset} ${y + height * .8}`, stroke: '#f0d6a2', 'stroke-width': size * .045 }));
+  } else if (id === 'core') {
+    group.append(el('circle', { cx, cy, r: size * .36, fill: '#d6ae6e', stroke: '#fff0b9', 'stroke-width': size * .07 }));
+    group.append(el('circle', { cx, cy, r: size * .13, fill: '#fff0b9' }));
+  } else if (id === 'repair') {
+    group.append(el('circle', { cx, cy, r: size * .34, fill: '#6d9c91', stroke: '#e2eee0', 'stroke-width': size * .06 }));
+    group.append(el('path', { d: `M ${cx} ${y + height * .28} L ${cx} ${y + height * .72} M ${x + width * .28} ${cy} L ${x + width * .72} ${cy}`, stroke: '#f0f3df', 'stroke-width': size * .1, 'stroke-linecap': 'round' }));
+  } else {
+    group.append(el('circle', { cx, cy, r: size * .34, fill: '#80959b', stroke: '#e4ece5', 'stroke-width': size * .07 }));
+  }
+  return group;
 }
 
 function draw(svg: SVGSVGElement): void {

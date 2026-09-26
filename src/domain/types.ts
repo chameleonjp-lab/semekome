@@ -204,7 +204,9 @@ export interface ActorState {
 }
 
 export type ObjectLocation =
-  | { kind: "floor"; team: TeamId; roomId: string; position: Point }
+  // An omitted area means castle floor; team identifies that castle. Plaza
+  // floor keeps the last owner in team and is never a castle supply surface.
+  | { kind: "floor"; team: TeamId; roomId: string; position: Point; area?: "plaza" }
   | { kind: "carried"; actorId: ActorId; slot: number }
   | {
       kind: "reserved-carried";
@@ -271,6 +273,11 @@ export interface RejectedInput {
   detail?: string;
 }
 
+/** Optional exact physical snapshot; common cell-only events may omit it. */
+export type EventPhysicalLocation =
+  | { area: "castle"; castleTeam: TeamId; positionSubunits: Point }
+  | { area: "plaza"; positionSubunits: Point };
+
 export type WorldEvent =
   | { type: "part_damaged"; team: TeamId; partId: PartId; amount: number }
   | { type: "part_destroyed"; team: TeamId; partId: PartId; gateId: GateId }
@@ -289,18 +296,20 @@ export type WorldEvent =
       equipmentId: string;
       equipmentKind: "turret" | "supply_port";
     }
-  | { type: "actor_damaged"; actorId: ActorId; amount: number }
+  | { type: "actor_damaged"; actorId: ActorId; amount: number; physicalLocation?: EventPhysicalLocation }
   | {
       type: "actor_died";
       actorId: ActorId;
       generation: number;
       respawnAtTick: number;
+      physicalLocation?: EventPhysicalLocation;
     }
   | {
       type: "actor_respawned";
       actorId: ActorId;
       generation: number;
       tick: number;
+      physicalLocation?: EventPhysicalLocation;
     }
   | { type: "core_hit_candidate"; attackerId: ActorId; targetTeam: TeamId }
   | { type: "outcome"; outcome: Exclude<Outcome, "ongoing">; tick: number }
