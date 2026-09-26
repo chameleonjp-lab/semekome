@@ -143,14 +143,17 @@ test('連続移動、停止と明示再開、入力残留と時間の追いつ�
 });
 
 test('縦横の小画面でも48px操作・地図・停止導線が収まる', async ({ page }) => {
-  test.setTimeout(60000); // Five real three-second countdowns plus browser layout work.
+  test.setTimeout(60000); // Five controlled countdowns plus browser layout work.
+  await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
   for (const viewport of [{ width: 360, height: 640 }, { width: 390, height: 664 }, { width: 402, height: 700 }, { width: 430, height: 932 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/');
     await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
     await page.getByLabel('あなたの名前').fill('小画面');
     await page.getByRole('button', { name: '確認を開始する' }).click();
-    await expect(page.locator('.battle-overlay')).toBeHidden({ timeout: 10000 });
+    await page.clock.runFor(3100);
+    await expect(page.locator('.battle-overlay')).toBeHidden();
     for (const selector of ['#pause-battle', '[data-slot="0"]', '[data-slot="1"]', '#battle-action', '#battle-drop', '#route-toggle', '#target-part', '#battle-help', '.movement-pad']) {
       const box = (await page.locator(selector).boundingBox())!;
       expect(box.width, selector).toBeGreaterThanOrEqual(48);

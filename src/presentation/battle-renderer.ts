@@ -41,6 +41,8 @@ type RenderEffect = {
 type FlightSnapshot = { team: TeamId; route: 'direct' | 'detour'; progress: number };
 type FloorSurface = { canvas: HTMLCanvasElement; hasFloorArt: boolean };
 const FLOOR_TEXTURE_UNIT = 12;
+let cachedFloorTextureSource: HTMLImageElement | undefined;
+let cachedFloorTextureTile: HTMLCanvasElement | undefined;
 
 function clamp(value: number, minimum: number, maximum: number): number {
   return Math.max(minimum, Math.min(maximum, value));
@@ -57,6 +59,21 @@ function roomCenter(room: CastleLayout['rooms'][number]): Point {
 function formatClock(ticks: number, ticksPerSecond: number): string {
   const seconds = Math.ceil(Math.max(0, ticks) / ticksPerSecond);
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+}
+
+/** Downsamples the authored floor image once so cell generation copies only a 12px tile. */
+function getFloorTextureTile(image: HTMLImageElement): CanvasImageSource {
+  if (cachedFloorTextureSource === image && cachedFloorTextureTile) return cachedFloorTextureTile;
+  const tile = document.createElement('canvas');
+  tile.width = FLOOR_TEXTURE_UNIT;
+  tile.height = FLOOR_TEXTURE_UNIT;
+  const tileContext = tile.getContext('2d');
+  if (!tileContext) return image;
+  tileContext.imageSmoothingEnabled = false;
+  tileContext.drawImage(image, 0, 0, FLOOR_TEXTURE_UNIT, FLOOR_TEXTURE_UNIT);
+  cachedFloorTextureSource = image;
+  cachedFloorTextureTile = tile;
+  return tile;
 }
 
 /**
@@ -80,9 +97,10 @@ function buildFloorSurface(layout: CastleLayout): FloorSurface {
   }
   context.fillStyle = '#182c36'; context.fillRect(0, 0, canvas.width, canvas.height);
   context.imageSmoothingEnabled = false;
+  const floorTile = floorImage ? getFloorTextureTile(floorImage) : undefined;
   for (const cell of layout.floorCells) {
     const x = cell.x * FLOOR_TEXTURE_UNIT, y = cell.y * FLOOR_TEXTURE_UNIT;
-    if (floorImage) context.drawImage(floorImage, x, y, FLOOR_TEXTURE_UNIT, FLOOR_TEXTURE_UNIT);
+    if (floorTile) context.drawImage(floorTile, x, y, FLOOR_TEXTURE_UNIT, FLOOR_TEXTURE_UNIT);
     else {
       const grain = ((cell.x * 17 + cell.y * 29) % 5) * 2;
       context.fillStyle = `rgb(${35 + grain},${58 + grain},${67 + grain})`;
