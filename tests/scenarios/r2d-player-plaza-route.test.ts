@@ -20,6 +20,12 @@ const P1_TURRET_APPROACH_X = 105_850;
 const P1_EXIT_ROUTE_Y = 25_500;
 const P1_EXIT_X = 123_500;
 const PLAZA_GUARD_IDS = ["E25", "E26", "E27"] as const;
+const ENEMY_PART_IDS = ["P1", "P2", "P3", "P4", "P5", "P6", "P7"] as const;
+const PLAYER_SIEGE_ALLOCATION = [
+  "dense_payload", "dense_payload", "dense_payload",
+  "breach_lance", "breach_lance", "breach_lance",
+  "standard_slug", "fast_dart",
+] as const;
 
 function publicP1Intent(state: BattleState, partial: Partial<BattleIntent> = {}): BattleIntent {
   return {
@@ -97,6 +103,10 @@ function holdPlazaGuardsInPlace(state: BattleState): void {
   for (const actorId of PLAZA_GUARD_IDS) {
     if (state.actors[actorId].alive) state.actors[actorId].protectedUntilTick = state.tick + 1;
   }
+}
+
+function nextEnemyPart(state: BattleState): (typeof ENEMY_PART_IDS)[number] | undefined {
+  return ENEMY_PART_IDS.find((partId) => !state.castles.enemy.exterior[partId].destroyed);
 }
 
 test("主人公の公開入力は補給・砲台から広場へ進み、警備を無視した敵城侵入を止める", { timeout: 60_000 }, () => {
@@ -463,4 +473,138 @@ test("主人公の公開砲撃でG1を開けても次のG2で止まる", { timeo
   assert.deepEqual(state.fixedActors.P1.position, stoppedPosition, "held public direction stays blocked by closed G2");
   assert.equal(state.actors.P1.currentRoomId, "corridor_1");
   assert.equal(state.lastStep.acceptedInputKinds.includes("direction"), true, "the blocked movement still comes from public direction input");
+});
+
+test("主人公の公開操作で7部位・7門を通り核へ有効な突進を当てる", { timeout: 180_000 }, () => {
+  let state = createBattle({
+    matchId: "r2j-player-seven-gates-core",
+    seed: 20260913,
+    playerSupplyAllocation: PLAYER_SIEGE_ALLOCATION,
+  });
+  registerPlazaGuardDispatch(state, "enemy", "E25");
+  // This is a player-route fixture. Keep every non-player combatant from
+  // changing the route while still using real supply, artillery, guard
+  // contact, gate collision, and core contact validators.
+  for (const actor of Object.values(state.actors)) {
+    if (actor.id !== "P1") actor.protectedUntilTick = 99_999;
+  }
+
+  let phase: "pickup" | "turret" | "plaza-route" = "pickup";
+  let deliveries = 0;
+  let reachedPlaza = false;
+  let enteredEnemyCastle = false;
+
+  for (let tick = 0; tick < 24_000 && state.phase === "running"; tick += 1) {
+    let intent = publicP1Intent(state, { direction: NEUTRAL });
+    if (phase === "pickup") {
+      const interaction = getInteraction(state, "P1", 0);
+      intent = interaction.handles.includes("pickup")
+        ? publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken })
+        : publicP1Intent(state, { direction: p1ToAmmoDirection(state, deliveries === 0) });
+    } else if (phase === "turret") {
+      const interaction = getInteraction(state, "P1", 0);
+      const targetPart = nextEnemyPart(state);
+      intent = interaction.handles.includes("deliver") && targetPart
+        ? publicP1Intent(state, { handle: "deliver", slot: 0, route: "direct", part: targetPart, contextToken: interaction.contextToken })
+        : publicP1Intent(state, { direction: p1ToTurretDirection(state) });
+    } else {
+      intent = publicP1Intent(state, { direction: p1ToPlazaDirection(state) });
+    }
+
+    state = stepBattle(state, intent);
+    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
+      deliveries += 1;
+      phase = "pickup";
+    }
+    if (state.castles.enemy.destroyedPartIds.length === ENEMY_PART_IDS.length) {
+      phase = "plaza-route";
+      break;
+    }
+  }
+
+  assert.ok(deliveries >= 12, `P1 made repeated public deliveries before the siege route (got ${deliveries})`);
+  assert.deepEqual(state.castles.enemy.destroyedPartIds, [...ENEMY_PART_IDS], "all seven exterior parts are destroyed independently");
+  assert.deepEqual(state.castles.enemy.openGateIds, [...ENEMY_PART_IDS.map((_, index) => `G${index + 1}`)], "all seven prefix gates open");
+  assert.equal(state.outcome, "ongoing", "destroying all exterior parts does not end the battle");
+
+  for (let tick = 0; tick < 4_000 && state.phase === "running"; tick += 1) {
+    state = stepBattle(state, publicP1Intent(state, { direction: p1ToPlazaDirection(state) }));
+    if (state.actors.P1.location.area === "plaza") {
+      reachedPlaza = true;
+      break;
+    }
+  }
+  assert.equal(reachedPlaza, true, "P1 leaves the home castle through the public movement input");
+
+  const entry = state.fixedActors.P1.position;
+  const guardPositions = [
+    { x: entry.x + 75_000, y: entry.y },
+    { x: entry.x + 95_000, y: entry.y },
+    { x: entry.x + 110_000, y: entry.y },
+  ];
+  PLAZA_GUARD_IDS.forEach((actorId, index) => placePlazaGuard(state, actorId, guardPositions[index]));
+
+  for (const actorId of PLAZA_GUARD_IDS) {
+    while (state.actors[actorId].alive && state.fixedActors.P1.position.x < state.fixedActors[actorId].position.x - 650) {
+      holdPlazaGuardsInPlace(state);
+      state = stepBattle(state, publicP1Intent(state, { direction: { x: 1, y: 0 } }));
+    }
+    holdPlazaGuardsInPlace(state);
+    state.actors[actorId].protectedUntilTick = null;
+    state = stepBattle(state, publicP1Intent(state, { dash: { x: 1, y: 0 } }));
+    while (state.dashes.P1 && state.phase === "running") {
+      holdPlazaGuardsInPlace(state);
+      state = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
+    }
+    assert.equal(state.actors[actorId].alive, false, `${actorId} is defeated by a public dash contact`);
+  }
+
+  for (let tick = 0; tick < 1_000 && state.phase === "running"; tick += 1) {
+    state = stepBattle(state, publicP1Intent(state, { direction: { x: 1, y: 0 } }));
+    if (state.actors.P1.location.area === "castle") {
+      enteredEnemyCastle = true;
+      break;
+    }
+  }
+  assert.equal(enteredEnemyCastle, true, "P1 crosses the plaza after the three dispatched guards are defeated");
+  assert.equal(state.actors.P1.location.castleTeam, "enemy");
+
+  for (let tick = 0; tick < 3_000 && state.phase === "running"; tick += 1) {
+    state = stepBattle(state, publicP1Intent(state, { direction: { x: 1, y: 0 } }));
+    if (state.actors.P1.currentRoomId === "core") break;
+  }
+  assert.equal(state.actors.P1.currentRoomId, "core", "P1 reaches the enemy core room through public movement");
+  assert.deepEqual(state.actors.P1.location.pathGates, [...state.layout.enemy.coreRouteGates], "all seven physical gates are recorded in order");
+  assert.deepEqual(state.castles.enemy.openGateIds, [...state.layout.enemy.coreRouteGates]);
+
+  const corePoint = state.layout.enemy.rooms.find((room) => room.id === "core");
+  assert.ok(corePoint, "enemy core room is authored");
+  for (let tick = 0; tick < 500 && state.phase === "running"; tick += 1) {
+    const coreCenter = {
+      x: Math.round((corePoint!.rect.x0 + corePoint!.rect.x1) * 500),
+      y: Math.round((corePoint!.rect.y0 + corePoint!.rect.y1) * 500),
+    };
+    const position = state.fixedActors.P1.position;
+    const direction: BattleDirection = {
+      x: sign(coreCenter.x - position.x),
+      y: sign(coreCenter.y - position.y),
+    };
+    if (state.dashes.P1) {
+      state = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
+    } else if (Math.abs(coreCenter.x - position.x) <= state.rules.dashDistanceSubunits) {
+      state = stepBattle(state, publicP1Intent(state, { dash: { x: 1, y: 0 } }));
+    } else {
+      state = stepBattle(state, publicP1Intent(state, { direction }));
+    }
+  }
+
+  assert.equal(state.castles.enemy.core.hit, true, "the core changes only after a real public dash contact");
+  assert.equal(state.outcome, "player_win");
+  assert.equal(state.phase, "ended");
+  assert.equal(state.lastStep.events.filter((event) => event.type === "outcome").length, 1, "the terminal outcome is emitted once");
+
+  const afterEnd = stepBattle(state, publicP1Intent(state, { direction: { x: -1, y: 0 } }));
+  assert.equal(afterEnd.tick, state.tick, "ended battles do not advance from later public input");
+  assert.deepEqual(afterEnd.castles, state.castles);
 });
