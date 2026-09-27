@@ -1,5 +1,23 @@
 # 検査記録
 
+## PR #40後：R2f 主人公の敵城・閉門境界
+
+P1がR2eと同じ公開 `direction` / `handle` / `dash` で広場警備E25〜E27を撃破して敵城へ越境した後、held `direction` だけで敵城内を進み、閉じたG1の手前で停止する境界を確認した。P1は `central_corridor` → `respawn` → `corridor_0` まで進むが、`corridor_1` へは入らず、`pathGates`、敵城の門、外装を変更しない。明示的な `bridge`、座標越境、門開放、外装破壊は使っていない。広場3防衛者は一接触fixture、対象外の敵AIは保護fixtureとし、通常戦の体力・AI・戦術を合格条件から分離した。
+
+- `tests/scenarios/r2d-player-plaza-route.test.ts`：既存の広場境界・広場突破に加え、敵城越境後の公開方向入力、G1手前の停止、120更新の位置不変を確認する。
+- `docs/R2F_PLAYER_GATE_BOUNDARY_REVIEW.md`：独立読み取りレビューとfixtureの非対象範囲を記録する。
+
+|検査|最終ローカル結果|
+|---|---|
+|R2f追加シナリオ|1/1通過。既存R2d/R2e 2件も同時に通過|
+|全Node回帰|275/275通過。通常初期戦・25,000更新の砲撃専用fixture・30/60/120Hz一致を含む|
+|資料・型・製品ビルド|資料57/57、TypeScript、Vite製品ビルド、差分の空白検査を通過|
+|独立レビュー|重大な未解決所見なし。`R2F_PLAYER_GATE_BOUNDARY_REVIEW.md`|
+|ブラウザ / WebKit / GitHub最終CI|Quality #175：Node 275/275、資料57/57、build、Chromium/WebKit 50/50通過。ブラウザ導入、日本語フォント、成果物アップロードも成功|
+|実機・試遊・製品全体|iPhone実機、主人公の通常画面一戦走破、広場戦術全体、正式結果・ランキングは未検査/未完成|
+
+今回の単位は、広場突破後の主人公が敵城の閉じたG1を移動だけで越えない物理境界を固定するもの。本番コードは変更せず、閉門fixtureを通常戦全体の完成証拠へ読み替えない。残件は [公開チェックリスト](RELEASE_CHECKLIST.md) を正とする。
+
 ## PR #39後：R2e 主人公の公開突進による広場突破
 
 P1が公開 `direction` / `handle` で初期位置から補給1回・砲台受渡し・広場まで進み、公開 `dash` でE25〜E27を順に撃破し、全員撃破後の held direction で敵城へ入る境界を確認した。明示的な `bridge` 入力や座標越境入力は使っていない。防衛者は一接触で撃破できる固定fixture、対象外の敵AIは保護fixtureとし、接触回数・体力バランス・警備AI移動を今回の合格条件から分離した。

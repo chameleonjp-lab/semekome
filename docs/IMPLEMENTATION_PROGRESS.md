@@ -1,5 +1,11 @@
 # 実装の進捗
 
+## 最新：R2f 主人公の敵城・閉門境界
+
+PR #40取り込み後の次の小単位として、P1がR2eと同じ公開 `direction` / `handle` / `dash` で広場警備を撃破して敵城側へ越境した後、さらに held `direction` だけで敵城内を進む経路を固定した。最初の閉じたG1の手前でP1を止め、`pathGates` を空のまま保ち、移動だけでは門・外装・核側へ抜けないことを確認する。明示的な `bridge`、座標越境、門開放、外装破壊は検査入力に使わない。
+
+`tests/scenarios/r2d-player-plaza-route.test.ts` の追加fixtureでは、広場の3防衛者を一接触で撃破できる設定にし、対象外の敵AIを保護して、越境後の閉門物理境界へ範囲を限定した。P1は敵城の `central_corridor` → `respawn` → `corridor_0` まで進み、閉じたG1を越えずに同じ位置で停止する。広場戦術全体、7部位破壊、7門の開放、核命中、終局、味方命令、正式結果・ランキング、実機は未完了。独立レビューは [R2F_PLAYER_GATE_BOUNDARY_REVIEW.md](R2F_PLAYER_GATE_BOUNDARY_REVIEW.md) に記録した。
+
 ## 最新：R2e 主人公の公開突進による広場突破
 
 PR #39後の次の小単位として、P1が公開 `direction` / `dash` だけで広場のE25〜E27を順に撃破し、全員撃破後の held direction で敵城側へ入る経路を固定した。明示的な `bridge` 入力や座標越境入力は使わず、既存の世代付き `guardDeployments` と物理ダッシュ接触、突破判定を同じ試合状態で確認する。

@@ -1,5 +1,11 @@
 # 実装担当への引き継ぎ / 第5版
 
+## 最新作業枝：R2f 主人公の敵城・閉門境界
+
+PR #40取り込み後の小単位として、`tests/scenarios/r2d-player-plaza-route.test.ts` に、P1が広場のE25〜E27を公開 `dash` で撃破して敵城へ越境した後、held `direction` だけで敵城内の最初の閉門手前まで進む検査を追加した。P1は `central_corridor`、`respawn`、`corridor_0` を通り、閉じたG1を越えず、`pathGates`・外装破壊・門開放を変えない。
+
+今回も明示的な `bridge`、座標越境、門開放、外装破壊の入力は使わない。広場の3防衛者は一接触で倒せる固定fixture、対象外の敵AIは保護fixtureとし、広場戦術・体力バランス・敵AI移動を混ぜない。次はこの境界を足場に、採用配置での主人公側の砲撃・部位破壊・広場戦術・門開放・核接触・終局をさらに分割して接続する。味方命令、結果・ランキング、実機試遊は残件である。
+
 ## 最新作業枝：R2e 主人公の公開突進による広場突破
 
 `tests/scenarios/r2d-player-plaza-route.test.ts` に、P1が初期位置から補給1回・砲台受渡し・広場まで公開 `direction` / `handle` で進み、広場のE25〜E27を公開 `dash` で順に撃破し、全員撃破後に held direction で敵城へ入る検査を追加した。明示的な `bridge` 入力や座標越境入力は使わない。
