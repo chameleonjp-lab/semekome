@@ -143,3 +143,52 @@ export function bindDashInput(button: HTMLButtonElement, onPress: () => void): {
     },
   };
 }
+
+/** One edge-triggered normal melee attack, independent from movement and dash. */
+export function bindAttackInput(button: HTMLButtonElement, onPress: () => void): { clear: () => void; setEnabled: (enabled: boolean) => void; dispose: () => void } {
+  let enabled = true;
+  let pointer: number | null = null;
+  const controller = new AbortController();
+  const options = { signal: controller.signal };
+  const clear = () => {
+    const held = pointer;
+    pointer = null;
+    if (held !== null && button.hasPointerCapture(held)) button.releasePointerCapture(held);
+  };
+  button.addEventListener('pointerdown', event => {
+    if (!enabled || button.disabled || pointer !== null || (event.pointerType === 'mouse' && event.button !== 0)) return;
+    pointer = event.pointerId;
+    button.setPointerCapture(pointer);
+    event.preventDefault();
+    onPress();
+  }, options);
+  for (const name of ['pointerup', 'pointercancel', 'lostpointercapture'] as const) {
+    button.addEventListener(name, event => {
+      if (event.pointerId !== pointer) return;
+      const held = pointer;
+      pointer = null;
+      if (held !== null && button.hasPointerCapture(held)) button.releasePointerCapture(held);
+    }, options);
+  }
+  // Pointer presses are handled on pointerdown; detail 0 keeps Enter and
+  // assistive-technology activation available without duplicating pointer input.
+  button.addEventListener('click', event => {
+    if (event.detail !== 0 || !enabled || button.disabled) return;
+    onPress();
+  }, options);
+  window.addEventListener('keydown', event => {
+    if (event.code !== 'KeyX' && event.key !== 'x' && event.key !== 'X') return;
+    const target = event.target;
+    if (target instanceof Element && target.closest('input, textarea, select, [contenteditable="true"]')) return;
+    if (!enabled || button.disabled || event.repeat) return;
+    event.preventDefault();
+    onPress();
+  }, options);
+  window.addEventListener('blur', clear, options);
+  document.addEventListener('visibilitychange', clear, options);
+  return {
+    clear,
+    setEnabled: next => { enabled = next; if (!enabled) clear(); },
+    dispose: () => { clear(); controller.abort(); },
+  };
+}

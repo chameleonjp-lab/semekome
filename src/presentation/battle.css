@@ -53,10 +53,13 @@
 .pad-up { top: 4px; left: 49px; }.pad-down { bottom: 4px; left: 49px; }.pad-left { top: 43px; left: 8px; }.pad-right { top: 43px; right: 8px; }
 .movement-pad i { position: absolute; top: 40px; left: 40px; width: 34px; height: 34px; border: 1px solid #d1e2df; border-radius: 50%; background: #95bfb6; transform: translate(var(--stick-x, 0px), var(--stick-y, 0px)); }
 .action-controls { display: grid; align-content: center; gap: 6px; min-width: 0; }
+.action-row { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; min-width: 0; }
 #battle-action { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 60px; font-size: 1rem; touch-action: none; }
 .action-icon, .drop-icon { width: 28px; height: 28px; flex: 0 0 28px; object-fit: contain; }
 .drop-icon { display: grid; place-items: center; border-radius: 50%; color: #ddede7; background: #33515b; font-size: 1.15rem; font-weight: 700; }
-#battle-drop { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 48px; touch-action: none; }
+#battle-drop, #battle-attack { display: flex; align-items: center; justify-content: center; gap: 5px; min-width: 0; min-height: 48px; line-height: 1.2; touch-action: none; }
+#battle-attack { border-color: #d1ad72; background: #4a3827; font-weight: 700; }
+#battle-attack:hover { background: #624b31; }
 #battle-dash { display: grid; grid-template-rows: auto minmax(2.2em, auto) 5px; align-content: center; justify-items: center; gap: 5px; min-width: 48px; min-height: 104px; padding: 8px 4px; border-color: #78bdb1; background: #24483f; touch-action: none; user-select: none; -webkit-user-select: none; }
 #battle-dash:hover { background: #2e5d51; }
 #battle-dash .dash-label { font-size: 1.05rem; font-weight: 800; line-height: 1.1; }

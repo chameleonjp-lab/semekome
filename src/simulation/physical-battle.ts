@@ -128,6 +128,8 @@ export interface BattleIntent {
   direction?: BattleDirection;
   /** Starts a fixed-duration dash in the sampled direction. */
   dash?: BattleDirection;
+  /** Edge-triggered normal melee contact attack. */
+  attack?: boolean;
   handle?: BattleHandle;
   slot?: number;
   route?: BattleRoute;
@@ -348,6 +350,8 @@ export interface BattleInteraction {
   handles: BattleHandle[];
   /** The exact nearest pickup target accepted for the selected empty slot. */
   pickupCaseId?: string;
+  /** Nearest live opposing actor reachable by physical contact in this snapshot. */
+  attackTargetId?: ActorId;
   /** Own equipment that can be selected as a manual repair target. */
   equipmentRepairTargets: Array<{
     kind: BattleEquipmentKind;
@@ -635,6 +639,31 @@ function distanceSquared(a: FixedPoint, b: FixedPoint): number {
 
 function withinActionRange(a: FixedPoint, b: FixedPoint): boolean {
   return distanceSquared(a, b) <= ACTION_RANGE_SUBUNITS * ACTION_RANGE_SUBUNITS;
+}
+
+function sharesPhysicalCombatSpace(left: ActorState, right: ActorState): boolean {
+  if (left.location.area !== right.location.area || left.currentRoomId !== right.currentRoomId) return false;
+  if (left.location.area === "plaza") return left.currentRoomId === "plaza";
+  return left.location.castleTeam !== undefined && left.location.castleTeam === right.location.castleTeam &&
+    left.location.roomId === right.location.roomId;
+}
+
+/** Resolve the nearest contact target from the current authoritative snapshot. */
+function meleeTargetAtActor(state: BattleState, actor: ActorState): ActorState | undefined {
+  if (!actor.alive || actorIsProtected(state, actor) || state.dashes[actor.id]) return undefined;
+  const from = actorFixed(state, actor.id);
+  const contactLimit = ACTOR_RADIUS_SUBUNITS * 2 + 2;
+  return Object.values(state.actors)
+    .filter((candidate) => candidate.id !== actor.id && candidate.alive && candidate.team !== actor.team &&
+      !actorIsProtected(state, candidate) &&
+      (candidate.damageImmuneUntilTick === null || state.tick >= candidate.damageImmuneUntilTick) &&
+      sharesPhysicalCombatSpace(actor, candidate))
+    .map((candidate) => ({ candidate, position: actorFixed(state, candidate.id) }))
+    .filter(({ candidate, position }) => distanceSquared(from, position) <= contactLimit * contactLimit &&
+      hasPhysicalLineOfSight(state, actor, from, position))
+    .sort((left, right) => distanceSquared(from, left.position) - distanceSquared(from, right.position) ||
+      String(left.candidate.id).localeCompare(String(right.candidate.id)))
+    .at(0)?.candidate;
 }
 
 function casePosition(caseState: BattleCaseState): FixedPoint | undefined {
@@ -3449,7 +3478,32 @@ function processShooterAI(state: BattleState, actor: ActorState): void {
   state.crew.assignments[actor.id] = assignment;
 }
 
-function processCrewAI(state: BattleState, events: WorldEvent[]): void {
+function normalContactBridge(state: BattleState, actor: ActorState): R2bBridgeRequest | undefined {
+  const target = meleeTargetAtActor(state, actor);
+  if (!target) return undefined;
+  const from = copyPoint(actorFixed(state, actor.id));
+  const targetPosition = copyPoint(actorFixed(state, target.id));
+  const evidence: PhysicalActorContactEvidence = {
+    matchId: state.matchId,
+    tick: state.tick,
+    actorId: actor.id,
+    generation: actor.generation,
+    targetActorId: target.id,
+    targetGeneration: target.generation,
+    attackType: "normal_contact",
+    firstContact: "actor",
+    from,
+    to: targetPosition,
+    targetPosition,
+  };
+  return { kind: "actor_contact", evidence };
+}
+
+function processCrewAI(state: BattleState, events: WorldEvent[], suppressNpcMovement = false): void {
+  // Keep the contact snapshot stable for a player melee attack. The attack is
+  // resolved after this phase against the positions that were actually used
+  // for the tick, so a carrier/shooter cannot move the target away first.
+  if (suppressNpcMovement) return;
   for (const actor of Object.values(state.actors).sort((left, right) => left.id.localeCompare(right.id))) {
     const decision = state.enemyDecisions[actor.id];
     if (decision && enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
@@ -3653,8 +3707,17 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
   }
   const actor = resolveActor(state, intent, report);
   if (!actor) return;
+  if (intent.attack !== undefined && typeof intent.attack !== "boolean") {
+    addRejection(report, 0, "invalid_transition", "attack must be boolean");
+    return;
+  }
+  if (intent.attack === true && intent.dash !== undefined) {
+    addRejection(report, 0, "invalid_transition", "attack and dash cannot be combined");
+    return;
+  }
   const repair = activeAnyRepair(state, actor.id);
-  const movementRequested = (intent.direction !== undefined && isFiniteDirection(intent.direction) && (intent.direction.x !== 0 || intent.direction.y !== 0)) || intent.dash !== undefined;
+  const movementRequested = (intent.direction !== undefined && isFiniteDirection(intent.direction) && (intent.direction.x !== 0 || intent.direction.y !== 0)) ||
+    intent.dash !== undefined || intent.attack === true;
   if (repair && movementRequested) {
     if ("partId" in repair) cancelRepair(state, repair, "interrupted", events);
     else cancelEquipmentRepair(state, repair, "interrupted", events);
@@ -3888,12 +3951,19 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   applyIntent(next, intent, report, events);
   markDeathIfNeeded(next, events);
   updatePhysicalEnemyDecisions(next);
-  processCrewAI(next, events);
-  processInternalSoldierAI(next, intent?.dash !== undefined || intent?.bridge !== undefined);
+  processCrewAI(next, events, intent?.attack === true);
+  processInternalSoldierAI(next, intent?.dash !== undefined || intent?.bridge !== undefined || intent?.attack === true);
   updateCaseCarriedPositions(next);
   const dashResult = advanceDashes(next, events);
   if (dashResult.equipmentContact) report.acceptedInputKinds.push("equipment_contact");
-  applyR2bBridges(next, intent, dashResult.bridges, dashResult.simulatedActorIds, report, events);
+  const normalBridge = intent?.attack === true && report.rejected.length === 0 && !next.dashes.P1
+    ? normalContactBridge(next, next.actors.P1)
+    : undefined;
+  if (intent?.attack === true && report.rejected.length === 0 && !normalBridge) {
+    addRejection(report, 0, "invalid_transition", "no adjacent enemy actor for normal contact attack");
+  }
+  const generatedBridges = normalBridge ? [...dashResult.bridges, normalBridge] : dashResult.bridges;
+  applyR2bBridges(next, intent, generatedBridges, dashResult.simulatedActorIds, report, events);
   // A validated actor hit must be visible to the common world before launch
   // selection.  A terminal core contact ends the tick without creating new
   // logistics/artillery side effects.
@@ -3990,6 +4060,9 @@ export function getInteraction(state: BattleState, actorId: ActorId = "P1", slot
   const turret = actor ? turretAtActor(state, actor) : undefined;
   const handles: BattleHandle[] = [];
   const actionable = !!actor && actor.alive && !actorIsProtected(state, actor) && validSlot;
+  const attackTargetId = actor && actor.alive && !actorIsProtected(state, actor)
+    ? meleeTargetAtActor(state, actor)?.id
+    : undefined;
   const selectedOwned = !!selectedCase && selectedCase.location === "carried" && selectedCase.ownerActorId === actorId && selectedCase.ownerGeneration === actor?.generation && !reservationForCase(state, selectedCase.id);
   const repairRoom = actor?.location.area === "castle" && actor.location.castleTeam === actor.team && actor.currentRoomId === "repair";
   const equipmentRepairTargets = actor && repairRoom
@@ -4031,6 +4104,7 @@ export function getInteraction(state: BattleState, actorId: ActorId = "P1", slot
     turretIds: actor ? Object.values(state.artillery.turrets).filter((item) => item.team === actor.team).map((item) => item.id).sort() : [],
     handles,
     pickupCaseId: pickupCandidate?.id,
+    attackTargetId,
     equipmentRepairTargets,
     contextToken,
     selectedSlot,

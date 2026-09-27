@@ -120,3 +120,34 @@ test('Space押下中の画面離脱でkeyupを失っても支援技術のクリ�
   });
   expect(presses).toBe(2);
 });
+
+test('近接攻撃はpointer・Xキー・支援技術クリックで一回だけ発火する', async ({ page }) => {
+  await page.goto('/');
+  const result = await page.evaluate(async () => {
+    const { bindAttackInput } = await new Function('return import("/src/input/battle-input.ts")')();
+    const button = document.createElement('button');
+    const field = document.createElement('input');
+    document.body.append(button, field);
+    const captured = new Set<number>();
+    button.setPointerCapture = id => { captured.add(id); };
+    button.hasPointerCapture = id => captured.has(id);
+    button.releasePointerCapture = id => { captured.delete(id); };
+    const pressed: string[] = [];
+    const attack = bindAttackInput(button, () => pressed.push('attack'));
+    const touch = (type: string, id: number) => button.dispatchEvent(new PointerEvent(type, { bubbles: true, pointerId: id, pointerType: 'touch', button: 0 }));
+    touch('pointerdown', 1);
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 1 }));
+    touch('pointerup', 1);
+    button.disabled = true;
+    touch('pointerdown', 2);
+    button.disabled = false;
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', code: 'KeyX', bubbles: true }));
+    field.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', code: 'KeyX', bubbles: true }));
+    button.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: 0 }));
+    attack.setEnabled(false);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'x', code: 'KeyX', bubbles: true }));
+    attack.dispose(); button.remove(); field.remove();
+    return pressed;
+  });
+  expect(result).toEqual(['attack', 'attack', 'attack']);
+});

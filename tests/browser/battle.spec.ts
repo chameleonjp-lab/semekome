@@ -270,7 +270,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
     const hintBox = (await page.locator('.battle-hint').boundingBox())!;
     const cargoBox = (await page.locator('.cargo-controls').boundingBox())!;
     expect(hintBox.y + hintBox.height, `battle hint overlaps cargo controls at ${viewport.width}px`).toBeLessThanOrEqual(cargoBox.y + 1);
-    for (const selector of ['#pause-battle', '[data-slot="0"]', '[data-slot="1"]', '#battle-action', '#battle-drop', '#battle-dash', '#route-toggle', '#target-part', '#battle-help', '.movement-pad']) {
+    for (const selector of ['#pause-battle', '[data-slot="0"]', '[data-slot="1"]', '#battle-action', '#battle-drop', '#battle-attack', '#battle-dash', '#route-toggle', '#target-part', '#battle-help', '.movement-pad']) {
       const box = (await page.locator(selector).boundingBox())!;
       expect(box.width, selector).toBeGreaterThanOrEqual(48);
       expect(box.height, selector).toBeGreaterThanOrEqual(48);
@@ -280,7 +280,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
       expect(box.y + box.height, selector).toBeLessThanOrEqual(viewport.height + 1);
     }
     expect((await page.locator('canvas').boundingBox())!.height).toBeGreaterThan(110);
-    const controls = await Promise.all(['.movement-pad', '#battle-action', '#battle-drop', '#battle-dash', '[data-slot="0"]', '[data-slot="1"]', '#route-toggle', '#target-part', '#battle-help'].map(async selector => ({ selector, box: (await page.locator(selector).boundingBox())! })));
+    const controls = await Promise.all(['.movement-pad', '#battle-action', '#battle-drop', '#battle-attack', '#battle-dash', '[data-slot="0"]', '[data-slot="1"]', '#route-toggle', '#target-part', '#battle-help'].map(async selector => ({ selector, box: (await page.locator(selector).boundingBox())! })));
     for (let left = 0; left < controls.length; left++) for (let right = left + 1; right < controls.length; right++) {
       const a = controls[left], b = controls[right];
       const overlapX = Math.min(a.box.x + a.box.width, b.box.x + b.box.width) - Math.max(a.box.x, b.box.x);

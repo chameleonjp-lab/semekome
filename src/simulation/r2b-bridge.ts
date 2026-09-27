@@ -56,14 +56,14 @@ export interface PlazaEntryEvidence {
 export interface PhysicalActorContactEvidence {
   matchId: string;
   tick: number;
-  /** The actor whose physical dash produced this envelope. */
+  /** The actor whose physical movement produced this envelope. */
   actorId: ActorId;
   generation: number;
   targetActorId: ActorId;
   targetGeneration: number;
-  attackType: "dash";
+  attackType: "dash" | "normal_contact";
   firstContact: "actor";
-  /** Fixed-point positions captured after the physical dash stopped. */
+  /** Fixed-point positions captured at physical actor contact. */
   from: FixedPoint;
   to: FixedPoint;
   targetPosition: FixedPoint;
@@ -264,7 +264,7 @@ export function bridgeCoreFirstContact(
 }
 
 /**
- * Convert a physical actor-to-actor dash contact into one common-world damage
+ * Convert a physical actor-to-actor contact into one common-world damage
  * input.  The physical adapter proves the contact geometry; the common world
  * remains the authority for health, invulnerability, cargo, and respawn.
  */
@@ -281,8 +281,8 @@ export function bridgeActorFirstContact(
   if (attacker.id === target.id || attacker.team === target.team) {
     return failure("invalid_target", "actor contact must target a live opposing actor");
   }
-  if (evidence.attackType !== "dash" || evidence.firstContact !== "actor") {
-    return failure("invalid_contact", "only a dash whose first contact is an actor may deal actor damage");
+  if ((evidence.attackType !== "dash" && evidence.attackType !== "normal_contact") || evidence.firstContact !== "actor") {
+    return failure("invalid_contact", "only a dash or normal contact whose first contact is an actor may deal actor damage");
   }
   if (!finitePoint(evidence.from) || !finitePoint(evidence.to) || !finitePoint(evidence.targetPosition)) {
     return failure("invalid_contact", "fixed-point actor contact is not finite");
