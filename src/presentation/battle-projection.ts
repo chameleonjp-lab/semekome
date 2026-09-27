@@ -1,5 +1,5 @@
 import { PART_IDS, GATE_IDS, type CastleLayout, type GateId, type PartId, type Point, type TeamId } from '../domain/types.ts';
-import { EQUIPMENT_BODY_SIZE_SUBUNITS, hasFloorLineOfSight } from '../actors/geometry.ts';
+import { EQUIPMENT_BODY_SIZE_SUBUNITS, coreWorldPoint, hasFloorLineOfSight } from '../actors/geometry.ts';
 import { ACTOR_RADIUS_SUBUNITS, FLOOR_SUBUNITS, cellCenter } from '../actors/movement.ts';
 import type { BattleState, BattleTurretState } from '../simulation/physical-battle.ts';
 
@@ -98,11 +98,7 @@ export function gateWorldPoint(layout: CastleLayout, gateId: GateId): Point | un
   return { x: center.x / cells.length, y: center.y / cells.length };
 }
 
-export function coreWorldPoint(layout: CastleLayout): Point | undefined {
-  const room = layout.rooms.find((candidate) => candidate.kind === 'core' || candidate.id === 'core');
-  if (!room) return undefined;
-  return { x: (room.rect.x0 + room.rect.x1) / 2, y: (room.rect.y0 + room.rect.y1) / 2 };
-}
+export { coreWorldPoint };
 
 export function getCoreAccessProjection(state: BattleState, team: TeamId): CoreAccessProjection {
   const castle = state.castles[team];

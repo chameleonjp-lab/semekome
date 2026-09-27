@@ -1,6 +1,11 @@
-import { canOccupyFixed, hasFloorLineOfSight } from "../actors/geometry.ts";
+import {
+  CORE_CONTACT_RADIUS_SUBUNITS,
+  canOccupyFixed,
+  coreWorldPoint,
+  hasFloorLineOfSight,
+} from "../actors/geometry.ts";
 import { ACTOR_RADIUS_SUBUNITS, FLOOR_SUBUNITS, floorCell } from "../actors/movement.ts";
-import { roomContainsPoint, routeHasAllGates } from "../domain/layout.ts";
+import { routeHasAllGates } from "../domain/layout.ts";
 import type {
   ActorId,
   CoreAttackInput,
@@ -29,7 +34,9 @@ export interface PhysicalFirstContactEvidence {
   targetTeam: TeamId;
   attackType: "dash" | "normal_contact";
   firstContact: PhysicalFirstContact;
+  /** The attacker's physical center at the first-contact stop point. */
   from: FixedPoint;
+  /** For core contacts, the exact shared renderer/core anchor. */
   to: FixedPoint;
 }
 
@@ -221,8 +228,20 @@ export function bridgeCoreFirstContact(
   }
   const targetLayout = evidence.targetTeam === "player" ? state.layout.home : state.layout.enemy;
   const coreRoom = targetLayout.rooms.find((room) => room.id === "core");
-  if (!coreRoom || !roomContainsPoint(coreRoom, { x: floorCell(evidence.to.x), y: floorCell(evidence.to.y) })) {
-    return failure("invalid_contact", "contact endpoint is outside the authored core room");
+  const corePoint = coreWorldPoint(targetLayout);
+  if (!coreRoom || !corePoint) {
+    return failure("invalid_contact", "the authored core room or its display anchor is missing");
+  }
+  const coreCenter = {
+    x: Math.round(corePoint.x * FLOOR_SUBUNITS),
+    y: Math.round(corePoint.y * FLOOR_SUBUNITS),
+  };
+  if (!samePoint(evidence.to, coreCenter)) {
+    return failure("invalid_contact", "core contact must target the exact displayed core center");
+  }
+  const distanceToCore = Math.hypot(evidence.from.x - coreCenter.x, evidence.from.y - coreCenter.y);
+  if (distanceToCore > CORE_CONTACT_RADIUS_SUBUNITS + 2) {
+    return failure("invalid_contact", "the dash stopped outside the provisional core contact radius");
   }
   if (!targetLayout.coreRouteGates.every((gate) => state.castles[evidence.targetTeam].gates[gate].open) ||
       !routeHasAllGates(targetLayout, location.pathRooms) ||
@@ -299,7 +318,9 @@ export function bridgeActorFirstContact(
   const contactClear = sharedPlaza
     ? plazaPointCanOccupy(state, attackerFixed) && plazaPointCanOccupy(state, targetFixed)
     : hasFloorLineOfSight(state, attacker.location.castleTeam!, attackerFixed, targetFixed);
-  if (contactDistance > ACTOR_RADIUS_SUBUNITS * 2 || !contactClear) {
+  // The physical sweep interpolates a continuous contact point and rounds it
+  // to integer subunits. Allow that bounded quantization error at tangency.
+  if (contactDistance > ACTOR_RADIUS_SUBUNITS * 2 + 2 || !contactClear) {
     return failure("invalid_contact", "actor circles do not overlap or a wall blocks contact");
   }
   if (evidence.targetCargoId !== undefined) {

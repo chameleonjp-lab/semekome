@@ -45,10 +45,11 @@ export function battleMapLabel(state: BattleState, actor: ActorState): string {
 }
 
 export function battleHint(state: BattleState, actor: ActorState, available: HudAction, hasCargo: boolean, canDrop: boolean): string {
+  if (state.phase === 'ended') return '戦闘は終了しました。移動・突進・作業は停止しています。';
   if (!actor.alive) {
     const battleStatus = state.phase === 'paused' || state.visibility !== 'visible'
       ? '一時停止中のため戦況も止まっています。'
-      : state.phase === 'ended' ? '戦闘は終了しています。' : '広場と両城の戦況は進行しています。';
+      : '広場と両城の戦況は進行しています。';
     return `観戦中です。${actorLocationName(state, actor)}で倒れました。${battleStatus}復活まで ${remainingClock(state, actor)}。`;
   }
 
@@ -56,11 +57,12 @@ export function battleHint(state: BattleState, actor: ActorState, available: Hud
 
   if (actor.location.area === 'plaza') {
     const cargoHint = canDrop && hasCargo ? '選択中の弾を広場に置けます。' : hasCargo ? '選択中の弾を運んでいます。' : '床の弾を拾ったり置いたりできます。';
-    return `広場です。${cargoHint}敵城へは広場警備を突破すると進めます。主人公の近接攻撃操作はこの画面にありません。`;
+    return `広場です。${cargoHint}敵城へは広場警備を突進で倒して突破すると進めます。突進は移動方向、停止中は最後に向いた方向へ進みます。`;
   }
 
   const homeCastle = actor.location.castleTeam === actor.team;
   if (!homeCastle) {
+    if (actor.currentRoomId === 'core') return '敵陣の核室です。全7門を通った後、核そのものへ突進を当てると勝利します。入室・歩行・「扱う」だけでは決着しません。';
     if (canDrop && hasCargo) return `敵陣 · ${castleRoomName(state, actor)}です。ここで選択中の弾を置けます。砲台操作と修理は自陣で行います。`;
     if (hasCargo) return `敵陣 · ${castleRoomName(state, actor)}です。運搬中の弾を自陣へ持ち帰れます。砲台操作と修理は自陣で行います。`;
     return `敵陣 · ${castleRoomName(state, actor)}です。床の弾はここでも拾えます。砲台操作と修理は自陣で行います。`;
@@ -71,8 +73,8 @@ export function battleHint(state: BattleState, actor: ActorState, available: Hud
   if (available === 'deliver') return '選択中の弾を砲台の受け渡し枠へ渡せます。';
   if (hasCargo) return '選んだ弾を砲台へ運び、受け渡し枠へ渡すか装填します。';
   if (actor.currentRoomId === 'repair') return '修理室です。損傷した外装や設備の修理には弾を1個使います。';
-  if (actor.currentRoomId === 'central_corridor') return '中央通路です。自陣の弾薬庫でケースを拾い、隣の砲台へ運びます。広場へ移動できますが、主人公の近接攻撃操作はこの画面にありません。';
-  if (actor.currentRoomId === 'core') return '核室です。勝敗条件に関わる場所ですが、この画面からは核攻撃を操作できません。';
+  if (actor.currentRoomId === 'central_corridor') return '中央通路です。自陣の弾薬庫でケースを拾い、隣の砲台へ運びます。広場では「突進」またはSpaceキーで敵を攻撃できます。';
+  if (actor.currentRoomId === 'core') return '自陣の核室です。敵が核へ突進を当てると敗北します。自分の核を攻撃しても勝利にはなりません。';
   if (state.layout.home.rooms.some((room) => room.id === actor.currentRoomId && room.kind === 'supply')) {
     return '弾薬庫です。床のケースに近づき、選択中の所持枠へ拾って隣の砲台へ運びます。';
   }

@@ -15,6 +15,7 @@ import type {
   StepReport,
   TeamId,
   WorldEvent,
+  WorldInput,
   WorldObject,
   WorldState,
 } from "../domain/types.ts";
@@ -28,9 +29,12 @@ import {
 } from "../actors/movement.ts";
 import {
   ACTION_RANGE_SUBUNITS as GEOMETRY_ACTION_RANGE_SUBUNITS,
+  CORE_CONTACT_RADIUS_SUBUNITS,
   canOccupyFixed,
+  coreWorldPoint,
   equipmentRectForCell,
   hasFloorLineOfSight,
+  segmentCircleEntryT,
   walkableApproachCells,
   type FixedRect,
 } from "../actors/geometry.ts";
@@ -888,26 +892,6 @@ function startDash(
 }
 
 /** Return the first segment parameter at which two actor circles overlap. */
-function segmentActorContactT(from: FixedPoint, to: FixedPoint, target: FixedPoint): number | undefined {
-  const dx = to.x - from.x;
-  const dy = to.y - from.y;
-  const fx = from.x - target.x;
-  const fy = from.y - target.y;
-  const radius = ACTOR_RADIUS_SUBUNITS * 2;
-  const radiusSquared = radius * radius;
-  const startDistance = fx * fx + fy * fy;
-  if (startDistance <= radiusSquared) return 0;
-  const a = dx * dx + dy * dy;
-  if (a === 0) return undefined;
-  const b = 2 * (fx * dx + fy * dy);
-  const c = startDistance - radiusSquared;
-  const discriminant = b * b - 4 * a * c;
-  if (discriminant < 0) return undefined;
-  const root = Math.sqrt(discriminant);
-  const entry = (-b - root) / (2 * a);
-  if (entry < 0 || entry > 1) return undefined;
-  return entry;
-}
 
 function interpolatePoint(from: FixedPoint, to: FixedPoint, progress: number): FixedPoint {
   return {
@@ -929,9 +913,9 @@ interface DashEquipmentContact {
 }
 
 interface DashAdvanceResult {
-  bridge?: R2bBridgeRequest;
-  equipmentContact?: DashEquipmentContact;
-  equipmentDamaged?: boolean;
+  bridges: R2bBridgeRequest[];
+  equipmentContact: boolean;
+  simulatedActorIds: Set<ActorId>;
 }
 
 function expandRect(rect: FixedRect, margin: number): FixedRect {
@@ -1059,129 +1043,186 @@ function damageEquipment(state: BattleState, actor: ActorState, contact: DashEqu
   return true;
 }
 
-function dashContactTarget(
+
+interface DashCoreContact {
+  targetTeam: TeamId;
+  position: FixedPoint;
+  center: FixedPoint;
+  progress: number;
+}
+
+function dashCoreContact(
   state: BattleState,
   actor: ActorState,
   from: FixedPoint,
-  to: FixedPoint,
-): { target: ActorState; progress: number; position: FixedPoint } | undefined {
-  if (actor.location.area === "castle" && !actor.location.castleTeam) return undefined;
-  if (actor.location.area !== "castle" && actor.location.area !== "plaza") return undefined;
-  const candidates = Object.values(state.actors)
-    .filter((candidate) => candidate.id !== actor.id && candidate.alive && candidate.team !== actor.team &&
-      candidate.location.area === actor.location.area &&
-      (actor.location.area === "plaza" || candidate.location.castleTeam === actor.location.castleTeam))
-    .map((candidate) => ({ candidate, progress: segmentActorContactT(from, to, actorFixed(state, candidate.id)) }))
-    .filter((entry): entry is { candidate: ActorState; progress: number } => entry.progress !== undefined)
-    .sort((left, right) => left.progress - right.progress || String(left.candidate.id).localeCompare(String(right.candidate.id)));
-  const first = candidates[0];
-  if (!first) return undefined;
-  return {
-    target: first.candidate,
-    progress: first.progress,
-    position: interpolatePoint(from, to, first.progress),
+  requested: FixedPoint,
+  endpoint: FixedPoint,
+): DashCoreContact | undefined {
+  if (actor.location.area !== "castle" || !actor.location.castleTeam) return undefined;
+  const targetTeam = actor.location.castleTeam;
+  const castle = state.castles[targetTeam];
+  if (targetTeam === actor.team || castle.core.hit || !GATE_IDS.every((gateId) => castle.gates[gateId].open)) return undefined;
+  const corePoint = coreWorldPoint(teamLayout(state, targetTeam));
+  if (!corePoint) return undefined;
+  const center = {
+    x: Math.round(corePoint.x * FLOOR_SUBUNITS),
+    y: Math.round(corePoint.y * FLOOR_SUBUNITS),
   };
+  const requestedDistance = Math.hypot(requested.x - from.x, requested.y - from.y);
+  if (requestedDistance === 0) return undefined;
+  const reachableProgress = Math.hypot(endpoint.x - from.x, endpoint.y - from.y) / requestedDistance;
+  const progress = segmentCircleEntryT(from, requested, center, CORE_CONTACT_RADIUS_SUBUNITS);
+  if (progress === undefined || progress > reachableProgress) return undefined;
+  return { targetTeam, center, progress, position: interpolatePoint(from, requested, progress) };
 }
 
 /**
- * Advance all active physical dashes by one tick and return the one contact
- * envelope produced during this tick. The movement is authoritative here;
- * actor damage or victory is still resolved by the R2b bridge/common world;
- * equipment damage is resolved against the physical equipment runtime.
+ * Advance every active physical dash and collect this tick's first-contact
+ * envelopes. The movement is authoritative here; actor damage or victory is
+ * resolved by the R2b bridge/common world, while equipment damage is physical.
  */
 function advanceDashes(state: BattleState, events: WorldEvent[]): DashAdvanceResult {
-  for (const actor of Object.values(state.actors).sort((left, right) => String(left.id).localeCompare(String(right.id)))) {
+  const result: DashAdvanceResult = { bridges: [], equipmentContact: false, simulatedActorIds: new Set() };
+  type Obstacle = { kind: "wall"; time: number }
+    | { kind: "equipment"; time: number; contact: DashEquipmentContact }
+    | { kind: "core"; time: number; contact: DashCoreContact };
+  type Motion = { actor: ActorState; from: FixedPoint; velocity: FixedPoint; obstacle?: Obstacle };
+  const actors = Object.values(state.actors).sort((a, b) => String(a.id).localeCompare(String(b.id)));
+  const active = new Map<ActorId, Motion>();
+  const movingIds: ActorId[] = [];
+
+  // Freeze all starts and velocities before moving any actor. Relative sweeps
+  // must not depend on whether an actor's ID happens to sort before its target.
+  for (const actor of actors) {
     const dash = state.dashes[actor.id];
     if (!dash) continue;
+    result.simulatedActorIds.add(actor.id);
     if (!actor.alive || (actor.location.area === "castle" && !actor.location.castleTeam) ||
         (actor.location.area !== "castle" && actor.location.area !== "plaza")) {
       state.dashes[actor.id] = undefined;
       continue;
     }
-    const current = actorFixed(state, actor.id);
+    const from = copyPoint(actorFixed(state, actor.id));
     const distance = state.rules.dashDistanceSubunits / state.rules.dashDurationTicks;
     const diagonal = dash.direction.x !== 0 && dash.direction.y !== 0 ? Math.SQRT1_2 : 1;
     const requested = {
-      x: Math.round(current.x + dash.direction.x * distance * diagonal),
-      y: Math.round(current.y + dash.direction.y * distance * diagonal),
+      x: Math.round(from.x + dash.direction.x * distance * diagonal),
+      y: Math.round(from.y + dash.direction.y * distance * diagonal),
     };
     const walkable = actor.location.area === "plaza"
       ? plazaPointCanOccupy(state, requested)
       : canOccupy(state, actor.location.castleTeam!, requested);
     const endpoint = walkable ? requested : actor.location.area === "plaza"
-      ? furthestPlazaPoint(state, current, requested)
-      : furthestWalkablePoint(state, actor.location.castleTeam!, current, requested);
-    const blocked = endpoint.x !== requested.x || endpoint.y !== requested.y;
-    const contact = dashContactTarget(state, actor, current, endpoint);
-    if (contact) {
-      setActorFixed(state, actor, contact.position);
-      state.dashes[actor.id] = undefined;
-      const targetSlots = state.cargoSlots[contact.target.id] ?? [null, null];
-      const targetCargoId = targetSlots.find((objectId) => objectId !== null && contact.target.cargoIds.includes(objectId)) ?? undefined;
-      return {
-        bridge: {
-          kind: "actor_contact",
-          evidence: {
-            matchId: state.matchId,
-            tick: state.tick,
-            actorId: actor.id,
-            generation: actor.generation,
-            targetActorId: contact.target.id,
-            targetGeneration: contact.target.generation,
-            attackType: "dash",
-            firstContact: "actor",
-            from: contact.position,
-            to: copyPoint(actorFixed(state, contact.target.id)),
-            targetPosition: copyPoint(actorFixed(state, contact.target.id)),
-            ...(targetCargoId ? { targetCargoId } : {}),
-          },
-        },
-      };
-    }
-    const equipmentContact = dashEquipmentContact(state, actor, current, requested, endpoint);
-    if (equipmentContact) {
-      if (endpoint.x !== current.x || endpoint.y !== current.y) setActorFixed(state, actor, endpoint);
-      state.dashes[actor.id] = undefined;
-      return {
-        equipmentContact,
-        equipmentDamaged: damageEquipment(state, actor, equipmentContact, events),
-      };
-    }
-    if (endpoint.x !== current.x || endpoint.y !== current.y) setActorFixed(state, actor, endpoint);
-    // A wall, closed gate, or equipment body is the first physical obstacle;
-    // the dash ends at its conservative clearance point and never tunnels.
-    if (blocked || actor.currentRoomId === "core") {
-      if (actor.currentRoomId === "core") {
-        const currentCastleTeam = actor.location.castleTeam;
-        if (!currentCastleTeam) {
-          state.dashes[actor.id] = undefined;
-          continue;
-        }
-        state.dashes[actor.id] = undefined;
-        return {
-          bridge: {
-            kind: "core_contact",
-            evidence: {
-              matchId: state.matchId,
-              tick: state.tick,
-              actorId: actor.id,
-              generation: actor.generation,
-              targetTeam: currentCastleTeam === actor.team ? (actor.team === PLAYER_TEAM ? ENEMY_TEAM : PLAYER_TEAM) : currentCastleTeam,
-              attackType: "dash",
-              firstContact: "core",
-              from: copyPoint(actorFixed(state, actor.id)),
-              to: copyPoint(actorFixed(state, actor.id)),
-            },
-          },
-        };
-      }
-      state.dashes[actor.id] = undefined;
-      continue;
-    }
-    dash.remainingTicks -= 1;
-    if (dash.remainingTicks <= 0) state.dashes[actor.id] = undefined;
+      ? furthestPlazaPoint(state, from, requested)
+      : furthestWalkablePoint(state, actor.location.castleTeam!, from, requested);
+    const length = Math.hypot(requested.x - from.x, requested.y - from.y);
+    const reachable = length === 0 ? 0 : Math.min(1, Math.hypot(endpoint.x - from.x, endpoint.y - from.y) / length);
+    const equipment = dashEquipmentContact(state, actor, from, requested, endpoint);
+    const core = dashCoreContact(state, actor, from, requested, endpoint);
+    const obstacles: Obstacle[] = [];
+    if (equipment) obstacles.push({ kind: "equipment", time: Math.min(reachable, equipment.progress), contact: equipment });
+    if (core) obstacles.push({ kind: "core", time: core.progress, contact: core });
+    if (!walkable) obstacles.push({ kind: "wall", time: reachable });
+    obstacles.sort((a, b) => a.time - b.time ||
+      ({ equipment: 0, wall: 1, core: 2 }[a.kind] - { equipment: 0, wall: 1, core: 2 }[b.kind]));
+    active.set(actor.id, { actor, from, velocity: { x: requested.x - from.x, y: requested.y - from.y }, obstacle: obstacles[0] });
+    movingIds.push(actor.id);
   }
-  return {};
+
+  const pointAt = (actorId: ActorId, time: number): FixedPoint => {
+    const motion = active.get(actorId);
+    return motion
+      ? { x: motion.from.x + motion.velocity.x * time, y: motion.from.y + motion.velocity.y * time }
+      : actorFixed(state, actorId);
+  };
+  const stop = (actorId: ActorId) => { active.delete(actorId); state.dashes[actorId] = undefined; };
+  const sameArea = (a: ActorState, b: ActorState) => a.location.area === b.location.area &&
+    (a.location.area === "plaza" || a.location.castleTeam === b.location.castleTeam);
+  const epsilon = 1e-9;
+  let time = 0;
+  // Each iteration either reaches the tick end or stops at least one dash.
+  // Stop events split trajectories: a target that hit a wall is stationary for
+  // the rest of the tick, rather than continuing an imaginary straight sweep.
+  while (active.size > 0 && time < 1) {
+    let limit = 1;
+    for (const motion of active.values()) limit = Math.min(limit, motion.obstacle?.time ?? 1);
+    const contacts: Array<{ actor: ActorState; target: ActorState; time: number }> = [];
+    for (const motion of active.values()) {
+      const from = pointAt(motion.actor.id, time);
+      const to = pointAt(motion.actor.id, limit);
+      for (const target of actors) {
+        if (target.id === motion.actor.id || !target.alive || target.team === motion.actor.team || !sameArea(motion.actor, target)) continue;
+        const targetFrom = pointAt(target.id, time);
+        const targetTo = pointAt(target.id, limit);
+        const progress = segmentCircleEntryT(
+          { x: from.x - targetFrom.x, y: from.y - targetFrom.y },
+          { x: to.x - targetTo.x, y: to.y - targetTo.y },
+          { x: 0, y: 0 }, ACTOR_RADIUS_SUBUNITS * 2,
+        );
+        if (progress !== undefined) contacts.push({ actor: motion.actor, target, time: time + (limit - time) * progress });
+      }
+    }
+    contacts.sort((a, b) => a.time - b.time || String(a.actor.id).localeCompare(String(b.actor.id)) || String(a.target.id).localeCompare(String(b.target.id)));
+    const nextTime = Math.min(limit, contacts[0]?.time ?? limit);
+    for (const motion of active.values()) {
+      const point = pointAt(motion.actor.id, nextTime);
+      setActorFixed(state, motion.actor, { x: Math.round(point.x), y: Math.round(point.y) });
+    }
+
+    // Snapshot every same-time actor contact before stopping either side.
+    // Both moving opponents stop on a mutual contact, preserving the evidence
+    // positions until the common-world batch consumes it.
+    const chosen = new Set<ActorId>();
+    for (const contact of contacts) {
+      if (Math.abs(contact.time - nextTime) > epsilon || chosen.has(contact.actor.id)) continue;
+      chosen.add(contact.actor.id);
+      const slots = state.cargoSlots[contact.target.id] ?? [null, null];
+      const cargo = slots.find((id) => id !== null && contact.target.cargoIds.includes(id)) ?? undefined;
+      result.bridges.push({
+        kind: "actor_contact",
+        evidence: {
+          matchId: state.matchId, tick: state.tick,
+          actorId: contact.actor.id, generation: contact.actor.generation,
+          targetActorId: contact.target.id, targetGeneration: contact.target.generation,
+          attackType: "dash", firstContact: "actor",
+          from: copyPoint(actorFixed(state, contact.actor.id)),
+          to: copyPoint(actorFixed(state, contact.target.id)),
+          targetPosition: copyPoint(actorFixed(state, contact.target.id)),
+          ...(cargo ? { targetCargoId: cargo } : {}),
+        },
+      });
+    }
+    for (const actorId of chosen) stop(actorId);
+
+    for (const [actorId, motion] of active) {
+      const obstacle = motion.obstacle;
+      if (!obstacle || obstacle.time > nextTime + epsilon) continue;
+      if (obstacle.kind === "equipment") {
+        damageEquipment(state, motion.actor, obstacle.contact, events);
+        result.equipmentContact = true;
+      } else if (obstacle.kind === "core") {
+        result.bridges.push({
+          kind: "core_contact",
+          evidence: {
+            matchId: state.matchId, tick: state.tick,
+            actorId, generation: motion.actor.generation,
+            targetTeam: obstacle.contact.targetTeam,
+            attackType: "dash", firstContact: "core",
+            from: copyPoint(actorFixed(state, actorId)),
+            to: copyPoint(obstacle.contact.center),
+          },
+        });
+      }
+      stop(actorId);
+    }
+    time = nextTime;
+    if (time >= 1) break;
+  }
+  for (const actorId of movingIds) {
+    const dash = state.dashes[actorId];
+    if (dash && --dash.remainingTicks <= 0) state.dashes[actorId] = undefined;
+  }
+  return result;
 }
 
 function nearestCellPath(state: BattleState, team: TeamId, from: Point, to: Point): Point[] {
@@ -3566,57 +3607,92 @@ function bridgeRejectionReason(kind: R2bBridgeRequest["kind"], reason: string): 
   return "invalid_transition";
 }
 
-/**
- * Consume one validated R2b boundary in the current physical tick.
- *
- * `stepWorld` is intentionally called on a snapshot and its clock fields are
- * not copied back.  The physical coordinator owns the one shared tick and
- * advances it once below, before the remaining logistics and artillery work.
- * Only the world-owned fields and events produced by the bridge input are
- * merged.
- */
-function applyR2bBridge(
+interface BridgedActorContactSnapshot {
+  inputIndex: number;
+  evidence: PhysicalActorContactEvidence;
+  target: ActorState;
+  targetPosition: FixedPoint;
+  cargoBefore: Set<string>;
+  slotsBefore: [string | null, string | null];
+}
+
+/** Consume every physical first-contact envelope through one common-world tick. */
+function applyR2bBridges(
   state: BattleState,
   intent: BattleIntent | undefined,
+  generatedBridges: readonly R2bBridgeRequest[],
+  simulatedDashActors: ReadonlySet<ActorId>,
   report: StepReport,
   events: WorldEvent[],
 ): void {
-  const request = intent?.bridge;
-  if (!request) return;
-  // The bridge is part of the same public intent. If its match, actor, or
-  // ordinary physical fields were rejected above, do not let a separately
-  // valid-looking evidence envelope bypass that rejection.
-  if (report.rejected.length > 0) return;
-  if (request.evidence.actorId !== intent.actorId || request.evidence.generation !== intent.generation) {
-    addRejection(report, 0, "stale_generation", "bridge evidence is not bound to the public actor snapshot");
-    return;
+  const publicRequest = intent?.bridge;
+  const hadPhysicalRejection = report.rejected.length > 0;
+  const requests: R2bBridgeRequest[] = [...generatedBridges];
+  if (publicRequest && !hadPhysicalRejection) {
+    if (publicRequest.evidence.actorId !== intent.actorId || publicRequest.evidence.generation !== intent.generation) {
+      addRejection(report, 0, "stale_generation", "bridge evidence is not bound to the public actor snapshot");
+    } else if (simulatedDashActors.has(intent.actorId)) {
+      addRejection(report, 0, "invalid_transition", "a public bridge cannot override a physically simulated dash");
+    } else {
+      requests.push(publicRequest);
+    }
   }
+  // The physical sweep owns the first contact, including walls/equipment or
+  // no contact. Standalone bridge inputs retain their validated adapter API,
+  // but can neither replace nor cancel a physically simulated dash result.
+  if (requests.length === 0) return;
 
-  const prepared = prepareR2bWorldInput(state, request);
-  if (!prepared.ok) {
-    addRejection(report, 0, bridgeRejectionReason(request.kind, prepared.reason), `bridge:${request.kind}: ${prepared.detail ?? prepared.reason}`);
-    return;
+  let commonSnapshot: WorldState = state;
+  const worldInputs: WorldInput[] = [];
+  const preparedKinds: R2bBridgeRequest["kind"][] = [];
+  const actorContacts: BridgedActorContactSnapshot[] = [];
+  for (const request of requests) {
+    // Contact evidence is checked against the same physical tick snapshot;
+    // plaza preparation may install its one-use permission on the world copy.
+    const prepared = prepareR2bWorldInput(state, request);
+    if (!prepared.ok) {
+      addRejection(report, 0, bridgeRejectionReason(request.kind, prepared.reason), `bridge:${request.kind}: ${prepared.detail ?? prepared.reason}`);
+      continue;
+    }
+    if (request.kind === "plaza_entry") commonSnapshot = prepared.value.state;
+    worldInputs.push(prepared.value.input);
+    preparedKinds.push(request.kind);
+    if (request.kind === "actor_contact") {
+      const evidence = request.evidence;
+      const target = state.actors[evidence.targetActorId];
+      if (target) {
+        actorContacts.push({
+          inputIndex: worldInputs.length - 1,
+          evidence,
+          target,
+          targetPosition: copyPoint(actorFixed(state, evidence.targetActorId)),
+          cargoBefore: new Set(target.cargoIds),
+          slotsBefore: [...(state.cargoSlots[target.id] ?? [null, null])] as [string | null, string | null],
+        });
+      }
+    }
   }
+  if (worldInputs.length === 0) return;
 
-  const contactEvidence: PhysicalActorContactEvidence | undefined = request.kind === "actor_contact" ? request.evidence : undefined;
-  const contactTarget = contactEvidence ? state.actors[contactEvidence.targetActorId] : undefined;
-  const contactTargetPosition = contactEvidence ? copyPoint(actorFixed(state, contactEvidence.targetActorId)) : undefined;
-  const contactCargoBefore = contactTarget ? new Set(contactTarget.cargoIds) : undefined;
-  const contactSlotsBefore = contactTarget ? [...(state.cargoSlots[contactTarget.id] ?? [null, null])] as [string | null, string | null] : undefined;
-  const bridged = stepWorld(prepared.value.state, prepared.value.input);
+  // Passing all same-tick contacts together preserves common-world ordering:
+  // opposing core hits can draw, and the world clock/random seed advance once.
+  const bridged = stepWorld(commonSnapshot, worldInputs);
   const bridgedReport = bridged.lastStep;
-  if (bridgedReport.rejected.length > 0 || !bridgedReport.advanced) {
-    for (const rejection of bridgedReport.rejected) {
-      addRejection(report, 0, rejection.reason, `bridge:${request.kind}: ${rejection.detail ?? rejection.reason}`);
-    }
-    if (bridgedReport.rejected.length === 0) {
-      addRejection(report, 0, "invalid_transition", `bridge:${request.kind}: common world did not advance`);
-    }
+  const rejectedIndexes = new Set(bridgedReport.rejected.map((rejection) => rejection.inputIndex));
+  for (const rejection of bridgedReport.rejected) {
+    const kind = preparedKinds[rejection.inputIndex] ?? "actor_contact";
+    addRejection(report, 0, rejection.reason, `bridge:${kind}: ${rejection.detail ?? rejection.reason}`);
+  }
+  if (!bridgedReport.advanced) {
+    if (bridgedReport.rejected.length === 0) addRejection(report, 0, "invalid_transition", "bridge contacts: common world did not advance");
     return;
   }
+  const acceptedKinds = preparedKinds.filter((_, index) => !rejectedIndexes.has(index));
+  if (acceptedKinds.length === 0) return;
+  const acceptedContacts = actorContacts.filter((contact) => !rejectedIndexes.has(contact.inputIndex));
 
   events.push(...bridgedReport.events);
-  report.acceptedInputKinds.push(`bridge:${request.kind}`);
+  report.acceptedInputKinds.push(...acceptedKinds.map((kind) => `bridge:${kind}`));
 
   // The physical state extends WorldState. Merge only common-world authority;
   // tick, randomState, lastStep, and eventLog remain owned by this coordinator.
@@ -3632,28 +3708,37 @@ function applyR2bBridge(
   state.projectiles = bridged.projectiles;
   state.reservations = bridged.reservations;
   state.plaza = bridged.plaza;
-  if (contactEvidence && contactTargetPosition && contactCargoBefore) {
-    const mergedTarget = state.actors[contactEvidence.targetActorId];
-    if (mergedTarget && contactSlotsBefore) {
-      state.cargoSlots[mergedTarget.id] = contactSlotsBefore.map((objectId) =>
-        objectId !== null && mergedTarget.cargoIds.includes(objectId) ? objectId : null,
-      ) as [string | null, string | null];
-    }
-    for (const bridgedEvent of bridgedReport.events) {
-      if ((bridgedEvent.type === "actor_damaged" || bridgedEvent.type === "actor_died") && bridgedEvent.actorId === contactEvidence.targetActorId) {
-        bridgedEvent.physicalLocation = actorEventLocation(state, contactTarget!, contactTargetPosition);
-      }
-      if (bridgedEvent.type !== "object_moved" || !contactCargoBefore.has(bridgedEvent.objectId)) continue;
-      const caseState = state.battleCases[bridgedEvent.objectId];
-      if (!caseState || bridgedEvent.location.kind !== "floor") continue;
-      clearCargoSlot(state, contactEvidence.targetActorId, bridgedEvent.objectId);
-      setCaseFloor(state, caseState, contactTargetPosition, actorCaseFloorLocation(contactTarget!));
-      // Publish the same physical area and pre-knockback floor position as
-      // the final object projection, including plaza drops.
-      bridgedEvent.location = structuredClone(state.objects[caseState.id].location);
-    }
-    applyActorKnockback(state, contactEvidence.actorId, contactEvidence.targetActorId);
+
+  const contactByTarget = new Map<string, BridgedActorContactSnapshot>();
+  const contactByCargo = new Map<string, BridgedActorContactSnapshot>();
+  for (const contact of acceptedContacts) {
+    if (!contactByTarget.has(contact.evidence.targetActorId)) contactByTarget.set(contact.evidence.targetActorId, contact);
+    for (const objectId of contact.cargoBefore) if (!contactByCargo.has(objectId)) contactByCargo.set(objectId, contact);
   }
+  for (const [targetId, contact] of contactByTarget) {
+    const mergedTarget = state.actors[targetId];
+    if (!mergedTarget) continue;
+    state.cargoSlots[targetId] = contact.slotsBefore.map((objectId) =>
+      objectId !== null && mergedTarget.cargoIds.includes(objectId) ? objectId : null,
+    ) as [string | null, string | null];
+  }
+  for (const bridgedEvent of bridgedReport.events) {
+    if ((bridgedEvent.type === "actor_damaged" || bridgedEvent.type === "actor_died") && contactByTarget.has(bridgedEvent.actorId)) {
+      const contact = contactByTarget.get(bridgedEvent.actorId)!;
+      bridgedEvent.physicalLocation = actorEventLocation(state, contact.target, contact.targetPosition);
+    }
+    if (bridgedEvent.type !== "object_moved" || bridgedEvent.location.kind !== "floor") continue;
+    const contact = contactByCargo.get(bridgedEvent.objectId);
+    if (!contact) continue;
+    const caseState = state.battleCases[bridgedEvent.objectId];
+    if (!caseState) continue;
+    clearCargoSlot(state, contact.evidence.targetActorId, bridgedEvent.objectId);
+    setCaseFloor(state, caseState, contact.targetPosition, actorCaseFloorLocation(contact.target));
+    // Publish the pre-knockback physical floor location, including plaza drops.
+    bridgedEvent.location = structuredClone(state.objects[caseState.id].location);
+  }
+  for (const contact of acceptedContacts) applyActorKnockback(state, contact.evidence.actorId, contact.evidence.targetActorId);
+
   for (const bridgedEvent of bridgedReport.events) {
     if (bridgedEvent.type !== "actor_respawned") continue;
     const actor = state.actors[bridgedEvent.actorId];
@@ -3702,16 +3787,7 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   updateCaseCarriedPositions(next);
   const dashResult = advanceDashes(next, events);
   if (dashResult.equipmentContact) report.acceptedInputKinds.push("equipment_contact");
-  const generatedBridge = dashResult.bridge;
-  const bridgeIntent = intent?.bridge ? intent : generatedBridge
-    ? (intent && intent.actorId === generatedBridge.evidence.actorId && intent.generation === generatedBridge.evidence.generation ? { ...intent, bridge: generatedBridge } : {
-      matchId: next.matchId,
-      actorId: generatedBridge.evidence.actorId,
-      generation: generatedBridge.evidence.generation,
-      bridge: generatedBridge,
-    })
-    : intent;
-  applyR2bBridge(next, bridgeIntent, report, events);
+  applyR2bBridges(next, intent, dashResult.bridges, dashResult.simulatedActorIds, report, events);
   // A validated actor hit must be visible to the common world before launch
   // selection.  A terminal core contact ends the tick without creating new
   // logistics/artillery side effects.
