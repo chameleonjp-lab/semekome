@@ -32,6 +32,27 @@ test('location, hint, and accessible map label follow the actor between both cas
   assert.match(battleHint(state, actor, undefined, true, true), /弾を広場に置けます/);
 });
 
+test('plaza hint reports the live guard boundary before and after deployment', () => {
+  const state = fixture();
+  const actor = state.actors.P1;
+  actor.currentRoomId = 'plaza';
+  actor.location = { area: 'plaza', pathRooms: [], pathGates: [] };
+
+  assert.match(battleHint(state, actor, undefined, false, false), /防衛者が出動中/);
+
+  state.plaza.guardDeployments.enemy = {
+    dispatchedAtTick: state.tick,
+    guardGenerations: { E25: 0, E26: 0, E27: 0 },
+  };
+  assert.match(battleHint(state, actor, undefined, false, false), /残り3人/);
+  for (const id of ['E25', 'E26', 'E27'] as const) {
+    state.actors[id].alive = false;
+    state.actors[id].health = 0;
+    state.actors[id].respawnAtTick = 9_999;
+  }
+  assert.match(battleHint(state, actor, undefined, false, false), /防衛者を突破しました.*敵城側の入口へ進めます/);
+});
+
 test('death projects spectator status with death origin and a pause-aware respawn clock', () => {
   const state = fixture();
   const actor = state.actors.P1;
