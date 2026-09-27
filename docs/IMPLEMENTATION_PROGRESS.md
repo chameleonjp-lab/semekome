@@ -1,5 +1,11 @@
 # 実装の進捗
 
+## 最新：R2g 主人公の公開砲撃・G1開門境界
+
+PR #41取り込み後の次の小単位として、P1が公開 `direction` / `handle` で4回の通常配送を行い、敵外装P1への実発射・破壊からG1開門までを同じ試合状態で固定した。続けて広場のE25〜E27を公開 `dash` で撃破し、held `direction` で敵城へ入り、開いたG1を越えた後の閉じたG2手前で止まることを確認した。明示的な `bridge`、座標越境、門開放、外装破壊は検査入力に使わない。
+
+`tests/scenarios/r2d-player-plaza-route.test.ts` の追加fixtureでは、敵AIを保護し、広場3防衛者を一接触で撃破できる固定配置にして、主人公側の通常公開配送・砲撃・G1越境・G2閉門境界だけへ範囲を限定した。敵外装の破壊数は1、開門はG1だけ、P1の経路は `central_corridor` → `respawn` → `corridor_0` → `corridor_1`、`pathGates` は `G1` だけである。残り6部位、G2〜G7、広場戦術全体、核命中、終局、味方命令、正式結果・ランキング、実機は未完了。独立レビューは [R2G_PLAYER_GATE_OPENING_REVIEW.md](R2G_PLAYER_GATE_OPENING_REVIEW.md) に記録した。
+
 ## 最新：R2f 主人公の敵城・閉門境界
 
 PR #40取り込み後の次の小単位として、P1がR2eと同じ公開 `direction` / `handle` / `dash` で広場警備を撃破して敵城側へ越境した後、さらに held `direction` だけで敵城内を進む経路を固定した。最初の閉じたG1の手前でP1を止め、`pathGates` を空のまま保ち、移動だけでは門・外装・核側へ抜けないことを確認する。明示的な `bridge`、座標越境、門開放、外装破壊は検査入力に使わない。
