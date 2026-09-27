@@ -13,6 +13,8 @@ export interface EnemyObservation {
   nearbyCases: string[];
   turret?: { id: string; roomId: string; atPosition: boolean; hasCapacity: boolean };
   canAssault: boolean;
+  /** Physical adapter's public, gate-aware goal once an assault reaches the opposing castle. */
+  assaultGoalRoomId?: string;
   canGuardPlaza: boolean;
 }
 
@@ -65,7 +67,7 @@ export function chooseEnemyIntent(observation: EnemyObservation): EnemyIntent {
     case "internal_soldier":
       if (threat) return { kind: "defend", targetId: threat };
       if (o.canGuardPlaza) return { kind: "move_goal", roomId: "central_corridor", purpose: "plaza" };
-      if (o.canAssault) return { kind: "move_goal", roomId: "central_corridor", purpose: "assault" };
+      if (o.canAssault) return { kind: "move_goal", roomId: o.assaultGoalRoomId ?? "central_corridor", purpose: "assault" };
       return { kind: "move_goal", roomId: o.homeRoomId, purpose: "patrol" };
     default: return { kind: "wait", reason: "not_enemy_role" };
   }

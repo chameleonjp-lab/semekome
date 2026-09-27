@@ -17,6 +17,8 @@ import type {
 } from "../domain/types.ts";
 import type { BattleState, FixedPoint } from "./physical-battle.ts";
 import { cloneWorld } from "./world.ts";
+import { plazaGuardCandidates } from "./plaza-guards.ts";
+export { plazaGuardGenerations } from "./plaza-guards.ts";
 
 /**
  * R2b's first connection boundary.  The physical simulation owns fixed-point
@@ -47,7 +49,7 @@ export interface PlazaEntryEvidence {
   generation: number;
   /** Castle side the actor is trying to enter from the plaza. */
   targetTeam: TeamId;
-  /** Generations observed for every authored plaza guard in the snapshot. */
+  /** Generations observed for every opposing plaza occupant in the snapshot. */
   guardGenerations: Readonly<Record<string, number>>;
 }
 
@@ -171,12 +173,6 @@ function actorAtSnapshot(
   if (generation !== actor.generation) return failure("stale_generation", `${generation} != ${actor.generation}`);
   if (!actor.alive) return failure("dead_actor", String(actorId));
   return { ok: true, value: actor };
-}
-
-function guardCandidates(world: WorldState, targetTeam: TeamId, actorId: ActorId): WorldState["actors"][string][] {
-  return Object.values(world.actors)
-    .filter((actor) => actor.id !== actorId && actor.team === targetTeam && actor.canGuardPlaza === true && actor.location.area === "plaza")
-    .sort((left, right) => left.id.localeCompare(right.id));
 }
 
 function exactGuardSnapshot(
@@ -367,7 +363,7 @@ export function preparePlazaEntry(
   if (!validTeam(evidence.targetTeam)) return failure("invalid_target", "unknown castle side");
   if (actor.location.area !== "plaza") return failure("invalid_contact", "actor must be in the plaza");
 
-  const candidates = guardCandidates(world, evidence.targetTeam, evidence.actorId);
+  const candidates = plazaGuardCandidates(world, evidence.targetTeam, evidence.actorId);
   const snapshotError = exactGuardSnapshot(candidates, evidence.guardGenerations);
   if (snapshotError) return snapshotError;
   if (candidates.some((candidate) => candidate.alive)) {

@@ -1,7 +1,7 @@
 import { createWorld, stepWorld } from "./world.ts";
 import { caseDefinition, CASE_TYPES, SUPPLY_BAG, type CaseType } from "../content/cases.ts";
 import layoutSource from "../../docs/plans/current/INTERIOR_LAYOUTS.json" with { type: "json" };
-import { padById } from "../domain/layout.ts";
+import { padById, routeHasAllGates } from "../domain/layout.ts";
 import { assertObjectLocationsUnique } from "../domain/objects.ts";
 import type {
   ActorId,
@@ -62,6 +62,7 @@ import type { EnemyIntent } from "../domain/battle.ts";
 import {
   preparePlazaEntry,
   prepareR2bWorldInput,
+  plazaGuardGenerations,
   type PhysicalActorContactEvidence,
   type PlazaEntryEvidence,
   type R2bBridgeRequest,
@@ -561,11 +562,7 @@ function tryEnterCastleFromPlaza(state: BattleState, actor: ActorState, directio
       : undefined;
   if (!targetTeam) return false;
 
-  const guardGenerations = Object.fromEntries(Object.values(state.actors)
-    .filter((candidate) => candidate.id !== actor.id && candidate.team === targetTeam &&
-      candidate.canGuardPlaza === true && candidate.location.area === "plaza")
-    .sort((left, right) => String(left.id).localeCompare(String(right.id)))
-    .map((candidate) => [String(candidate.id), candidate.generation]));
+  const guardGenerations = plazaGuardGenerations(state, targetTeam, actor.id);
   const evidence: PlazaEntryEvidence = {
     matchId: state.matchId,
     tick: state.tick,
@@ -1259,7 +1256,22 @@ function moveAlongPath(state: BattleState, actor: ActorState, path: Point[], pat
   if (path.length === 0) return pathIndex;
   let nextIndex = pathIndex;
   const current = actorFixed(state, actor.id);
-  while (nextIndex < path.length && distanceSquared(current, { x: cellCenter(path[nextIndex].x), y: cellCenter(path[nextIndex].y) }) <= 650 * 650) nextIndex += 1;
+  const castleTeam = actor.location.castleTeam ?? actor.team;
+  const moveSpeed = ACTOR_SPEED_SUBUNITS_PER_TICK * carryingSpeedMultiplier(carryWeight(state, actor)) * effectMovementMultiplier(state, actor);
+  while (nextIndex < path.length) {
+    const waypoint = path[nextIndex];
+    const previous = path[nextIndex - 1];
+    const following = path[nextIndex + 1];
+    const isTurn = previous !== undefined && following !== undefined &&
+      (waypoint.x - previous.x !== following.x - waypoint.x ||
+        waypoint.y - previous.y !== following.y - waypoint.y);
+    // A turn cell must be reached before changing axes. Skipping a nearby
+    // corner makes the next target diagonal to the current cell and can push
+    // the actor into the wall when the perpendicular axis is aligned first.
+    const arrivalRadius = isTurn ? Math.max(0, moveSpeed - 1) : 650;
+    if (distanceSquared(current, { x: cellCenter(waypoint.x), y: cellCenter(waypoint.y) }) > arrivalRadius * arrivalRadius) break;
+    nextIndex += 1;
+  }
   const target = path[Math.min(nextIndex, path.length - 1)];
   const targetPoint = nextIndex >= path.length && finalTarget ? finalTarget : { x: cellCenter(target.x), y: cellCenter(target.y) };
 
@@ -1270,8 +1282,6 @@ function moveAlongPath(state: BattleState, actor: ActorState, path: Point[], pat
   // the fixed-point remainder in moveFixed rather than snapping by a large
   // teleport.
   const currentCell = readCell(current);
-  const castleTeam = actor.location.castleTeam ?? actor.team;
-  const moveSpeed = ACTOR_SPEED_SUBUNITS_PER_TICK * carryingSpeedMultiplier(carryWeight(state, actor)) * effectMovementMultiplier(state, actor);
   const snapAxis = (axis: "x" | "y"): boolean => {
     const point = actorFixed(state, actor.id);
     const delta = targetPoint[axis] - point[axis];
@@ -1378,6 +1388,26 @@ function roomTargetPoint(state: BattleState, team: TeamId, roomId: string): Fixe
   return candidates.find((point) => canOccupy(state, team, point));
 }
 
+/**
+ * Pick the furthest core-route room reachable under the opposing castle's
+ * current public gate state. A closed gate keeps an invader in the room just
+ * before it; opening that gate advances the goal on the next simulation tick.
+ */
+function physicalAssaultGoalRoom(state: BattleState, actor: ActorState): string | undefined {
+  if (actor.location.area !== "castle" || !actor.location.castleTeam) return undefined;
+  const targetTeam = actor.team === PLAYER_TEAM ? ENEMY_TEAM : PLAYER_TEAM;
+  if (actor.location.castleTeam !== targetTeam) return undefined;
+
+  const layout = teamLayout(state, targetTeam);
+  const route = layout.coreRouteRooms;
+  if (route.length === 0) return undefined;
+  const firstClosedGate = layout.coreRouteGates.findIndex((gateId) => !state.castles[targetTeam].gates[gateId].open);
+  const gateGoalIndex = firstClosedGate < 0 ? route.length - 1 : firstClosedGate + 2;
+  const currentRouteIndex = route.indexOf(actor.currentRoomId);
+  const goalIndex = Math.min(route.length - 1, Math.max(gateGoalIndex, currentRouteIndex));
+  return route[goalIndex];
+}
+
 function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyObservation {
   const local = (candidate: ActorState): boolean => candidate.id !== actor.id && candidate.alive &&
     candidate.team !== actor.team && candidate.location.area === actor.location.area &&
@@ -1392,6 +1422,9 @@ function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyO
     : undefined;
   const turret = turretDefinition
     ? state.artillery.turrets[turretKey(actor.team, turretDefinition.id)]
+    : undefined;
+  const assaultGoalRoomId = actor.canAssaultOtherVehicle === true
+    ? physicalAssaultGoalRoom(state, actor)
     : undefined;
   const nearbyCases = Object.values(state.battleCases)
     .filter((caseState) => caseState.location === "floor" && caseSharesActorFloor(caseState, actor) &&
@@ -1418,6 +1451,7 @@ function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyO
       hasCapacity: turret.queueIds.length < QUEUE_CAPACITY_PER_TURRET && turret.handoffIds.length < STAGING_SLOTS_PER_TURRET,
     } : undefined,
     canAssault: actor.canAssaultOtherVehicle === true,
+    ...(assaultGoalRoomId ? { assaultGoalRoomId } : {}),
     canGuardPlaza: actor.canGuardPlaza === true,
   };
 }
@@ -1535,7 +1569,13 @@ function updatePhysicalEnemyDecisions(state: BattleState): void {
       continue;
     }
     const previous = state.enemyDecisions[actor.id];
-    if (previous?.generation === actor.generation && state.tick < previous.nextDecisionTick) continue;
+    const currentAssaultGoal = actor.canAssaultOtherVehicle === true
+      ? physicalAssaultGoalRoom(state, actor)
+      : undefined;
+    const assaultGoalChanged = currentAssaultGoal !== undefined &&
+      previous?.intent.kind === "move_goal" && previous.intent.purpose === "assault" &&
+      previous.intent.roomId !== currentAssaultGoal;
+    if (previous?.generation === actor.generation && state.tick < previous.nextDecisionTick && !assaultGoalChanged) continue;
     const intent = physicalEnemyIntent(state, actor);
     state.enemyDecisions[actor.id] = {
       generation: actor.generation,
@@ -1543,10 +1583,15 @@ function updatePhysicalEnemyDecisions(state: BattleState): void {
       intent,
     };
     const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "idle", path: [], pathIndex: 0 };
-    clearEnemyAssignment(assignment);
-    assignment.task = "idle";
-    if (intent.kind === "move_goal") assignment.targetRoomId = intent.roomId;
-    else if (intent.kind === "defend" || intent.kind === "retreat") assignment.targetActorId = intent.kind === "defend" ? intent.targetId : intent.awayFromId;
+    const sameRoomGoal = previous?.generation === actor.generation &&
+      previous.intent.kind === "move_goal" && intent.kind === "move_goal" &&
+      previous.intent.roomId === intent.roomId && previous.intent.purpose === intent.purpose;
+    if (!sameRoomGoal) {
+      clearEnemyAssignment(assignment);
+      assignment.task = "idle";
+      if (intent.kind === "move_goal") assignment.targetRoomId = intent.roomId;
+      else if (intent.kind === "defend" || intent.kind === "retreat") assignment.targetActorId = intent.kind === "defend" ? intent.targetId : intent.awayFromId;
+    }
     state.crew.assignments[actor.id] = assignment;
   }
   for (const actorId of Object.keys(state.enemyDecisions)) if (!enemyIds.has(actorId)) delete state.enemyDecisions[actorId];
@@ -1585,6 +1630,41 @@ function startEnemyDash(state: BattleState, actor: ActorState, target: FixedPoin
   state.dashes[actor.id] = { direction, remainingTicks: state.rules.dashDurationTicks, start: copyPoint(current) };
   state.dashCooldownUntilTick[actor.id] = state.tick + state.rules.dashCooldownTicks;
   return true;
+}
+
+function tryStartEnemyCoreAssaultDash(state: BattleState, actor: ActorState): boolean {
+  if (actor.location.area !== "castle" || !actor.location.castleTeam ||
+      actor.location.castleTeam === actor.team || actor.currentRoomId !== "core") return false;
+  const targetTeam = actor.location.castleTeam;
+  const layout = teamLayout(state, targetTeam);
+  const castle = state.castles[targetTeam];
+  if (castle.core.hit || !layout.coreRouteGates.every((gateId) => castle.gates[gateId].open) ||
+      !routeHasAllGates(layout, actor.location.pathRooms) ||
+      actor.location.pathGates.length !== layout.coreRouteGates.length ||
+      actor.location.pathGates.some((gateId, index) => gateId !== layout.coreRouteGates[index])) return false;
+
+  const core = coreWorldPoint(layout);
+  if (!core) return false;
+  const target = { x: Math.round(core.x * FLOOR_SUBUNITS), y: Math.round(core.y * FLOOR_SUBUNITS) };
+  const current = actorFixed(state, actor.id);
+  const direction = {
+    x: target.x === current.x ? 0 : target.x > current.x ? 1 : -1,
+    y: target.y === current.y ? 0 : target.y > current.y ? 1 : -1,
+  };
+  if (direction.x === 0 && direction.y === 0) return false;
+  const diagonal = direction.x !== 0 && direction.y !== 0 ? Math.SQRT1_2 : 1;
+  const requested = {
+    x: Math.round(current.x + direction.x * state.rules.dashDistanceSubunits * diagonal),
+    y: Math.round(current.y + direction.y * state.rules.dashDistanceSubunits * diagonal),
+  };
+  const endpoint = canOccupy(state, targetTeam, requested)
+    ? requested
+    : furthestWalkablePoint(state, targetTeam, current, requested);
+  const coreContact = dashCoreContact(state, actor, current, requested, endpoint);
+  if (!coreContact) return false;
+  const equipmentContact = dashEquipmentContact(state, actor, current, requested, endpoint);
+  if (equipmentContact && equipmentContact.progress <= coreContact.progress) return false;
+  return startEnemyDash(state, actor, target);
 }
 
 function enemyDecisionUsesPhysicalMover(actor: ActorState, intent: PhysicalEnemyIntent): boolean {
@@ -1629,6 +1709,11 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
           state.crew.assignments[actor.id] = assignment;
           continue;
         }
+      }
+      if (decision.intent.purpose === "assault" && decision.intent.roomId === "core" &&
+          tryStartEnemyCoreAssaultDash(state, actor)) {
+        state.crew.assignments[actor.id] = assignment;
+        continue;
       }
       const targetChanged = assignment.targetRoomId !== decision.intent.roomId || !assignment.targetPosition;
       const target = targetChanged
