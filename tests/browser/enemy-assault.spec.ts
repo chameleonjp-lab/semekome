@@ -47,7 +47,7 @@ test('敵AIの核への実突進で敗北し、停止中と終局後は世界も
   await page.clock.install({ time: new Date('2026-09-27T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-27T00:01:00Z'));
   await page.goto('/');
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('敵の核攻略検査');
   await page.getByRole('button', { name: '確認を開始する' }).click();
   await page.clock.runFor(3100);
