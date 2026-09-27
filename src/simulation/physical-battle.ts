@@ -68,6 +68,7 @@ import {
   type R2bBridgeRequest,
 } from "./r2b-bridge.ts";
 import { chooseEnemyIntent, type EnemyObservation } from "./enemy-rules.ts";
+import { registerPlazaGuardDispatch } from "./plaza-guards.ts";
 
 const PLAYER_TEAM: TeamId = "player";
 const ENEMY_TEAM: TeamId = "enemy";
@@ -561,6 +562,19 @@ function tryEnterCastleFromPlaza(state: BattleState, actor: ActorState, directio
       ? ENEMY_TEAM
       : undefined;
   if (!targetTeam) return false;
+
+  // If the opposing side has not reached the plaza yet, the first crossing
+  // attempt must still see its already assigned guard set.  Keep hand-placed
+  // plaza fixtures compatible: an existing plaza occupant is already the
+  // authoritative blocker for that snapshot.
+  if (!state.plaza.guardDeployments[targetTeam] &&
+      !Object.values(state.actors).some((candidate) => candidate.team === targetTeam && candidate.location.area === "plaza")) {
+    const dispatcher = Object.values(state.actors)
+      .filter((candidate) => candidate.team === targetTeam && candidate.canGuardPlaza === true &&
+        candidate.alive && candidate.location.area === "castle" && candidate.location.castleTeam === targetTeam)
+      .sort((left, right) => String(left.id).localeCompare(String(right.id)))[0];
+    if (dispatcher) registerPlazaGuardDispatch(state, targetTeam, dispatcher.id);
+  }
 
   const guardGenerations = plazaGuardGenerations(state, targetTeam, actor.id);
   const evidence: PlazaEntryEvidence = {
@@ -1526,6 +1540,12 @@ function processInternalCrossAreaGoal(
   // authored-room mover resumes below in processInternalSoldierAI.
   if (actor.location.area !== "castle" || actor.location.castleTeam !== actor.team) {
     return { handled: false, pathPlanned: false };
+  }
+  if (purpose === "plaza" && actor.canGuardPlaza === true) {
+    // Capture the guard set before the first member reaches the plaza.  The
+    // deployment therefore blocks an opposing crossing while the remaining
+    // guards are still walking through their own castle.
+    registerPlazaGuardDispatch(state, actor.team, actor.id);
   }
   const target = frontEntryCenter(state, actor.team);
   const targetChanged = !assignment.targetPosition ||
@@ -3480,6 +3500,7 @@ function finishRespawns(state: BattleState, events: WorldEvent[]): void {
     state.cargoSlots[actor.id] = [null, null];
     actor.reservationIds = [];
     actor.turretControlIds = actor.turretId ? [actor.turretId] : [];
+    if (actor.canGuardPlaza === true) registerPlazaGuardDispatch(state, actor.team, actor.id);
     setActorFixed(state, actor, { x: cellCenter(pad.cell.x), y: cellCenter(pad.cell.y) });
     state.fixedActors[actor.id].remainder = { x: 0, y: 0 };
     resetAssignment(state, actor.id);

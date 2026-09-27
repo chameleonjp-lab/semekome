@@ -240,10 +240,19 @@ export interface ProjectileState {
 }
 
 export interface PlazaState {
-  /** R1 only records the state needed to make R2 entry checks safe. */
+  /**
+   * A deployment is captured when a plaza guard starts its assignment.  It
+   * remains generation-bound even while the actor is walking to the plaza.
+   */
+  guardDeployments: Record<TeamId, PlazaGuardDeployment | null>;
   playerCrossings: Record<string, PlazaCrossingState>;
   enemyCrossings: Record<string, PlazaCrossingState>;
   defeatedGuardGenerations: Record<string, number>;
+}
+
+export interface PlazaGuardDeployment {
+  dispatchedAtTick: number;
+  guardGenerations: Record<string, number>;
 }
 
 export interface PlazaCrossingState {
