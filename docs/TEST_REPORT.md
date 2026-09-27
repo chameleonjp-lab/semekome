@@ -13,7 +13,7 @@ P1が公開 `direction` / `handle` で4回の通常配送を行い、公開 `del
 |全Node回帰|276/276通過。通常初期戦・25,000更新の砲撃専用fixture・30/60/120Hz一致を含む|
 |資料・型・製品ビルド|資料57/57、TypeScript、Vite製品ビルド、差分の空白検査を通過|
 |独立レビュー|重大な未解決所見なし。`R2G_PLAYER_GATE_OPENING_REVIEW.md`|
-|ブラウザ / WebKit / GitHub最終CI|Draft PRのQuality結果を提出時に記録|
+|ブラウザ / WebKit / GitHub最終CI|Quality #180：Node 276/276、資料57/57、build、Chromium/WebKit 50/50通過。ブラウザ導入、日本語フォント、成果物アップロードも成功|
 |実機・試遊・製品全体|iPhone実機、主人公の通常画面一戦走破、残り6部位・G2〜G7、核接触、正式結果・ランキングは未検査/未完成|
 
 今回の単位は、主人公の公開配送・砲撃から外装P1破壊、G1開門、G1越境後のG2閉門停止までを固定するもの。本番コードは変更せず、G1開門fixtureを通常戦全体の完成証拠へ読み替えない。残件は [公開チェックリスト](RELEASE_CHECKLIST.md) を正とする。
