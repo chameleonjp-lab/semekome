@@ -1,6 +1,7 @@
 import { PART_IDS } from '../domain/types.ts';
 import type { ActorState, PartId, TeamId } from '../domain/types.ts';
 import type { BattleState } from '../simulation/physical-battle.ts';
+import { plazaGuardCandidates } from '../simulation/plaza-guards.ts';
 
 export type HudAction = 'pickup' | 'drop' | 'deliver' | 'load' | 'repair' | 'launch' | 'intercept' | undefined;
 
@@ -16,6 +17,22 @@ function castleRoomName(state: BattleState, actor: ActorState): string {
   const team = castleTeam(actor);
   const layout = team === 'player' ? state.layout.home : state.layout.enemy;
   return layout.rooms.find((room) => room.id === actor.currentRoomId)?.label ?? '通路';
+}
+
+function plazaGuardStatus(state: BattleState, actor: ActorState): { dispatched: boolean; count: number } {
+  const targetTeam: TeamId = actor.team === 'player' ? 'enemy' : 'player';
+  const deployment = state.plaza.guardDeployments[targetTeam];
+  if (deployment) return { dispatched: true, count: plazaGuardCandidates(state, targetTeam, actor.id).filter((candidate) => candidate.alive).length };
+
+  // Before the first crossing attempt the physical coordinator may not have
+  // recorded a deployment yet. The live opposing guard roster is still a
+  // useful operation hint; the boundary will snapshot it on the first entry
+  // attempt rather than granting an early crossing right.
+  const count = Object.values(state.actors).filter((candidate) =>
+    candidate.team === targetTeam && candidate.canGuardPlaza === true && candidate.alive &&
+    ((candidate.location.area === 'castle' && candidate.location.castleTeam === targetTeam) || candidate.location.area === 'plaza'),
+  ).length;
+  return { dispatched: false, count };
 }
 
 export function actorLocationName(state: BattleState, actor: ActorState): string {
@@ -57,7 +74,13 @@ export function battleHint(state: BattleState, actor: ActorState, available: Hud
 
   if (actor.location.area === 'plaza') {
     const cargoHint = canDrop && hasCargo ? '選択中の弾を広場に置けます。' : hasCargo ? '選択中の弾を運んでいます。' : '床の弾を拾ったり置いたりできます。';
-    return `広場です。${cargoHint}敵城へは広場警備を突進で倒して突破すると進めます。突進は移動方向、停止中は最後に向いた方向へ進みます。`;
+    const guards = plazaGuardStatus(state, actor);
+    const guardHint = !guards.dispatched
+      ? `広場の防衛者が出動中です（生存${guards.count}人）。敵城側の入口へ向かう前に、防衛者を確認してください。`
+      : guards.count > 0
+        ? `広場の防衛者が残り${guards.count}人です。全員を突進で倒すまで敵城側へは進めません。`
+        : '広場の防衛者を突破しました。敵城側の入口へ進めます。';
+    return `広場です。${cargoHint}${guardHint}突進は移動方向、停止中は最後に向いた方向へ進みます。`;
   }
 
   const homeCastle = actor.location.castleTeam === actor.team;
