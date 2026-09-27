@@ -3,7 +3,7 @@ import type { BattleDirection, BattleEquipmentKind, BattleHandle, BattleIntent, 
 import { CASE_TYPES, SUPPLY_BAG, type CaseType } from '../content/cases.ts';
 import { PART_IDS } from '../domain/types.ts';
 import type { PartId, TeamId } from '../domain/types.ts';
-import { bindDashInput, bindMovement } from '../input/battle-input.ts';
+import { bindAttackInput, bindDashInput, bindMovement } from '../input/battle-input.ts';
 import { SessionClock, validatePlayerName } from '../input/session-clock.ts';
 import { validateSupplyAllocation } from '../logistics/supply-schedule.ts';
 import { GAME_ART_URLS } from './game-art.ts';
@@ -106,6 +106,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   let equipmentTarget: { kind: BattleEquipmentKind; id: string } | undefined;
   let pending: BattleIntent | undefined;
   let pendingDash: BattleDirection | undefined;
+  let pendingAttack = false;
   let frame = 0;
   let playerOperatedLaunches = 0;
   let playerDashStarts = 0;
@@ -117,10 +118,10 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     <div class="battle-map"><canvas aria-label="あなたを中心とした自陣の城内と、直通・迂回の砲撃経路"></canvas><span class="current-room"></span></div>
     <p class="battle-hint" aria-live="polite">上の弾薬庫Aへ。弾の近くで「弾を拾う」。</p>
     <div class="cargo-controls" aria-label="所持する弾"><button data-slot="0" aria-pressed="true"><img class="cargo-icon" alt="" hidden><span class="cargo-label">左：空</span></button><button data-slot="1" aria-pressed="false"><img class="cargo-icon" alt="" hidden><span class="cargo-label">右：空</span></button></div>
-    <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled><img class="action-icon" alt="" hidden><span class="action-label">弾に近づく</span></button><button id="battle-drop" disabled><span class="drop-icon" aria-hidden="true">↓</span><span>選択中の弾を置く</span></button></div><button id="battle-dash" class="dash-control" type="button" aria-label="突進" aria-describedby="dash-status" disabled><span class="dash-label">突進</span><span id="dash-status" class="dash-status">操作開始後に使用できます</span><span class="dash-progress" aria-hidden="true"><i></i></span></button></div>
+    <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled><img class="action-icon" alt="" hidden><span class="action-label">弾に近づく</span></button><div class="action-row"><button id="battle-drop" disabled><span class="drop-icon" aria-hidden="true">↓</span><span>選択中の弾を置く</span></button><button id="battle-attack" type="button" aria-label="近接攻撃。近くに攻撃対象なし" disabled><span class="attack-label">敵に近づく</span></button></div></div><button id="battle-dash" class="dash-control" type="button" aria-label="突進" aria-describedby="dash-status" disabled><span class="dash-label">突進</span><span id="dash-status" class="dash-status">操作開始後に使用できます</span><span class="dash-progress" aria-hidden="true"><i></i></span></button></div>
     <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵 ${partDisplayName(id)}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><button id="battle-help" aria-label="操作説明">?</button></div>
-    <div class="battle-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div><p id="overlay-title" class="overlay-title" role="status">開始まで</p><strong class="countdown-number">3</strong><p class="terminal-result" aria-live="polite" hidden></p><p class="overlay-description">左のパッドで移動・右のボタンで弾を扱う</p><button id="resume-battle" class="primary" hidden>再開する</button><button id="leave-battle">準備を中止する</button></div></div>
-    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">通常戦の操作</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>弾薬庫で、床の弾に近づいて拾います。敵陣や広場の床弾も拾えます。</li><li>弾を砲台へ運び、受け渡し枠へ渡すか砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>自陣の修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li><li>突進はボタンまたはSpaceを押し始めたとき1回だけ発動します。移動中は現在方向、停止中は最後の移動方向（初期は右）へ進み、再使用待ちの間は使えません。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動と敵AIの戦闘は同じ通常戦の中で進みます。終局時は勝敗と理由を表示します。結果詳細・承認済みスコア・ランキングは未接続です。外装7部位を壊しただけでは勝敗は決まりません。</p></div></dialog></section>`;
+    <div class="battle-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div><p id="overlay-title" class="overlay-title" role="status">開始まで</p><strong class="countdown-number">3</strong><p class="terminal-result" aria-live="polite" hidden></p><p class="overlay-description">左のパッドで移動・右のボタンで弾を扱う。敵と接触したら近接攻撃</p><button id="resume-battle" class="primary" hidden>再開する</button><button id="leave-battle">準備を中止する</button></div></div>
+    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">通常戦の操作</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>弾薬庫で、床の弾に近づいて拾います。敵陣や広場の床弾も拾えます。</li><li>弾を砲台へ運び、受け渡し枠へ渡すか砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>自陣の修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li><li>敵と接触した状態で「近接攻撃」を押すと、敵に1回の接触ダメージを与えます。キーボードではXキー、コアへの勝利攻撃は突進です。</li><li>突進はボタンまたはSpaceを押し始めたとき1回だけ発動します。移動中は現在方向、停止中は最後の移動方向（初期は右）へ進み、再使用待ちの間は使えません。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動と敵AIの戦闘は同じ通常戦の中で進みます。終局時は勝敗と理由を表示します。結果詳細・承認済みスコア・ランキングは未接続です。外装7部位を壊しただけでは勝敗は決まりません。</p></div></dialog></section>`;
   const screen = app.querySelector<HTMLElement>('.battle')!;
   screen.dataset.matchId = state.matchId;
   screen.dataset.flow = 'normal';
@@ -138,6 +139,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   const resume = app.querySelector<HTMLButtonElement>('#resume-battle')!;
   const action = app.querySelector<HTMLButtonElement>('#battle-action')!;
   const drop = app.querySelector<HTMLButtonElement>('#battle-drop')!;
+  const attackButton = app.querySelector<HTMLButtonElement>('#battle-attack')!;
   const leave = app.querySelector<HTMLButtonElement>('#leave-battle')!;
   const help = app.querySelector<HTMLDialogElement>('.battle-help-dialog')!;
   const terminalResult = app.querySelector<HTMLElement>('.terminal-result')!;
@@ -148,6 +150,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   const supplyPreviewItems = app.querySelector<HTMLElement>('.supply-preview-items')!;
   const actionIcon = action.querySelector<HTMLImageElement>('.action-icon')!;
   const actionLabel = action.querySelector<HTMLElement>('.action-label')!;
+  const attackLabel = attackButton.querySelector<HTMLElement>('.attack-label')!;
   bindArtImageFallbacks(screen);
   screen.dataset.playerSupplyAllocation = state.logistics.playerAllocation.join(',');
   let lastHud = '';
@@ -162,13 +165,21 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     return canInteract() && actor.alive && !playerProtected() && !state.dashes.P1 &&
       state.tick >= (state.dashCooldownUntilTick.P1 ?? 0) && pendingDash === undefined;
   };
+  const canStartAttack = () => {
+    const actor = state.actors.P1;
+    return canInteract() && actor.alive && !playerProtected() && !state.dashes.P1 &&
+      pending === undefined && !pendingAttack && getInteraction(state, 'P1', slot).attackTargetId !== undefined;
+  };
   const dashInput = bindDashInput(dashButton, () => {
     if (!canStartDash()) return;
     const current = movement.direction();
     pendingDash = current.x !== 0 || current.y !== 0 ? { ...current } : movement.lastDirection();
   });
+  const attackInput = bindAttackInput(attackButton, () => {
+    if (canStartAttack()) pendingAttack = true;
+  });
 
-  const releaseInput = () => { movement.clear(); dashInput.clear(); pending = undefined; pendingDash = undefined; };
+  const releaseInput = () => { movement.clear(); dashInput.clear(); attackInput.clear(); pending = undefined; pendingDash = undefined; pendingAttack = false; };
   const clearInput = (resetClock = true) => { releaseInput(); if (resetClock) clock.reset(); };
   const stop = () => {
     if (disposed || state.phase === 'ended') return;
@@ -182,7 +193,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     number.hidden = paused || countdown === 0 || ended;
     number.textContent = String(Math.ceil(countdown / 60));
     title.textContent = ended ? '通常戦を終了しました' : paused ? '一時停止中' : '開始まで';
-    description.textContent = ended ? '勝敗が確定しました。結果詳細・スコア・ランキングは次の段階です。' : paused ? '再開ボタンを押すまで、戦場も時計も止まります。' : '左のパッドで移動・右のボタンで弾を扱う。突進はボタンまたはSpace';
+    description.textContent = ended ? '勝敗が確定しました。結果詳細・スコア・ランキングは次の段階です。' : paused ? '再開ボタンを押すまで、戦場も時計も止まります。' : '左のパッドで移動。敵と接触したら近接攻撃、突進はボタンまたはSpace';
     terminalResult.hidden = !ended;
     if (ended) {
       const bothCoresHit = state.castles.player.core.hit && state.castles.enemy.core.hit;
@@ -201,6 +212,10 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     const dashEnabled = canStartDash();
     dashInput.setEnabled(dashEnabled);
     dashButton.disabled = !dashEnabled;
+    const attackEnabled = canInteract() && state.actors.P1.alive && !playerProtected() && !state.dashes.P1 &&
+      pending === undefined && (pendingAttack || getInteraction(state, 'P1', slot).attackTargetId !== undefined);
+    attackInput.setEnabled(attackEnabled);
+    attackButton.disabled = !attackEnabled;
     if (overlayWasVisible !== !overlay.hidden) {
       overlayWasVisible = !overlay.hidden;
       if (!help.open) (overlay.hidden ? app.querySelector<HTMLButtonElement>('#pause-battle')! : resume.hidden ? leave : resume).focus({ preventScroll: true });
@@ -282,6 +297,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     const actor = state.actors.P1;
     const cargo = [0, 1].map(index => Object.values(state.objects).find(item => (item.location.kind === 'carried' || item.location.kind === 'reserved-carried') && item.location.actorId === 'P1' && item.location.slot === index));
     const nearest = interaction.cases.find(item => item.id === interaction.pickupCaseId);
+    const attackTargetId = interaction.attackTargetId;
     const supplyPreview = getPlayerSupplyPreview(state);
     const equipmentTargetsSignature = interaction.equipmentRepairTargets.map(target => `${target.kind}:${target.id}:${target.health}:${target.disabledUntilTick}`);
     const dashCooldownRemaining = Math.max(0, (state.dashCooldownUntilTick.P1 ?? 0) - state.tick);
@@ -300,7 +316,11 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     dashButton.disabled = !canStartDash();
     dashButton.setAttribute('aria-label', `突進。${dashStatusText}`);
     dashProgress.style.transform = `scaleX(${dashProgressValue})`;
-    const signature = JSON.stringify([Math.floor(state.tick / 60), actor.alive, actor.generation, actor.location, actor.currentRoomId, actor.respawnAtTick, canInteract(), paused, countdown > 0, state.phase, state.visibility, available, nearest?.id, cargo.map(item => item?.id), slot, equipmentTargetsSignature, state.logistics.bagCycles.player, state.logistics.bagIndices.player, supplyPreview, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health]), Math.ceil(dashCooldownRemaining / 60), state.dashes.P1?.remainingTicks, pendingDash, playerDashStarts, state.outcome, dashStatusText]);
+    const attackStatusText = !actor.alive ? '観戦中' : pendingAttack ? '次の更新で開始' : attackTargetId ? '近接攻撃' : '敵に近づく';
+    attackLabel.textContent = attackStatusText;
+    attackButton.disabled = !canStartAttack();
+    attackButton.setAttribute('aria-label', attackTargetId ? `近接攻撃。対象 ${attackTargetId}` : `近接攻撃。${attackStatusText}`);
+    const signature = JSON.stringify([Math.floor(state.tick / 60), actor.alive, actor.generation, actor.location, actor.currentRoomId, actor.respawnAtTick, canInteract(), paused, countdown > 0, state.phase, state.visibility, available, nearest?.id, attackTargetId, cargo.map(item => item?.id), slot, equipmentTargetsSignature, state.logistics.bagCycles.player, state.logistics.bagIndices.player, supplyPreview, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health]), Math.ceil(dashCooldownRemaining / 60), state.dashes.P1?.remainingTicks, pendingDash, pendingAttack, playerDashStarts, state.outcome, dashStatusText, attackStatusText]);
     screen.dataset.tick = String(state.tick); screen.dataset.phase = countdown ? 'countdown' : paused ? 'paused' : state.phase;
     screen.dataset.spectating = String(!actor.alive);
     screen.dataset.playerX = String(state.fixedActors.P1.position.x); screen.dataset.playerY = String(state.fixedActors.P1.position.y);
@@ -309,6 +329,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     screen.dataset.playerGeneration = String(actor.generation);
     screen.dataset.outcome = state.outcome;
     screen.dataset.playerSupplyPreview = supplyPreview.join(',');
+    screen.dataset.attackTarget = attackTargetId ?? '';
     if (signature === lastHud) return;
     lastHud = signature;
     const seconds = Math.floor(state.tick / 60);
@@ -381,13 +402,14 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
         else {
           const wasAlive = state.actors.P1.alive;
           if (!wasAlive) {
-            releaseInput(); movement.setEnabled(false); dashInput.setEnabled(false);
+            releaseInput(); movement.setEnabled(false); dashInput.setEnabled(false); attackInput.setEnabled(false);
             state = stepBattle(state, undefined);
             if (state.actors.P1.alive) { clearInput(false); lastHud = ''; }
           } else {
             const intent: BattleIntent = {
               ...pending,
               ...(pendingDash ? { dash: { ...pendingDash } } : {}),
+              ...(pendingAttack ? { attack: true } : {}),
               matchId: state.matchId,
               actorId: 'P1',
               generation: pending?.generation ?? state.actors.P1.generation,
@@ -398,14 +420,15 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
             };
             pending = undefined;
             pendingDash = undefined;
+            pendingAttack = false;
             state = stepBattle(state, intent);
             if (state.lastStep.acceptedInputKinds.includes('dash')) playerDashStarts++;
           }
           render.observeStep(state);
-          if (wasAlive && !state.actors.P1.alive) { clearInput(false); movement.setEnabled(false); dashInput.setEnabled(false); lastHud = ''; }
+          if (wasAlive && !state.actors.P1.alive) { clearInput(false); movement.setEnabled(false); dashInput.setEnabled(false); attackInput.setEnabled(false); lastHud = ''; }
           playerOperatedLaunches += state.lastStep.events.filter(event => event.type === 'projectile_launched' && event.sourceActorId === 'P1').length;
           if (state.phase === 'ended') {
-            clearInput(); movement.setEnabled(false); dashInput.setEnabled(false); lastHud = '';
+            clearInput(); movement.setEnabled(false); dashInput.setEnabled(false); attackInput.setEnabled(false); lastHud = '';
             break;
           }
         }
@@ -418,5 +441,5 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   if (document.hidden) { state = setBattleVisibility(state, false); stop(); }
   updateOverlay(); updateHud(); render(state, part, slot);
   frame = requestAnimationFrame(loop);
-  return () => { disposed = true; cancelAnimationFrame(frame); movement.dispose(); dashInput.dispose(); events.abort(); pending = undefined; pendingDash = undefined; };
+  return () => { disposed = true; cancelAnimationFrame(frame); movement.dispose(); dashInput.dispose(); attackInput.dispose(); events.abort(); pending = undefined; pendingDash = undefined; pendingAttack = false; };
 }
