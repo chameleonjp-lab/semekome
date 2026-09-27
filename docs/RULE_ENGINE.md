@@ -78,7 +78,9 @@ PR #4のR2aは8武器の共通ルール層であり、通常戦を遊べる完�
 
 検証に通った場合だけ `CoreAttackInput` を返し、`hit` フラグや座標を外部から信用しない。返された入力は呼出側が `stepWorld` に一度だけ渡す。橋渡し自身は時計と状態を変更しないため、物理更新と共通更新の二重進行を作らない。対象が壁・門・人物、通常接触、古い世代、古い固定位置であれば入力を返さない。
 
-広場の `preparePlazaEntry` は、対象城側の `canGuardPlaza` 人物を実際の広場所在から導出し、全員の世代を証拠と照合する。生存護衛が残る場合は `guards_remaining`、世代がずれる場合は `stale_generation` として拒否する。全員が倒れている場合だけ、`actor:generation` をキーに `PlazaCrossingState` と `move_actor(toRoomId: "entry")` を準備する。準備は時計を進めず、同じ `stepWorld` 更新で通過入力を消費する。
+広場の `preparePlazaEntry` は、対象城側の `PlazaGuardDeployment` に保存された出動時点の担当世代と、現在広場にいる対向人物を安定順で統合し、証拠の全世代と照合する。護衛がまだ広場へ到着していなくても、生存中の保存世代が残る場合は `guards_remaining` として拒否する。全員が倒れている場合だけ、`actor:generation` をキーに `PlazaCrossingState` と `move_actor(toRoomId: "entry")` を準備する。
+
+通過権は同じ人物世代の離脱・再侵入で再評価できるが、出動護衛の世代が復活で変わった場合は古い権利を無効にする。準備後に新しい対向人物が広場へ到着した場合も、`stepWorld` の入口再照合で拒否する。準備は時計を進めず、同じ `stepWorld` 更新で通過入力を消費する。
 
 これはR2bの接続土台であり、人物同士の被弾・突進、実際の広場座標、補給効果と敵判断、観戦・復活画面を実装済みとは扱わない。
 

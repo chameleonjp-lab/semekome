@@ -48,6 +48,13 @@ test("R2b plaza entry waits for live guards, then enters the opposing castle", (
   let state = createBattle({ matchId: "r2b-plaza-guard", seed: 607 });
   placeInPlaza(state, "P1", { x: 125_500, y: PLAZA_Y });
   placeInPlaza(state, "E25", { x: 115_500, y: PLAZA_Y });
+  // Isolate E25 as the hand-placed guard.  The lifecycle implementation now
+  // captures every other live plaza-duty guard when its dispatch begins.
+  for (const guardId of ["E26", "E27"] as const) {
+    state.actors[guardId].alive = false;
+    state.actors[guardId].health = 0;
+    state.actors[guardId].respawnAtTick = 9_999;
+  }
 
   let next = stepBattle(state, p1Intent(state, { x: 1, y: 0 }));
   assert.equal(next.actors.P1.location.area, "plaza");
