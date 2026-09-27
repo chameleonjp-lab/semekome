@@ -2810,7 +2810,13 @@ function validPickupCandidate(state: BattleState, actor: ActorState, slot: numbe
   if (slot !== 0 && slot !== 1) return undefined;
   if ((state.cargoSlots[actor.id] ?? [null, null])[slot] !== null) return undefined;
   return candidates
-    .filter((candidate) => (candidate.location === "floor" || candidate.location === "handoff") &&
+    // A staged handoff belongs to the receiving turret's team.  Keep it
+    // physically stealable by an opposing actor, but do not offer it as an
+    // ordinary pickup to an allied operator who is standing at the turret:
+    // that would compete with `load` and can make a normal route pick up and
+    // re-deliver the same case when the queue is temporarily full.
+    .filter((candidate) => (candidate.location === "floor" ||
+      (candidate.location === "handoff" && candidate.currentTeam !== actor.team)) &&
       canCarry(carryWeight(state, actor), candidate.weight, actor.cargoIds.length))
     .sort((left, right) => distanceSquared(actorFixed(state, actor.id), left.position ?? actorFixed(state, actor.id)) -
       distanceSquared(actorFixed(state, actor.id), right.position ?? actorFixed(state, actor.id)) || left.id.localeCompare(right.id))[0];
