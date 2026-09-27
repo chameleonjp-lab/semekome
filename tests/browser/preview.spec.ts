@@ -78,7 +78,7 @@ test('素材図鑑から全表示素材と用途を確認できる', async ({ pa
   await expect(page.locator('[data-art-card="breach_lance"]')).toContainText('貫通杭');
   await expect(page.locator('[data-art-card="adhesive_pod"]')).toContainText('通路妨害');
   await expect(page.locator('[data-art-card="adhesive_pod"]')).toContainText('敵城の正面入口付近に歩行が遅くなる範囲');
-  await expect(page.getByText('通常対戦の完成を示す画面ではありません。')).toBeVisible();
+  await expect(page.getByText('通常戦の完成を示す画面ではありません。')).toBeVisible();
   await page.getByRole('button', { name: 'ホーム', exact: true }).click();
   await expect(page.getByRole('button', { name: '素材図鑑' })).toBeVisible();
 });
