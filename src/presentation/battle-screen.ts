@@ -50,13 +50,13 @@ function supplyAllocationRows(): string {
 export function openBattleSetup(app: HTMLElement, goHome: () => void): () => void {
   let disposeBattle = () => {};
   let started = false;
-  app.innerHTML = `<section class="battle-setup" aria-label="名前と補給の編成"><p class="eyebrow">運搬・砲撃・修理の操作確認版</p>
-    <h1>出撃の準備</h1><p>弾薬庫で弾を拾い、隣の砲台へ運びます。<br>補助員と敵も、同じ戦場で作業します。</p>
+  app.innerHTML = `<section class="battle-setup" aria-label="通常戦の名前と補給の編成"><p class="eyebrow">通常戦の準備</p>
+    <h1>出撃の準備</h1><p>名前と補給の編成を決めると、3秒のカウントダウン後に通常戦が始まります。<br>弾薬庫で弾を拾い、砲台へ運びます。補助員と敵も同じ戦場で動きます。</p>
     <form novalidate><label for="player-name">あなたの名前</label><input id="player-name" name="playerName" autocomplete="nickname" aria-describedby="name-hint name-error" placeholder="1〜20文字" required>
     <p id="name-hint">前後の空白は取り除きます。名前の外部送信は行いません。</p><p id="name-error" role="alert"></p>
     <section class="supply-setup" aria-labelledby="supply-setup-title"><h2 id="supply-setup-title">補給の編成</h2><p>使う種類を4つ選び、合計8個にします。標準配分をそのまま使うこともできます。</p><div class="supply-allocation">${supplyAllocationRows()}</div><p id="supply-summary" aria-live="polite"></p><p id="supply-error" aria-live="polite"></p></section>
     <button type="submit" class="primary">確認を開始する</button><button type="button" id="cancel-setup">ホームへ戻る</button></form>
-    <p class="scope-note">今回は運搬・砲撃・修理と主人公の突進を確認する操作確認版です。終局時は勝敗と理由を表示します。通常戦の開始導線、承認済みスコア・結果詳細・ランキングには未接続です。</p></section>`;
+    <p class="scope-note">通常戦は、名前入力・補給編成・カウントダウン・実戦・勝敗表示まで進みます。結果詳細・承認済みスコア・ランキングは次の段階です。</p></section>`;
   bindArtImageFallbacks(app);
   const input = app.querySelector<HTMLInputElement>('#player-name')!;
   const supplyError = app.querySelector<HTMLElement>('#supply-error')!;
@@ -112,7 +112,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   const clock = new SessionClock();
   const events = new AbortController();
   const options = { signal: events.signal };
-  app.innerHTML = `<section class="battle" aria-label="運搬と砲撃と修理"><header class="battle-header"><div><strong class="player-label"></strong><span class="battle-stage">運搬・砲撃・修理の確認</span></div><output id="supply-preview" class="supply-preview" aria-label="次に届く補給"><span class="supply-preview-title">次の補給：</span><span class="supply-preview-items"></span></output><output class="battle-time" aria-label="経過時間">0:00</output><button id="pause-battle">一時停止</button></header>
+  app.innerHTML = `<section class="battle" aria-label="通常戦"><header class="battle-header"><div><strong class="player-label"></strong><span class="battle-stage">通常戦</span></div><output id="supply-preview" class="supply-preview" aria-label="次に届く補給"><span class="supply-preview-title">次の補給：</span><span class="supply-preview-items"></span></output><output class="battle-time" aria-label="経過時間">0:00</output><button id="pause-battle">一時停止</button></header>
     <div class="battle-armor" aria-label="両城の外装">${(['player', 'enemy'] as const).map(team => `<div data-team="${team}"><span>${team === 'player' ? '自陣' : '敵陣'}</span><div class="armor">${PART_IDS.map(id => `<span data-part="${id}"></span>`).join('')}</div><output class="battle-gates"></output></div>`).join('')}</div>
     <div class="battle-map"><canvas aria-label="あなたを中心とした自陣の城内と、直通・迂回の砲撃経路"></canvas><span class="current-room"></span></div>
     <p class="battle-hint" aria-live="polite">上の弾薬庫Aへ。弾の近くで「弾を拾う」。</p>
@@ -120,9 +120,10 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled><img class="action-icon" alt="" hidden><span class="action-label">弾に近づく</span></button><button id="battle-drop" disabled><span class="drop-icon" aria-hidden="true">↓</span><span>選択中の弾を置く</span></button></div><button id="battle-dash" class="dash-control" type="button" aria-label="突進" aria-describedby="dash-status" disabled><span class="dash-label">突進</span><span id="dash-status" class="dash-status">操作開始後に使用できます</span><span class="dash-progress" aria-hidden="true"><i></i></span></button></div>
     <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵 ${partDisplayName(id)}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><button id="battle-help" aria-label="操作説明">?</button></div>
     <div class="battle-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div><p id="overlay-title" class="overlay-title" role="status">開始まで</p><strong class="countdown-number">3</strong><p class="terminal-result" aria-live="polite" hidden></p><p class="overlay-description">左のパッドで移動・右のボタンで弾を扱う</p><button id="resume-battle" class="primary" hidden>再開する</button><button id="leave-battle">準備を中止する</button></div></div>
-    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">運搬・砲撃・修理・突進</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>弾薬庫で、床の弾に近づいて拾います。敵陣や広場の床弾も拾えます。</li><li>弾を砲台へ運び、受け渡し枠へ渡すか砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>自陣の修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li><li>突進はボタンまたはSpaceを押し始めたとき1回だけ発動します。移動中は現在方向、停止中は最後の移動方向（初期は右）へ進み、再使用待ちの間は使えません。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動と敵AIの戦闘は進みます。終局時は勝敗と理由を表示します。承認済みスコア・結果詳細・ランキングは未接続です。外装7部位を壊しただけでは勝敗は決まりません。</p></div></dialog></section>`;
+    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">通常戦の操作</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>弾薬庫で、床の弾に近づいて拾います。敵陣や広場の床弾も拾えます。</li><li>弾を砲台へ運び、受け渡し枠へ渡すか砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>自陣の修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li><li>突進はボタンまたはSpaceを押し始めたとき1回だけ発動します。移動中は現在方向、停止中は最後の移動方向（初期は右）へ進み、再使用待ちの間は使えません。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動と敵AIの戦闘は同じ通常戦の中で進みます。終局時は勝敗と理由を表示します。結果詳細・承認済みスコア・ランキングは未接続です。外装7部位を壊しただけでは勝敗は決まりません。</p></div></dialog></section>`;
   const screen = app.querySelector<HTMLElement>('.battle')!;
   screen.dataset.matchId = state.matchId;
+  screen.dataset.flow = 'normal';
   app.querySelector('.player-label')!.textContent = name;
   const canvas = app.querySelector('canvas')!;
   const render = createBattleRenderer(canvas, state);
@@ -180,8 +181,8 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     overlay.setAttribute('aria-hidden', String(help.open || overlay.hidden));
     number.hidden = paused || countdown === 0 || ended;
     number.textContent = String(Math.ceil(countdown / 60));
-    title.textContent = ended ? '操作確認を終了しました' : paused ? '一時停止中' : '開始まで';
-    description.textContent = ended ? '操作確認版の終局表示です。承認済みスコア・ランキングは表示していません。' : paused ? '再開ボタンを押すまで、戦場も時計も止まります。' : '左のパッドで移動・右のボタンで弾を扱う。突進はボタンまたはSpace';
+    title.textContent = ended ? '通常戦を終了しました' : paused ? '一時停止中' : '開始まで';
+    description.textContent = ended ? '勝敗が確定しました。結果詳細・スコア・ランキングは次の段階です。' : paused ? '再開ボタンを押すまで、戦場も時計も止まります。' : '左のパッドで移動・右のボタンで弾を扱う。突進はボタンまたはSpace';
     terminalResult.hidden = !ended;
     if (ended) {
       const bothCoresHit = state.castles.player.core.hit && state.castles.enemy.core.hit;

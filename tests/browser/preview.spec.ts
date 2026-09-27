@@ -6,8 +6,8 @@ test('ホームからルールを閉じ、配置を確認してホームへ戻�
   page.on('pageerror', error => errors.push(error.message));
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'セメコメ', exact: true })).toBeVisible();
-  await expect(page.locator('.home-notice')).toContainText('操作確認版');
-  await expect(page.locator('.home-notice')).toContainText('通常戦の開始導線・勝敗結果・ランキングには未接続');
+  await expect(page.locator('.home-notice')).toContainText('通常戦は、名前入力・補給編成・カウントダウンを経て実戦を開始');
+  await expect(page.locator('.home-notice')).toContainText('勝敗表示まで接続済み');
   await expect(page.locator('.home-art')).toHaveAttribute('src', /stage-v2\.webp/);
   await expect.poll(() => page.locator('.home-art').evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0)).toBe(true);
   await page.getByRole('button', { name: 'ルール説明' }).click();
@@ -78,7 +78,7 @@ test('素材図鑑から全表示素材と用途を確認できる', async ({ pa
   await expect(page.locator('[data-art-card="breach_lance"]')).toContainText('貫通杭');
   await expect(page.locator('[data-art-card="adhesive_pod"]')).toContainText('通路妨害');
   await expect(page.locator('[data-art-card="adhesive_pod"]')).toContainText('敵城の正面入口付近に歩行が遅くなる範囲');
-  await expect(page.getByText('通常対戦の完成を示す画面ではありません。')).toBeVisible();
+  await expect(page.getByText('通常戦の完成を示す画面ではありません。')).toBeVisible();
   await page.getByRole('button', { name: 'ホーム', exact: true }).click();
   await expect(page.getByRole('button', { name: '素材図鑑' })).toBeVisible();
 });

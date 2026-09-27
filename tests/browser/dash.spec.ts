@@ -4,7 +4,7 @@ async function start(page: Page) {
   await page.clock.install({ time: new Date('2026-09-27T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-27T00:01:00Z'));
   await page.goto('/');
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('突進検査');
   await page.getByRole('button', { name: '確認を開始する' }).click();
 }
@@ -153,7 +153,7 @@ test('実核手前の境界fixtureから画面の突進で一度だけ勝利し�
   const match = await page.locator('.battle').getAttribute('data-match-id');
   await page.getByRole('button', { name: 'ホームへ戻る' }).click();
   await expect(page.locator('.battle')).toHaveCount(0);
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('次の試合');
   await page.getByRole('button', { name: '確認を開始する' }).click();
   await expect(page.locator('.battle')).not.toHaveAttribute('data-match-id', match!);

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test';
 
 test('補給の4種類と配分を選び、物理戦と次の2個の表示へ引き継ぐ', async ({ page }) => {
   await page.goto('/');
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   const types = page.locator('[data-supply-type]');
   const counts = page.locator('[data-supply-count]');
   await page.getByLabel('あなたの名前').fill('補給編成');
@@ -39,7 +39,7 @@ test('生成画像が読み込めなくてもCanvasの代替描画と移動操�
   await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
   await page.goto('/');
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('画像なし検査');
   await page.getByRole('button', { name: '確認を開始する' }).click();
   const battle = page.locator('.battle');
@@ -67,7 +67,7 @@ test('敵役割表示と標的設定を正しく読み、設定変更だけで�
   await expect(page.locator('.room-detail')).toContainText('射手護衛1人');
 
   await page.getByRole('button', { name: 'ホーム' }).click();
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('状態表示');
   await page.getByRole('button', { name: '確認を開始する' }).click();
   const battle = page.locator('.battle');
@@ -134,7 +134,7 @@ test('DOMとSVGの画像欠損は代替表示になり、弾アイコンも空�
   await page.locator('[data-area="enemy"]').click();
   await expect(page.locator('.map-viewport [data-art-fallback]').first()).toBeVisible();
   await page.getByRole('button', { name: 'ホーム' }).click();
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('代替画像');
   await page.getByRole('button', { name: '確認を開始する' }).click();
   const battle = page.locator('.battle');
@@ -174,7 +174,7 @@ test('名前の境界検証とカウントダウン中止、二重開始を防�
   await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
   await page.goto('/');
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   const name = page.getByLabel('あなたの名前');
   for (const invalid of ['   ', 'あ'.repeat(21), '😀'.repeat(21)]) {
     await name.fill(invalid);
@@ -194,7 +194,7 @@ test('名前の境界検証とカウントダウン中止、二重開始を防�
   await expect(page.locator('.battle')).toHaveAttribute('data-tick', '0');
   const previousMatch = await page.locator('.battle').getAttribute('data-match-id');
   await page.getByRole('button', { name: '準備を中止する' }).click();
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('😀'.repeat(20));
   await page.getByRole('button', { name: '確認を開始する' }).click();
   await expect(page.locator('.battle')).not.toHaveAttribute('data-match-id', previousMatch!);
@@ -207,7 +207,7 @@ test('連続移動、停止と明示再開、入力残留と時間の追いつ�
   await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
   await page.goto('/');
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('操作検査');
   await page.getByRole('button', { name: '確認を開始する' }).click();
   await page.clock.runFor(3100);
@@ -262,7 +262,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
   for (const viewport of [{ width: 320, height: 640 }, { width: 360, height: 640 }, { width: 390, height: 664 }, { width: 402, height: 700 }, { width: 430, height: 932 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/');
-    await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+    await page.getByRole('button', { name: '通常戦を始める' }).click();
     await page.getByLabel('あなたの名前').fill('小画面');
     await page.getByRole('button', { name: '確認を開始する' }).click();
     await page.clock.runFor(3100);
@@ -302,7 +302,7 @@ test('通常の移動と作業ボタンだけで弾薬庫から砲台へ運び�
   await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
   await page.goto('/');
   await page.clock.pauseAt(new Date('2026-09-13T01:00:00Z'));
-  await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('<svg/onload=alert()>');
   await page.getByRole('button', { name: '確認を開始する' }).click();
   await page.clock.runFor(3100);
