@@ -8,6 +8,7 @@ import {
   type BattleIntent,
   type BattleState,
 } from "../../src/simulation/physical-battle.ts";
+import { floorCell } from "../../src/actors/movement.ts";
 import { registerPlazaGuardDispatch } from "../../src/simulation/plaza-guards.ts";
 
 const NEUTRAL: BattleDirection = { x: 0, y: 0 };
@@ -18,6 +19,7 @@ const P1_TURRET_TRAVEL_Y = 12_000;
 const P1_TURRET_APPROACH_X = 105_850;
 const P1_EXIT_ROUTE_Y = 25_500;
 const P1_EXIT_X = 123_500;
+const PLAZA_GUARD_IDS = ["E25", "E26", "E27"] as const;
 
 function publicP1Intent(state: BattleState, partial: Partial<BattleIntent> = {}): BattleIntent {
   return {
@@ -74,6 +76,27 @@ function p1ToPlazaDirection(state: BattleState): BattleDirection {
   }
   if (position.y !== PLAZA_Y) return { x: 0, y: sign(PLAZA_Y - position.y) };
   return { x: 1, y: 0 };
+}
+
+function placePlazaGuard(state: BattleState, actorId: (typeof PLAZA_GUARD_IDS)[number], position: { x: number; y: number }): void {
+  const actor = state.actors[actorId];
+  actor.location = { area: "plaza", pathRooms: [], pathGates: [] };
+  actor.currentRoomId = "plaza";
+  actor.position = { x: floorCell(position.x), y: floorCell(position.y) };
+  // This unit checks public dash/contact and the crossing contract; damage
+  // balance and repeated contacts remain outside this fixed battle fixture.
+  actor.health = state.rules.dashActorDamage;
+  actor.alive = true;
+  actor.protectedUntilTick = null;
+  actor.damageImmuneUntilTick = null;
+  actor.respawnAtTick = null;
+  state.fixedActors[actorId] = { position: { ...position }, remainder: { x: 0, y: 0 } };
+}
+
+function holdPlazaGuardsInPlace(state: BattleState): void {
+  for (const actorId of PLAZA_GUARD_IDS) {
+    if (state.actors[actorId].alive) state.actors[actorId].protectedUntilTick = state.tick + 1;
+  }
 }
 
 test("主人公の公開入力は補給・砲台から広場へ進み、警備を無視した敵城侵入を止める", { timeout: 60_000 }, () => {
@@ -137,4 +160,96 @@ test("主人公の公開入力は補給・砲台から広場へ進み、警備�
     const guard = state.actors[id];
     return guard?.alive === true && guard.generation === generation;
   }), "at least one live dispatched guard generation remains as the physical crossing blocker");
+});
+
+test("主人公の公開突進で広場警備を全員撃破すると敵城側へ進める", { timeout: 60_000 }, () => {
+  let state = createBattle({ matchId: "r2d-player-plaza-breakthrough", seed: 20260913 });
+  registerPlazaGuardDispatch(state, "enemy", "E25");
+  // The fixture isolates the player-authored plaza battle and crossing. Enemy
+  // actors outside the three dispatched guards cannot move into the route.
+  for (const actor of Object.values(state.actors)) {
+    if (actor.team === "enemy") actor.protectedUntilTick = 99_999;
+  }
+
+  let phase: "pickup" | "turret" | "plaza-route" = "pickup";
+  let deliveries = 0;
+  let reachedPlaza = false;
+  for (let tick = 0; tick < 6_000 && state.phase === "running"; tick += 1) {
+    let intent = publicP1Intent(state, { direction: NEUTRAL });
+    if (phase === "pickup") {
+      const interaction = getInteraction(state, "P1", 0);
+      intent = interaction.handles.includes("pickup")
+        ? publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken })
+        : publicP1Intent(state, { direction: p1ToAmmoDirection(state, deliveries === 0) });
+    } else if (phase === "turret") {
+      const interaction = getInteraction(state, "P1", 0);
+      intent = interaction.handles.includes("deliver")
+        ? publicP1Intent(state, { handle: "deliver", slot: 0, route: "direct", part: "P1", contextToken: interaction.contextToken })
+        : publicP1Intent(state, { direction: p1ToTurretDirection(state) });
+    } else {
+      intent = publicP1Intent(state, { direction: p1ToPlazaDirection(state) });
+    }
+
+    state = stepBattle(state, intent);
+    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
+      deliveries += 1;
+      phase = "plaza-route";
+    }
+    if (state.actors.P1.location.area === "plaza") {
+      reachedPlaza = true;
+      break;
+    }
+  }
+
+  assert.equal(deliveries, 1);
+  assert.equal(reachedPlaza, true, "P1 reaches the plaza through the same public route as the boundary test");
+
+  const entry = state.fixedActors.P1.position;
+  const guardPositions = [
+    { x: entry.x + 75_000, y: entry.y },
+    { x: entry.x + 95_000, y: entry.y },
+    { x: entry.x + 110_000, y: entry.y },
+  ];
+  PLAZA_GUARD_IDS.forEach((actorId, index) => placePlazaGuard(state, actorId, guardPositions[index]));
+
+  for (const actorId of PLAZA_GUARD_IDS) {
+    while (state.actors[actorId].alive && state.fixedActors.P1.position.x < state.fixedActors[actorId].position.x - 650) {
+      holdPlazaGuardsInPlace(state);
+      state = stepBattle(state, publicP1Intent(state, { direction: { x: 1, y: 0 } }));
+    }
+
+    // Only the target is actionable on the dash tick; the other guards remain
+    // in a deterministic fixture position until their own public dash.
+    holdPlazaGuardsInPlace(state);
+    state.actors[actorId].protectedUntilTick = null;
+    state = stepBattle(state, publicP1Intent(state, { dash: { x: 1, y: 0 } }));
+    while (state.dashes.P1) {
+      holdPlazaGuardsInPlace(state);
+      state = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
+    }
+
+    assert.equal(state.actors[actorId].alive, false, `${actorId} is defeated by a public dash contact`);
+    assert.equal(state.lastStep.acceptedInputKinds.includes("bridge:actor_contact"), true);
+  }
+
+  assert.deepEqual(
+    PLAZA_GUARD_IDS.map((actorId) => state.actors[actorId].alive),
+    [false, false, false],
+    "all dispatched plaza guards are defeated before the crossing attempt",
+  );
+
+  let enteredEnemyCastle = false;
+  for (let tick = 0; tick < 600 && state.phase === "running"; tick += 1) {
+    state = stepBattle(state, publicP1Intent(state, { direction: { x: 1, y: 0 } }));
+    if (state.actors.P1.location.area === "castle") {
+      enteredEnemyCastle = true;
+      break;
+    }
+  }
+
+  assert.equal(enteredEnemyCastle, true, "held public direction crosses after every dispatched guard is defeated");
+  assert.equal(state.actors.P1.location.castleTeam, "enemy");
+  assert.equal(state.plaza.enemyCrossings["P1:0"]?.allowed, true);
+  assert.equal(state.lastStep.acceptedInputKinds.includes("direction"), true, "the crossing uses the held public direction");
 });
