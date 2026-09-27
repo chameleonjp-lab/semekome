@@ -299,7 +299,7 @@ function runClockAtHz(hz: number): BattleState {
   return state;
 }
 
-test("R2a flow keeps 33 actors and carries real supply into all enemy turrets", { timeout: 180_000 }, () => {
+function supplyScenario(mode: "enemy-core-assault" | "artillery-endurance"): void {
   const matchId = "r2a-flow-long";
   const seed = 20260913;
   const benchmarkStart = performance.now();
@@ -309,6 +309,13 @@ test("R2a flow keeps 33 actors and carries real supply into all enemy turrets", 
   assert.equal(benchmark.tick, 1000);
 
   let state = createBattle({ matchId, seed });
+  if (mode === "artillery-endurance") {
+    // Preserve the former long artillery regression independently of the new
+    // valid terminal condition. Only the two assault role flags are disabled;
+    // this is explicitly NOT a normal-battle victory/playthrough fixture.
+    state.actors.E29.canAssaultOtherVehicle = false;
+    state.actors.E30.canAssaultOtherVehicle = false;
+  }
   const initialActorIds = Object.keys(state.actors).sort();
   const record: FlowRecord = {
     events: [],
@@ -323,7 +330,19 @@ test("R2a flow keeps 33 actors and carries real supply into all enemy turrets", 
   let deliveryCount = 0;
   const phaseAtEnd: FlowPhase[] = [];
   const longRunStart = performance.now();
-  const longRunTicks = 25_000;
+  const maxRunTicks = mode === "enemy-core-assault" ? 25_200 : 25_000;
+  // The normal scenario has no setup mutation: both assault actors start in their authored home rooms.
+  // Public P1 input supplies four cases; artillery and invasion advance solely
+  // through the production step. This is not a full player-victory playthrough.
+  const assaultIds = ["E29", "E30"] as const;
+  const assaultTrace = Object.fromEntries(assaultIds.map(id => [id, {
+    areas: [`castle:${state.actors[id].location.castleTeam}`],
+    firstPlazaTick: -1, firstPlayerCastleTick: -1, coreDashTick: -1,
+    gates: [] as string[],
+  }])) as Record<(typeof assaultIds)[number], {
+    areas: string[]; firstPlazaTick: number; firstPlayerCastleTick: number; coreDashTick: number; gates: string[];
+  }>;
+  for (const id of assaultIds) assert.equal(state.actors[id].location.castleTeam, "enemy");
 
   assert.equal(initialActorIds.length, 33);
   assert.deepEqual(initialActorIds, [
@@ -336,7 +355,7 @@ test("R2a flow keeps 33 actors and carries real supply into all enemy turrets", 
   assert.deepEqual(state.fixedActors.P1.position, { x: 92_500, y: 33_500 });
   assertP1AuthoredFloorRoute(state);
 
-  for (let tick = 0; tick < longRunTicks; tick += 1) {
+  for (let tick = 0; tick < maxRunTicks && state.phase === "running"; tick += 1) {
     let intent: BattleIntent = publicP1Intent(state, { direction: NEUTRAL });
     if (phase === "to-pickup" || phase === "repick-first") {
       const interaction = getInteraction(state, "P1", 0);
@@ -369,7 +388,27 @@ test("R2a flow keeps 33 actors and carries real supply into all enemy turrets", 
       }
     }
 
-    state = stepBattle(state, intent);
+    const before = state;
+    state = stepBattle(state, state.actors.P1.alive ? intent : undefined);
+    for (const id of assaultIds) {
+      const previous = before.actors[id];
+      const current = state.actors[id];
+      const trace = assaultTrace[id];
+      const area = current.location.area === "castle" ? `castle:${current.location.castleTeam}` : current.location.area;
+      if (trace.areas.at(-1) !== area) trace.areas.push(area);
+      if (area === "plaza" && trace.firstPlazaTick < 0) trace.firstPlazaTick = tick;
+      if (area === "castle:player") {
+        if (trace.firstPlayerCastleTick < 0) trace.firstPlayerCastleTick = tick;
+        trace.gates = [...current.location.pathGates];
+      }
+      if (current.location.roomId === "core" && state.dashes[id] && trace.coreDashTick < 0) trace.coreDashTick = tick;
+      if (previous.alive && current.alive && previous.generation === current.generation &&
+          previous.location.area === current.location.area && previous.location.castleTeam === current.location.castleTeam) {
+        const a = before.fixedActors[id].position, b = state.fixedActors[id].position;
+        // Covers walking, dash and one contact knockback, never a room teleport.
+        assert.ok(Math.abs(b.x - a.x) <= 750 && Math.abs(b.y - a.y) <= 750, `${id} moves continuously at tick ${tick}`);
+      }
+    }
     recordStep(state, record);
     assertCaseOwnership(state);
     assertGatePrefix(state, "player");
@@ -393,7 +432,7 @@ test("R2a flow keeps 33 actors and carries real supply into all enemy turrets", 
   const lastLaunchTick = Object.fromEntries(([
     "player", "enemy",
   ] as const).map((team) => [team, launchesByTeam(team).at(-1)?.tick ?? -1])) as Record<TeamId, number>;
-  const lateLaunchCutoff = longRunTicks - 5_000;
+  const lateLaunchCutoff = Math.max(0, state.tick - 5_000);
   const allEvents = record.events.map((entry) => entry.event);
   const interceptions = allEvents.filter((event): event is Extract<WorldEvent, { type: "projectile_intercepted" }> => event.type === "projectile_intercepted");
   const partDamageByTeam = Object.fromEntries(([
@@ -401,11 +440,12 @@ test("R2a flow keeps 33 actors and carries real supply into all enemy turrets", 
   ] as const).map((team) => [team, allEvents.filter((event): event is Extract<WorldEvent, { type: "part_damaged" }> => event.type === "part_damaged" && event.team === team).length])) as Record<TeamId, number>;
 
   const summary = {
-    scenario: "r2a-flow",
+    scenario: mode === "enemy-core-assault" ? "initial-battle-enemy-core-assault" : "artillery-only-endurance-fixture",
     seed,
     benchmarkTicks: 1000,
     benchmarkMs: Number(record.benchmarkMs.toFixed(1)),
-    longRunTicks,
+    maxRunTicks,
+    processedTicks: state.tick,
     longRunMs: Number(longRunMs.toFixed(1)),
     p1Deliveries: deliveryCount,
     launches: { player: playerLaunches.length, enemy: enemyLaunches.length },
@@ -416,6 +456,7 @@ test("R2a flow keeps 33 actors and carries real supply into all enemy turrets", 
     gates: { player: state.castles.player.openGateIds.length, enemy: state.castles.enemy.openGateIds.length },
     outcome: state.outcome,
     finalPhase: phaseAtEnd.at(-1),
+    assaultTrace: mode === "enemy-core-assault" ? assaultTrace : undefined,
   };
   console.info(JSON.stringify(summary));
   assert.equal(phase, "done", `P1 completed ${P1_DELIVERY_TARGET} public supply deliveries (got ${deliveryCount})`);
@@ -459,18 +500,52 @@ test("R2a flow keeps 33 actors and carries real supply into all enemy turrets", 
       entry.actorId !== undefined && turretOperators.includes(entry.actorId));
     assert.ok(operatorPickup >= 0, `${launch.event.objectId} was picked up by an authorized live operator before queueing`);
   }
-  assert.equal(state.outcome, "ongoing", "R2a never resolves an invasion/core victory");
-  assert.equal(state.phase, "running", "R2a remains a running battle after artillery work");
+  if (mode === "enemy-core-assault") {
+    assert.equal(state.outcome, "enemy_win", "real initial battle resolves only after the enemy AI hits the core");
+    assert.equal(state.phase, "ended");
+    for (const id of assaultIds) {
+      const trace = assaultTrace[id];
+      assert.deepEqual(trace.areas, ["castle:enemy", "plaza", "castle:player"], `${id} leaves its authored home and invades without being placed at the entrance`);
+      assert.ok(trace.firstPlazaTick > 0 && trace.firstPlayerCastleTick > trace.firstPlazaTick);
+    }
+    const coreHits = allEvents.filter((event): event is Extract<WorldEvent, { type: "core_hit_candidate" }> => event.type === "core_hit_candidate");
+    assert.ok(coreHits.length > 0, "physical dash generated a validated core contact");
+    for (const hit of coreHits) {
+      assert.equal(hit.targetTeam, "player");
+      assert.ok(assaultIds.includes(hit.attackerId as (typeof assaultIds)[number]));
+      const trace = assaultTrace[hit.attackerId as (typeof assaultIds)[number]];
+      assert.deepEqual(trace.areas, ["castle:enemy", "plaza", "castle:player"]);
+      assert.ok(trace.firstPlazaTick > 0 && trace.firstPlayerCastleTick > trace.firstPlazaTick);
+      assert.deepEqual(trace.gates, [...state.layout.home.coreRouteGates]);
+      assert.ok(trace.coreDashTick > trace.firstPlayerCastleTick);
+    }
+    assert.equal(allEvents.filter(event => event.type === "outcome").length, 1);
+    assert.equal(state.castles.player.core.hit, true);
+    const afterEnd = stepBattle(state, publicP1Intent(state, { dash: { x: -1, y: 0 } }));
+    assert.equal(afterEnd.tick, state.tick);
+    assert.deepEqual(afterEnd.fixedActors, state.fixedActors);
+    assert.deepEqual(afterEnd.castles, state.castles);
+  } else {
+    assert.equal(state.tick, 25_000);
+    assert.equal(state.outcome, "ongoing", "the isolated artillery fixture excludes core assault");
+    assert.equal(state.phase, "running");
+  }
   assert.ok(partDamageByTeam.player > 0, "enemy projectiles produce real player exterior damage");
   assert.ok(partDamageByTeam.enemy > 0, "player projectiles produce real enemy exterior damage");
-  // Gate updates remain prefix-checked on every tick above; R2a does not
-  // resolve a core victory, so full seven-gate destruction is covered by the
-  // dedicated exterior/gate rule tests rather than required here.
+  assert.equal(state.castles.player.openGateIds.length, 7);
+  assert.equal(state.castles.player.destroyedPartIds.length, 7);
   const launchedParts = new Set(record.launches.map((launch) => launch.event.targetPart).filter((part): part is (typeof PART_IDS)[number] => part !== undefined));
   assert.ok(launchedParts.size >= 1, "real launches retain a validated partP1..partP7 target");
   assert.ok([...launchedParts].every((part) => PART_IDS.includes(part)), "launch targets remain within partP1..partP7");
   assert.equal(initialActorIds.length, Object.keys(state.actors).length, "actor population remains fixed over long run");
-});
+}
+
+for (const mode of ["enemy-core-assault", "artillery-endurance"] as const) {
+  test(mode === "enemy-core-assault"
+    ? "normal initial battle carries real supply, opens seven gates and ends on an enemy AI core dash"
+    : "artillery-only fixture preserves 25000-tick supply, ownership and firing endurance",
+  { timeout: 180_000 }, () => supplyScenario(mode));
+}
 
 test("R2a fixed battle state is identical through 30/60/120Hz SessionClock ticks", () => {
   const at30 = runClockAtHz(30);

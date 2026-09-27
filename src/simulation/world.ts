@@ -39,6 +39,7 @@ import type {
 } from "../domain/types.ts";
 import { GATE_IDS, PART_IDS } from "../domain/types.ts";
 import { applyClockCommand, type ClockCommand } from "./clock.ts";
+import { plazaGuardCandidates } from "./plaza-guards.ts";
 
 const PLAYER_TEAM: TeamId = "player";
 const ENEMY_TEAM: TeamId = "enemy";
@@ -478,9 +479,8 @@ function plazaCrossingIsCurrent(
   }
   // A guard that enters the plaza after the clearance also closes the gate;
   // the next physical snapshot must defeat it and issue a fresh crossing.
-  return !Object.values(world.actors).some((candidate) =>
-    candidate.id !== actor.id && candidate.team === targetTeam && candidate.canGuardPlaza === true &&
-    candidate.alive && candidate.location.area === "plaza" &&
+  return !plazaGuardCandidates(world, targetTeam, actor.id).some((candidate) =>
+    candidate.alive &&
     crossing.guardGenerations[String(candidate.id)] === undefined);
 }
 
