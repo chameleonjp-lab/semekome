@@ -54,3 +54,21 @@ test('exterior display names do not collide with player actor IDs', () => {
     '外装1', '外装2', '外装3', '外装4', '外装5', '外装6', '外装7',
   ]);
 });
+
+test('core hints distinguish actual enemy core contact from own core defense', () => {
+  const state = fixture();
+  const actor = state.actors.P1;
+  actor.currentRoomId = 'core';
+  actor.location = { area: 'castle', castleTeam: 'enemy', roomId: 'core', pathRooms: [], pathGates: [] };
+  assert.match(battleHint(state, actor, undefined, false, false), /核そのものへ突進.*入室・歩行/);
+  actor.location.castleTeam = 'player';
+  assert.match(battleHint(state, actor, undefined, false, false), /自陣.*敗北.*自分の核/);
+});
+
+test('ended spectator hint never promises a canceled respawn', () => {
+  const state = fixture();
+  state.phase = 'ended';
+  state.actors.P1.alive = false;
+  assert.match(battleHint(state, state.actors.P1, undefined, false, false), /戦闘は終了/);
+  assert.doesNotMatch(battleHint(state, state.actors.P1, undefined, false, false), /復活まで/);
+});

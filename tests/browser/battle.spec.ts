@@ -259,7 +259,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
   test.setTimeout(60000); // Five controlled countdowns plus browser layout work.
   await page.clock.install({ time: new Date('2026-09-13T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-13T00:01:00Z'));
-  for (const viewport of [{ width: 360, height: 640 }, { width: 390, height: 664 }, { width: 402, height: 700 }, { width: 430, height: 932 }, { width: 844, height: 390 }]) {
+  for (const viewport of [{ width: 320, height: 640 }, { width: 360, height: 640 }, { width: 390, height: 664 }, { width: 402, height: 700 }, { width: 430, height: 932 }, { width: 844, height: 390 }]) {
     await page.setViewportSize(viewport);
     await page.goto('/');
     await page.getByRole('button', { name: '運搬・砲撃を試す' }).click();
@@ -270,7 +270,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
     const hintBox = (await page.locator('.battle-hint').boundingBox())!;
     const cargoBox = (await page.locator('.cargo-controls').boundingBox())!;
     expect(hintBox.y + hintBox.height, `battle hint overlaps cargo controls at ${viewport.width}px`).toBeLessThanOrEqual(cargoBox.y + 1);
-    for (const selector of ['#pause-battle', '[data-slot="0"]', '[data-slot="1"]', '#battle-action', '#battle-drop', '#route-toggle', '#target-part', '#battle-help', '.movement-pad']) {
+    for (const selector of ['#pause-battle', '[data-slot="0"]', '[data-slot="1"]', '#battle-action', '#battle-drop', '#battle-dash', '#route-toggle', '#target-part', '#battle-help', '.movement-pad']) {
       const box = (await page.locator(selector).boundingBox())!;
       expect(box.width, selector).toBeGreaterThanOrEqual(48);
       expect(box.height, selector).toBeGreaterThanOrEqual(48);
@@ -280,6 +280,13 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
       expect(box.y + box.height, selector).toBeLessThanOrEqual(viewport.height + 1);
     }
     expect((await page.locator('canvas').boundingBox())!.height).toBeGreaterThan(110);
+    const controls = await Promise.all(['.movement-pad', '#battle-action', '#battle-drop', '#battle-dash', '[data-slot="0"]', '[data-slot="1"]', '#route-toggle', '#target-part', '#battle-help'].map(async selector => ({ selector, box: (await page.locator(selector).boundingBox())! })));
+    for (let left = 0; left < controls.length; left++) for (let right = left + 1; right < controls.length; right++) {
+      const a = controls[left], b = controls[right];
+      const overlapX = Math.min(a.box.x + a.box.width, b.box.x + b.box.width) - Math.max(a.box.x, b.box.x);
+      const overlapY = Math.min(a.box.y + a.box.height, b.box.y + b.box.height) - Math.max(a.box.y, b.box.y);
+      expect(overlapX <= 1 || overlapY <= 1, `${a.selector} overlaps ${b.selector} at ${viewport.width}px`).toBe(true);
+    }
     const size = await page.evaluate(() => ({ width: document.documentElement.scrollWidth, height: document.documentElement.scrollHeight }));
     expect(size.width).toBeLessThanOrEqual(viewport.width);
     expect(size.height).toBeLessThanOrEqual(viewport.height);

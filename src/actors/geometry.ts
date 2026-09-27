@@ -14,6 +14,13 @@ export const ACTION_RANGE_SUBUNITS = 800;
 /** Equipment body diameter in fixed subunits (0.6 floor units). */
 export const EQUIPMENT_BODY_SIZE_SUBUNITS = 600;
 
+/**
+ * Provisional gameplay distance from an actor center to the core center.
+ * The approved rules do not yet define a hit radius. The display ring remains
+ * decoration and is not claimed to pixel-match this fixed simulation radius.
+ */
+export const CORE_CONTACT_RADIUS_SUBUNITS = 1_170;
+
 /** A half-open rectangle in integer subunits. */
 export interface FixedRect {
   x0: number;
@@ -62,6 +69,35 @@ export function equipmentRectForCell(cell: Point): FixedRect {
     x1: centerX + halfSize,
     y1: centerY + halfSize,
   };
+}
+
+/** The core's authored display/physical anchor: the center of its core room. */
+export function coreWorldPoint(layout: CastleLayout): Point | undefined {
+  const room = layout.rooms.find((candidate) => candidate.kind === "core" || candidate.id === "core");
+  if (!room) return undefined;
+  return { x: (room.rect.x0 + room.rect.x1) / 2, y: (room.rect.y0 + room.rect.y1) / 2 };
+}
+
+/** Return the first segment parameter at which a fixed-point segment meets a circle. */
+export function segmentCircleEntryT(
+  from: FixedPoint,
+  to: FixedPoint,
+  center: FixedPoint,
+  radius: number,
+): number | undefined {
+  const dx = to.x - from.x;
+  const dy = to.y - from.y;
+  const ox = from.x - center.x;
+  const oy = from.y - center.y;
+  const a = dx * dx + dy * dy;
+  const c = ox * ox + oy * oy - radius * radius;
+  if (c <= 0) return 0;
+  if (a === 0) return undefined;
+  const b = 2 * (ox * dx + oy * dy);
+  const discriminant = b * b - 4 * a * c;
+  if (discriminant < 0) return undefined;
+  const entry = (-b - Math.sqrt(discriminant)) / (2 * a);
+  return entry >= 0 && entry <= 1 ? entry : undefined;
 }
 
 function buildLayoutIndex(layout: CastleLayout): LayoutGeometryIndex {

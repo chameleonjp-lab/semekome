@@ -20,7 +20,7 @@
 #supply-summary { color: #d1f2e8; font-variant-numeric: tabular-nums; }
 #supply-error { min-height: 1.2em; color: #ffc6b9; }
 .scope-note { margin-top: 24px; }
-.battle { height: 100%; max-width: 1050px; margin: auto; padding: 8px 10px; display: grid; grid-template-rows: 48px 34px minmax(110px, 1fr) minmax(32px, auto) 48px 116px 54px; gap: 6px; position: relative; overflow: hidden; }
+.battle { height: 100%; max-width: 1050px; margin: auto; padding: 8px 10px; display: grid; grid-template-rows: 48px 34px minmax(110px, 1fr) minmax(32px, auto) 48px 124px 54px; gap: 6px; position: relative; overflow: hidden; }
 .battle button, .battle select { font-size: .8rem; min-width: 48px; padding: 8px; }
 .battle-header { min-width: 0; display: flex; align-items: center; gap: 10px; }
 .battle-header > div { flex: 1; min-width: 0; }
@@ -47,16 +47,22 @@
 .battle .art-image-fallback { display: grid; place-items: center; border-radius: 5px; background: #2e4650; color: #e4d39e; font-weight: 700; line-height: 1; }
 .battle .art-image-fallback[hidden] { display: none; }
 .cargo-icon[hidden], .action-icon[hidden] { display: none; }
-.battle-controls { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 0 5px; }
-.movement-pad { width: 116px; height: 116px; border: 1px solid #789199; border-radius: 50%; background: #253c48; position: relative; flex-shrink: 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
+.battle-controls { display: grid; grid-template-columns: 116px minmax(0, 1fr) 86px; align-items: stretch; gap: 8px; padding: 0 5px; min-width: 0; }
+.movement-pad { width: 116px; height: 116px; align-self: center; border: 1px solid #789199; border-radius: 50%; background: #253c48; position: relative; flex-shrink: 0; touch-action: none; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
 .movement-pad span { position: absolute; font-size: 19px; color: #b5cdd5; }
 .pad-up { top: 4px; left: 49px; }.pad-down { bottom: 4px; left: 49px; }.pad-left { top: 43px; left: 8px; }.pad-right { top: 43px; right: 8px; }
 .movement-pad i { position: absolute; top: 40px; left: 40px; width: 34px; height: 34px; border: 1px solid #d1e2df; border-radius: 50%; background: #95bfb6; transform: translate(var(--stick-x, 0px), var(--stick-y, 0px)); }
-.action-controls { display: grid; gap: 6px; flex: 1; max-width: 240px; }
+.action-controls { display: grid; align-content: center; gap: 6px; min-width: 0; }
 #battle-action { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 60px; font-size: 1rem; touch-action: none; }
 .action-icon, .drop-icon { width: 28px; height: 28px; flex: 0 0 28px; object-fit: contain; }
 .drop-icon { display: grid; place-items: center; border-radius: 50%; color: #ddede7; background: #33515b; font-size: 1.15rem; font-weight: 700; }
 #battle-drop { display: flex; align-items: center; justify-content: center; gap: 5px; min-height: 48px; touch-action: none; }
+#battle-dash { display: grid; grid-template-rows: auto minmax(2.2em, auto) 5px; align-content: center; justify-items: center; gap: 5px; min-width: 48px; min-height: 104px; padding: 8px 4px; border-color: #78bdb1; background: #24483f; touch-action: none; user-select: none; -webkit-user-select: none; }
+#battle-dash:hover { background: #2e5d51; }
+#battle-dash .dash-label { font-size: 1.05rem; font-weight: 800; line-height: 1.1; }
+#battle-dash .dash-status { width: 100%; color: #d5ece4; font-size: .58rem; line-height: 1.2; text-align: center; overflow-wrap: anywhere; }
+.dash-progress { display: block; width: 100%; height: 5px; overflow: hidden; border-radius: 999px; background: #102a27; }
+.dash-progress i { display: block; width: 100%; height: 100%; transform: scaleX(0); transform-origin: left center; background: #a5e4d4; }
 .battle-settings { display: flex; gap: 6px; align-items: stretch; }
 .target-control { display: flex; align-items: center; gap: 5px; font-size: .68rem; flex: 1; white-space: nowrap; }
 .target-control[hidden] { display: none; }
@@ -66,18 +72,31 @@
 .battle-overlay > div { width: min(100%, 370px); text-align: center; padding: 24px; border: 1px solid #67838b; border-radius: 18px; background: #172d38; }
 .overlay-title { font-size: 1.15rem; margin-bottom: 12px; }
 .countdown-number { font-size: 4rem; color: #c6efe2; }
+.terminal-result { margin: 10px 0; padding: 10px 8px; border: 1px solid #82b6a9; border-radius: 10px; background: #203f39; color: #e2f8ef; font-size: 1rem; font-weight: 700; line-height: 1.5; }
 .overlay-description { font-size: .8rem; line-height: 1.7; }
 .battle-overlay button { width: 100%; margin-top: 8px; }
 .battle-overlay [hidden] { display: none; }
 .home-actions #open-battle { grid-column: 1 / -1; }
 @media (orientation: landscape) and (max-height: 650px) {
-  .battle { grid-template-columns: minmax(0, 1fr) 290px; grid-template-rows: 48px 34px minmax(116px, 1fr) 48px 54px; gap: 5px 12px; }
+  .battle { grid-template-columns: minmax(0, 1fr) 340px; grid-template-rows: 48px 34px minmax(124px, 1fr) 48px 54px; gap: 5px 12px; }
   .battle-header { grid-column: 1; grid-row: 1; }
   .battle-armor { grid-column: 1; grid-row: 2; }
   .battle-map { grid-column: 1; grid-row: 3 / 6; }
   .battle-hint { grid-column: 2; grid-row: 1 / 3; font-size: .8rem; }
-  .battle-controls { grid-column: 2; grid-row: 3; gap: 8px; padding: 0; }
+  .battle-controls { grid-column: 2; grid-row: 3; height: 100%; min-height: 0; grid-template-columns: 96px minmax(0, 1fr) 80px; grid-template-rows: minmax(0, 1fr); gap: 8px; padding: 0; overflow: hidden; }
+  .movement-pad { width: 96px; height: 96px; }
+  .pad-up { left: 39px; }.pad-down { left: 39px; }.pad-left { top: 34px; }.pad-right { top: 34px; }
+  .movement-pad i { top: 30px; left: 30px; }
+  .action-controls { min-height: 0; overflow: hidden; }
+  #battle-dash { height: 100%; max-height: 100%; min-height: 48px; grid-template-rows: auto minmax(0, auto) 5px; overflow: hidden; }
+  #battle-dash .dash-status { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
   .cargo-controls { grid-column: 2; grid-row: 4; }
   .battle-settings { grid-column: 2; grid-row: 5; }
   .target-control { font-size: 0; }
+}
+@media (max-width: 380px) {
+  .battle-controls { grid-template-columns: 104px minmax(0, 1fr) 76px; gap: 6px; padding: 0 2px; }
+  .movement-pad { width: 104px; height: 104px; }
+  .pad-up { left: 43px; }.pad-down { left: 43px; }.pad-left { top: 38px; }.pad-right { top: 38px; }
+  .movement-pad i { top: 35px; left: 35px; }
 }

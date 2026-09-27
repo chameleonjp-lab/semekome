@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { cellCenter, floorCell } from "../../src/actors/movement.ts";
+import { coreWorldPoint } from "../../src/actors/geometry.ts";
+import { floorCell, FLOOR_SUBUNITS } from "../../src/actors/movement.ts";
 import { PART_IDS } from "../../src/domain/types.ts";
 import { createWorld, stepWorld } from "../../src/simulation/world.ts";
 import { bridgeActorFirstContact, bridgeCoreFirstContact, preparePlazaEntry } from "../../src/simulation/r2b-bridge.ts";
@@ -13,10 +14,12 @@ function coreState(matchId: string): { state: BattleState; from: { x: number; y:
   const layout = state.layout.enemy;
   const core = layout.rooms.find((room) => room.id === "core");
   assert.ok(core);
+  const corePoint = coreWorldPoint(layout);
+  assert.ok(corePoint);
   for (const gate of layout.coreRouteGates) state.castles[targetTeam].gates[gate].open = true;
   state.castles[targetTeam].openGateIds = [...layout.coreRouteGates];
-  const to = { x: cellCenter(core.rect.x0 + 4), y: cellCenter(core.rect.y0 + 5) };
-  const from = { x: to.x - 50, y: to.y };
+  const to = { x: corePoint.x * FLOOR_SUBUNITS, y: corePoint.y * FLOOR_SUBUNITS };
+  const from = { x: to.x - 1_000, y: to.y };
   const actor = state.actors.P1;
   actor.location = {
     area: "castle",
@@ -98,6 +101,27 @@ test("R2b core bridge rejects an incomplete seven-gate route", () => {
   });
   assert.equal(result.ok, false);
   assert.equal(result.reason, "closed_route");
+});
+
+test("R2b core bridge rejects a dash that stops elsewhere inside the core room", () => {
+  const { state, from, to } = coreState("r2b-core-empty-swing");
+  const distant = { x: to.x - 2_000, y: to.y };
+  state.actors.P1.position = { x: floorCell(distant.x), y: floorCell(distant.y) };
+  state.fixedActors.P1.position = distant;
+  const result = bridgeCoreFirstContact(state, {
+    matchId: state.matchId,
+    tick: state.tick,
+    actorId: "P1",
+    generation: state.actors.P1.generation,
+    targetTeam: "enemy",
+    attackType: "dash",
+    firstContact: "core",
+    from: distant,
+    to,
+  });
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "invalid_contact");
+  assert.notDeepEqual(distant, from);
 });
 
 test("R2b core evidence is consumed by the physical coordinator in one shared tick", () => {
