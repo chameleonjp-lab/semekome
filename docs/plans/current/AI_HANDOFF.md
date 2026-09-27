@@ -1,5 +1,11 @@
 # 実装担当への引き継ぎ / 第5版
 
+## 最新作業枝：R2g 主人公の公開砲撃・G1開門境界
+
+PR #41取り込み後の次の小単位として、`tests/scenarios/r2d-player-plaza-route.test.ts` に、P1が公開 `direction` / `handle` で4回の通常配送を行い、敵外装P1への実発射でG1を開けた後、広場のE25〜E27を公開 `dash` で撃破して敵城へ入り、開いたG1の先の閉じたG2で止まる検査を追加した。選択した標的は公開 `deliver` の `part: "P1"` で保持し、`destroyedPartIds` はP1、`openGateIds` と `pathGates` はG1だけを確認する。
+
+明示的な `bridge`、座標越境、門開放、外装破壊の入力は使わない。敵AIは保護し、広場3防衛者は一接触で倒せる固定fixtureとして、砲撃・外装・門・通常移動の境界を分けている。経路ヘルパーの50サブユニット許容は固定小数点の既存終点境界に対する検査上の扱いであり、本番コードの移動判定は変更していない。次は残りの外装・門と広場戦術・核接触・終局を、通常操作の小単位として順に接続する。味方命令、結果・ランキング、実機試遊は残件である。独立レビューは `../../R2G_PLAYER_GATE_OPENING_REVIEW.md`、検査結果は `../../TEST_REPORT.md` を参照する。
+
 ## 最新作業枝：R2f 主人公の敵城・閉門境界
 
 PR #40取り込み後の小単位として、`tests/scenarios/r2d-player-plaza-route.test.ts` に、P1が広場のE25〜E27を公開 `dash` で撃破して敵城へ越境した後、held `direction` だけで敵城内の最初の閉門手前まで進む検査を追加した。P1は `central_corridor`、`respawn`、`corridor_0` を通り、閉じたG1を越えず、`pathGates`・外装破壊・門開放を変えない。
