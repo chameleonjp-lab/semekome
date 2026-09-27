@@ -102,4 +102,12 @@
   .movement-pad { width: 104px; height: 104px; }
   .pad-up { left: 43px; }.pad-down { left: 43px; }.pad-left { top: 38px; }.pad-right { top: 38px; }
   .movement-pad i { top: 35px; left: 35px; }
+  .action-controls { min-height: 0; }
+  #battle-action, #battle-drop, #battle-attack { height: 48px; min-height: 48px; overflow: hidden; }
+  #battle-action .action-label, #battle-drop > span:last-child, #battle-attack .attack-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
