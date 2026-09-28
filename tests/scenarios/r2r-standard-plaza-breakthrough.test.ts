@@ -222,6 +222,9 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     }
 
     state = nextState;
+    if (!reachedPlaza && state.actors.P1.location.area === "plaza") {
+      throw new Error("DEBUG plaza positions P1=" + JSON.stringify(state.fixedActors.P1.position) + " guards=" + JSON.stringify(Object.fromEntries(PLAZA_GUARD_IDS.map((guardId) => [guardId, { position: state.fixedActors[guardId].position, health: state.actors[guardId].health, alive: state.actors[guardId].alive }]))) );
+    }
     if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
     if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
