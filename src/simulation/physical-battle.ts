@@ -4132,7 +4132,10 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
     ? normalContactBridge(next, next.actors.P1)
     : undefined;
   if (intent?.attack === true && report.rejected.length === 0 && !normalBridge) {
-    addRejection(report, 0, "invalid_transition", "no adjacent enemy actor for normal contact attack");
+    // Pressing attack with no currently valid target is a harmless public
+    // no-op. Keep the contact snapshot stable for this tick so an adjacent
+    // NPC cannot start a new movement/dash while the player is recovering.
+    report.acceptedInputKinds.push("attack");
   }
   const generatedBridges = normalBridge ? [...dashResult.bridges, normalBridge] : dashResult.bridges;
   applyR2bBridges(next, intent, generatedBridges, dashResult.simulatedActorIds, report, events);
