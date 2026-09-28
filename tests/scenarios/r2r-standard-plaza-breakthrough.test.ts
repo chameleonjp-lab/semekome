@@ -90,8 +90,9 @@ function p1FromRespawnToPlazaDirection(state: BattleState): BattleDirection {
 
 function p1ToEnemyCastleDirection(state: BattleState): BattleDirection {
   const position = state.fixedActors.P1.position;
+  const enemyPlazaEdgeX = state.layout.plaza.x1 * 1_000 - 500;
   const direction = {
-    x: sign(P1_EXIT_X - position.x),
+    x: sign(enemyPlazaEdgeX - position.x),
     y: sign(PLAZA_Y - position.y),
   };
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
