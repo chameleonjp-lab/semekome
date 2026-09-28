@@ -1824,6 +1824,10 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
       if (assignment.path.length > 0) moveAIAlongPath(state, actor, assignment, target);
       else moveDirectlyToward(state, actor, target, decision.intent.purpose === "plaza" || decision.intent.purpose === "assault");
     } else if (decision.intent.kind === "defend") {
+      // A guard that has just received a physical contact hit is briefly
+      // invulnerable. Do not start a fresh counter-dash during that same
+      // recovery window; an already active dash remains physical state.
+      if (actor.damageImmuneUntilTick !== null && state.tick < actor.damageImmuneUntilTick) continue;
       const targetActor = state.actors[decision.intent.targetId];
       if (!targetActor?.alive || targetActor.location.castleTeam !== actor.location.castleTeam || targetActor.currentRoomId !== actor.currentRoomId) continue;
       const target = actorFixed(state, targetActor.id);
