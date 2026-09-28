@@ -171,6 +171,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
   let focusWasAssigned = false;
   let retreatUntilTick = 0;
+  let noOpAttackRejectedFor: (typeof PLAZA_GUARD_IDS)[number] | undefined;
   let dashAttempts = 0;
   let dashStarts = 0;
   let dashContacts = 0;
@@ -251,11 +252,14 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         const focusSharesPlazaSpace = focusActor?.location.area === "plaza" &&
           state.actors.P1.location.area === "plaza" &&
           focusActor.currentRoomId === state.actors.P1.currentRoomId;
-        if (focusGuardId && focusSharesPlazaSpace && focusDistance <= 900) {
+        if (focusGuardId && focusSharesPlazaSpace && focusDistance <= 700 && noOpAttackRejectedFor !== focusGuardId) {
           // Keep the public combat snapshot stable while a nearby guard is
           // recovering from contact immunity; the engine treats this attack
           // press as a harmless no-op until a valid target returns.
           nextState = stepBattle(state, publicP1Intent(state, { attack: true }));
+          if (nextState.lastStep.rejected.some((rejection) => rejection.detail === "no adjacent enemy actor for normal contact attack")) {
+            noOpAttackRejectedFor = focusGuardId;
+          }
         } else if (focusGuardId && dashReady && focusDistance <= state.rules.dashDistanceSubunits + 1_000) {
           dashAttempts += 1;
           nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: focusDirection }));
