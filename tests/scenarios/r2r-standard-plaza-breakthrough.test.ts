@@ -153,7 +153,7 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
     return healthDelta || leftDistance - rightDistance || left.actor.id.localeCompare(right.actor.id);
   })[0];
 
-  if (!target) return { x: 1, y: 0 };
+  if (!target) return p1ToEnemyCastleDirection(state);
   const laneY = preferredGuardId
     ? Math.max(state.layout.plaza.y0 * 1_000 + 1_000, target.position.y - 7_000)
     : target.position.y;
@@ -189,7 +189,6 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
   let focusWasAssigned = false;
   let retreatUntilTick = 0;
-  let noOpAttackRejectedFor: (typeof PLAZA_GUARD_IDS)[number] | undefined;
   let dashAttempts = 0;
   let dashStarts = 0;
   let dashContacts = 0;
@@ -212,7 +211,6 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         focusGuardId = undefined;
         focusWasAssigned = false;
         retreatUntilTick = 0;
-        noOpAttackRejectedFor = undefined;
         phase = deliveries === 0 ? "pickup" : "return-plaza";
       }
       continue;
@@ -285,15 +283,12 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         const focusSharesPlazaSpace = focusActor?.location.area === "plaza" &&
           state.actors.P1.location.area === "plaza" &&
           focusActor.currentRoomId === state.actors.P1.currentRoomId;
-        if (focusGuardId && focusSharesPlazaSpace && focusDistance <= 1_500 && noOpAttackRejectedFor !== focusGuardId) {
-          // Keep the public combat snapshot stable while a nearby guard is
-          // recovering from contact immunity.  The direction is still public
-          // movement toward the observed target, so P1 closes the knockback
-          // gap while attack suppresses a stale NPC movement snapshot.
+        if (focusGuardId && focusSharesPlazaSpace) {
+          // Keep the public combat snapshot stable while the observed guard
+          // is in contact recovery.  The direction is still public movement
+          // toward that observed target, so P1 closes the knockback gap while
+          // attack suppresses a stale NPC movement snapshot.
           nextState = stepBattle(state, publicP1Intent(state, { direction: focusDirection, attack: true }));
-          if (nextState.lastStep.rejected.some((rejection) => rejection.detail === "no adjacent enemy actor for normal contact attack")) {
-            noOpAttackRejectedFor = focusGuardId;
-          }
         } else if (focusGuardId && dashReady && focusDistance <= state.rules.dashDistanceSubunits + 1_000) {
           dashAttempts += 1;
           nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: focusDirection }));
