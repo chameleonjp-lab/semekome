@@ -277,7 +277,8 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
         }
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
-          // Keep the next public attack frame focused on the same physical snapshot.\n          retreatUntilTick = nextState.tick;
+          // Keep the next public attack frame focused on the same physical snapshot.
+          retreatUntilTick = nextState.tick;
           attackCount += 1;
         }
       } else if (PLAZA_GUARD_IDS.every((actorId) => !state.actors[actorId].alive)) {
@@ -329,7 +330,12 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     }
 
     state = nextState;
-    if (allGuardsDeadTick === -1 && PLAZA_GUARD_IDS.every((actorId) => !state.actors[actorId].alive)) {\n      allGuardsDeadTick = state.tick;\n      allGuardsDeadPosition = { ...state.fixedActors.P1.position };\n    }\n    if (firstEnemyEdgeTick === -1 && state.fixedActors.P1.position.x >= P1_EXIT_X - 750 && Math.abs(state.fixedActors.P1.position.y - PLAZA_Y) <= 9_500) firstEnemyEdgeTick = state.tick;\n    for (const event of state.lastStep.events) {
+    if (allGuardsDeadTick === -1 && PLAZA_GUARD_IDS.every((actorId) => !state.actors[actorId].alive)) {
+      allGuardsDeadTick = state.tick;
+      allGuardsDeadPosition = { ...state.fixedActors.P1.position };
+    }
+    if (firstEnemyEdgeTick === -1 && state.fixedActors.P1.position.x >= P1_EXIT_X - 750 && Math.abs(state.fixedActors.P1.position.y - PLAZA_Y) <= 9_500) firstEnemyEdgeTick = state.tick;
+    for (const event of state.lastStep.events) {
       if (!PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number])) continue;
       const guardId = event.actorId as (typeof PLAZA_GUARD_IDS)[number];
       if (event.type === "actor_died" && guardDeathTicks[guardId] === -1) {
