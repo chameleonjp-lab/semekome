@@ -10,7 +10,8 @@ R2qで確認した標準配分・敵味方稼働・保護fixtureなしの広場�
 
 - tests/scenarios/r2r-standard-plaza-breakthrough.test.ts：標準配分の実床拾得・1回配送・広場到達・通常接触攻撃・3人撃破・敵城側越境を、1つの公開更新列で確認する。
 - docs/R2R_STANDARD_PLAZA_BREAKTHROUGH_REVIEW.md：判定範囲と非対象範囲を独立記録する。
-- src/：今回の単位では変更しない。R2qまでの物理人物損傷・AI警備・広場通過判定を、標準配分の連続更新で再検証する。
+- `src/simulation/physical-battle.ts`：一時無敵中でも隣接する実体への通常攻撃入力を受け付け、警備自身の無敵中は新しい反撃突進を開始しない境界を補正する。
+- `src/simulation/enemy-rules.ts`：`canGuardPlaza` の広場警備は低体力でも post を維持し、標準配分の警備線が自然退避で消えないようにする。
 
 ## 完了条件
 
