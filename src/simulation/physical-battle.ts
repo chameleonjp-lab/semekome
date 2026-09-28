@@ -668,14 +668,14 @@ function sharesPhysicalCombatSpace(left: ActorState, right: ActorState): boolean
 }
 
 /** Resolve the nearest contact target from the current authoritative snapshot. */
-function meleeTargetAtActor(state: BattleState, actor: ActorState): ActorState | undefined {
+function meleeTargetAtActor(state: BattleState, actor: ActorState, includeInvulnerable = false): ActorState | undefined {
   if (!actor.alive || actorIsProtected(state, actor) || state.dashes[actor.id]) return undefined;
   const from = actorFixed(state, actor.id);
   const contactLimit = ACTOR_RADIUS_SUBUNITS * 2 + 2;
   return Object.values(state.actors)
     .filter((candidate) => candidate.id !== actor.id && candidate.alive && candidate.team !== actor.team &&
       !actorIsProtected(state, candidate) &&
-      (candidate.damageImmuneUntilTick === null || state.tick >= candidate.damageImmuneUntilTick) &&
+      (includeInvulnerable || candidate.damageImmuneUntilTick === null || state.tick >= candidate.damageImmuneUntilTick) &&
       sharesPhysicalCombatSpace(actor, candidate))
     .map((candidate) => ({ candidate, position: actorFixed(state, candidate.id) }))
     .filter(({ candidate, position }) => distanceSquared(from, position) <= contactLimit * contactLimit &&
@@ -1824,6 +1824,10 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
       if (assignment.path.length > 0) moveAIAlongPath(state, actor, assignment, target);
       else moveDirectlyToward(state, actor, target, decision.intent.purpose === "plaza" || decision.intent.purpose === "assault");
     } else if (decision.intent.kind === "defend") {
+      // A guard that has just received a physical contact hit is briefly
+      // invulnerable. Do not start a fresh counter-dash during that same
+      // recovery window; an already active dash remains physical state.
+      if (actor.damageImmuneUntilTick !== null && state.tick < actor.damageImmuneUntilTick) continue;
       const targetActor = state.actors[decision.intent.targetId];
       if (!targetActor?.alive || targetActor.location.castleTeam !== actor.location.castleTeam || targetActor.currentRoomId !== actor.currentRoomId) continue;
       const target = actorFixed(state, targetActor.id);
@@ -4128,7 +4132,14 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
     ? normalContactBridge(next, next.actors.P1)
     : undefined;
   if (intent?.attack === true && report.rejected.length === 0 && !normalBridge) {
-    addRejection(report, 0, "invalid_transition", "no adjacent enemy actor for normal contact attack");
+    // A target that is still in post-hit immunity remains a physical
+    // neighbour, even though it cannot receive another damage bridge yet.
+    // Preserve the invalid-input contract when no neighbour exists at all.
+    if (meleeTargetAtActor(next, next.actors.P1, true)) {
+      report.acceptedInputKinds.push("attack");
+    } else {
+      addRejection(report, 0, "invalid_transition", "no adjacent enemy actor for normal contact attack");
+    }
   }
   const generatedBridges = normalBridge ? [...dashResult.bridges, normalBridge] : dashResult.bridges;
   applyR2bBridges(next, intent, generatedBridges, dashResult.simulatedActorIds, report, events);

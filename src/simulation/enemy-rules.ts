@@ -46,7 +46,7 @@ export function observeEnemy(battle: BattleState, actor: ActorState): EnemyObser
 export function chooseEnemyIntent(observation: EnemyObservation): EnemyIntent {
   const o = observation;
   const threat = o.threats[0];
-  if (threat && o.health <= 2) return { kind: "retreat", awayFromId: threat };
+  if (threat && o.health <= 2 && !o.canGuardPlaza) return { kind: "retreat", awayFromId: threat };
   switch (o.role) {
     case "shooter":
       if (!o.inHomeCastle || o.currentRoomId !== o.homeRoomId) return { kind: "move_goal", roomId: o.homeRoomId, purpose: "return" };
