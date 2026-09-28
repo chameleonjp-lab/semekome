@@ -97,7 +97,13 @@ function p1ToEnemyCastleDirection(state: BattleState): BattleDirection {
 function p1ToActorDirection(state: BattleState, actorId: string): BattleDirection {
   const position = state.fixedActors.P1.position;
   const target = state.fixedActors[actorId]?.position;
-  if (!target) return p1ToEnemyCastleDirection(state);
+  if (!target) {
+    // A dispatched guard may still be walking from its castle. Stay in the
+    // current public snapshot until every current guard generation is dead;
+    // moving to the edge early would let a respawned guard reopen the gate.
+    if (PLAZA_GUARD_IDS.some((actorId) => state.actors[actorId].alive)) return NEUTRAL;
+    return p1ToEnemyCastleDirection(state);
+  }
   const direction = { x: sign(target.x - position.x), y: sign(target.y - position.y) };
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
@@ -308,11 +314,14 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
 
     state = nextState;
     for (const event of state.lastStep.events) {
-      if (event.type !== "actor_damaged" || !PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number])) continue;
+      if (!PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number])) continue;
       const guardId = event.actorId as (typeof PLAZA_GUARD_IDS)[number];
+      if (event.type === "actor_died" && guardDeathTicks[guardId] === -1) {
+        guardDeathTicks[guardId] = state.tick;
+      }
+      if (event.type !== "actor_damaged") continue;
       guardHits[guardId] += 1;
       guardDamage[guardId] += event.amount;
-      if (event.type === "actor_died" && guardDeathTicks[guardId] === -1) guardDeathTicks[guardId] = state.tick;
     }
     if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
     if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
@@ -342,7 +351,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   const guardStateSummary = PLAZA_GUARD_IDS.map((guardId) => `${guardId}:hits=${guardHits[guardId]},damage=${guardDamage[guardId]},health=${state.actors[guardId].health},alive=${state.actors[guardId].alive}`).join("; ");
   for (const guardId of PLAZA_GUARD_IDS) {
     assert.equal(guardDamage[guardId] >= state.rules.actorHealth, true, guardId + " receives enough public contact damage to be defeated (" + guardStateSummary + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", dashAttempts=" + dashAttempts + ", dashStarts=" + dashStarts + ", dashContacts=" + dashContacts + ", dashRejections=" + dashRejections + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
-    assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing (" + guardStateSummary + ", deathTicks=" + JSON.stringify(guardDeathTicks) + ", tick=" + state.tick + ", outcome=" + state.outcome + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guardGeneration=" + state.actors[guardId].generation + ")");
+    assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing (" + guardStateSummary + ", deathTicks=" + JSON.stringify(guardDeathTicks) + ", tick=" + state.tick + ", outcome=" + state.outcome + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guardGeneration=" + state.actors[guardId].generation + ", attackCount=" + attackCount + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
   }
   assert.equal(enteredEnemyCastle, true, "held public direction crosses after every live plaza guard is defeated (tick=" + state.tick + ", phase=" + state.phase + ", outcome=" + state.outcome + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", p1Location=" + JSON.stringify(state.actors.P1.location) + ", p1Generation=" + state.actors.P1.generation + ", crossings=" + JSON.stringify(state.plaza.enemyCrossings) + ", guards=" + JSON.stringify(Object.fromEntries(PLAZA_GUARD_IDS.map((guardId) => [guardId, { alive: state.actors[guardId].alive, generation: state.actors[guardId].generation, location: state.actors[guardId].location, position: state.fixedActors[guardId]?.position }])) ) + ")");
   assert.equal(state.actors.P1.location.castleTeam, "enemy");
