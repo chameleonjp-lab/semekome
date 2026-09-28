@@ -139,10 +139,10 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
   const laneY = preferredGuardId
     ? Math.max(state.layout.plaza.y0 * 1_000 + 1_000, target.position.y - 7_000)
     : target.position.y;
-  if (Math.abs(position.y - laneY) > 50) {
-    return { x: 0, y: sign(laneY - position.y) };
-  }
   if (Math.abs(target.position.x - position.x) > 50) {
+    if (Math.abs(position.y - laneY) > 50) {
+      return { x: 0, y: sign(laneY - position.y) };
+    }
     return { x: sign(target.position.x - position.x), y: 0 };
   }
   if (Math.abs(target.position.y - position.y) > 50) {
@@ -247,7 +247,11 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         const focusDistance = focusPosition
           ? Math.hypot(focusPosition.x - state.fixedActors.P1.position.x, focusPosition.y - state.fixedActors.P1.position.y)
           : Number.POSITIVE_INFINITY;
-        if (focusGuardId && focusDistance <= 900) {
+        const focusActor = focusGuardId ? state.actors[focusGuardId] : undefined;
+        const focusSharesPlazaSpace = focusActor?.location.area === "plaza" &&
+          state.actors.P1.location.area === "plaza" &&
+          focusActor.currentRoomId === state.actors.P1.currentRoomId;
+        if (focusGuardId && focusSharesPlazaSpace && focusDistance <= 900) {
           // Keep the public combat snapshot stable while a nearby guard is
           // recovering from contact immunity; the engine treats this attack
           // press as a harmless no-op until a valid target returns.
