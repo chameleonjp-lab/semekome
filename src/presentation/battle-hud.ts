@@ -61,6 +61,24 @@ export function battleMapLabel(state: BattleState, actor: ActorState): string {
     : `${location}の城内図と直通・迂回の砲撃経路を表示しています。`;
 }
 
+function fullTurretWithStagedCase(state: BattleState, actor: ActorState) {
+  if (actor.location.area !== 'castle' || actor.location.castleTeam !== actor.team) return undefined;
+  const fixed = state.fixedActors[actor.id]?.position;
+  if (!fixed) return undefined;
+  const turret = Object.values(state.artillery.turrets)
+    .filter((candidate) => candidate.team === actor.team && candidate.roomId === actor.currentRoomId)
+    .find((candidate) => Math.hypot(
+      fixed.x - candidate.operatorPosition.x,
+      fixed.y - candidate.operatorPosition.y,
+    ) <= 900);
+  if (!turret) return undefined;
+  const layout = actor.team === 'player' ? state.layout.home : state.layout.enemy;
+  const definition = layout.turrets.find((candidate) => candidate.id === turret.id);
+  return definition && turret.queueIds.length >= definition.queueCapacity && turret.stagingSlots.some(Boolean)
+    ? turret
+    : undefined;
+}
+
 export function battleHint(state: BattleState, actor: ActorState, available: HudAction, hasCargo: boolean, canDrop: boolean): string {
   if (state.phase === 'ended') return '戦闘は終了しました。移動・突進・作業は停止しています。';
   if (!actor.alive) {
@@ -93,6 +111,9 @@ export function battleHint(state: BattleState, actor: ActorState, available: Hud
 
   if (available === 'repair') return '修理室です。所持中の弾を1個使い、損傷した外装または設備を修理できます。';
   if (available === 'load') return '砲台の操作位置です。装填後もここで待つと自動発射します。';
+  if (available !== 'deliver' && fullTurretWithStagedCase(state, actor)) {
+    return '砲台の待ち列が満杯です。受け渡し枠の弾は、発射で空きができると自動で装填されます。';
+  }
   if (available === 'deliver') return '選択中の弾を砲台の受け渡し枠へ渡せます。';
   if (hasCargo) return '選んだ弾を砲台へ運び、受け渡し枠へ渡すか装填します。';
   if (actor.currentRoomId === 'repair') return '修理室です。損傷した外装や設備の修理には弾を1個使います。';

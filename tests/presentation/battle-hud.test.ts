@@ -86,6 +86,20 @@ test('core hints distinguish actual enemy core contact from own core defense', (
   assert.match(battleHint(state, actor, undefined, false, false), /自陣.*敗北.*自分の核/);
 });
 
+test('full turret queue explains that a staged case will continue after launch', () => {
+  const state = fixture();
+  const actor = state.actors.P1;
+  const turret = state.artillery.turrets['player:T1'];
+  const definition = state.layout.home.turrets.find((candidate) => candidate.id === 'T1')!;
+  actor.currentRoomId = turret.roomId;
+  actor.location = { area: 'castle', castleTeam: 'player', roomId: turret.roomId, pathRooms: [], pathGates: [] };
+  state.fixedActors.P1.position = { ...turret.operatorPosition };
+  turret.queueIds = Array.from({ length: definition.queueCapacity }, (_, index) => `queue-${index}`);
+  turret.stagingSlots = ['handoff-0', null];
+
+  assert.match(battleHint(state, actor, undefined, false, false), /待ち列が満杯.*発射で空き.*自動で装填/);
+});
+
 test('ended spectator hint never promises a canceled respawn', () => {
   const state = fixture();
   state.phase = 'ended';
