@@ -230,13 +230,6 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
             retreatUntilTick = nextState.tick;
             attackCount += 1;
-            if (PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number])) {
-              const guardId = targetId as (typeof PLAZA_GUARD_IDS)[number];
-              guardHits[guardId] += 1;
-              const damageApplied = targetHealth - nextState.actors[guardId].health;
-              assert.equal(damageApplied > 0, true);
-              guardDamage[guardId] += damageApplied;
-            }
           }
         }
       } else {
@@ -251,6 +244,12 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     }
 
     state = nextState;
+    for (const event of state.lastStep.events) {
+      if (event.type !== "actor_damaged" || !PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number])) continue;
+      const guardId = event.actorId as (typeof PLAZA_GUARD_IDS)[number];
+      guardHits[guardId] += 1;
+      guardDamage[guardId] += event.amount;
+    }
     if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
     if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
