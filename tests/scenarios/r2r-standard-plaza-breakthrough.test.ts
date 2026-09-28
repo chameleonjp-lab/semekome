@@ -112,16 +112,6 @@ function p1ToActorDirection(state: BattleState, actorId: string): BattleDirectio
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
-function p1AwayFromNearestGuardDirection(state: BattleState): BattleDirection {
-  const position = state.fixedActors.P1.position;
-  const targetId = nearestLiveGuardId(state);
-  const target = targetId ? state.fixedActors[targetId]?.position : undefined;
-  if (!target) return { x: 0, y: -1 };
-  // Leave the authored guard row before re-engaging. This keeps the public
-  // direction from walking through a neighbouring guard after knockback.
-  return { x: 0, y: position.y <= target.y ? -1 : 1 };
-}
-
 function nearestLiveGuardId(state: BattleState): (typeof PLAZA_GUARD_IDS)[number] | undefined {
   const position = state.fixedActors.P1.position;
   return PLAZA_GUARD_IDS
@@ -133,15 +123,6 @@ function nearestLiveGuardId(state: BattleState): (typeof PLAZA_GUARD_IDS)[number
       const rightDistance = (right.position.x - position.x) ** 2 + (right.position.y - position.y) ** 2;
       return leftDistance - rightDistance || left.actor.id.localeCompare(right.actor.id);
     })[0]?.actor.id as (typeof PLAZA_GUARD_IDS)[number] | undefined;
-}
-
-function deepestLiveGuardId(state: BattleState): (typeof PLAZA_GUARD_IDS)[number] | undefined {
-  const position = state.fixedActors.P1.position;
-  return PLAZA_GUARD_IDS
-    .map((actorId) => state.actors[actorId])
-    .filter((actor) => actor.alive && actor.location.area === "plaza")
-    .map((actor) => ({ actor, position: state.fixedActors[actor.id]!.position }))
-    .sort((left, right) => right.position.x - left.position.x || left.actor.id.localeCompare(right.actor.id))[0]?.actor.id as (typeof PLAZA_GUARD_IDS)[number] | undefined;
 }
 
 function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeof PLAZA_GUARD_IDS)[number]): BattleDirection {
@@ -197,34 +178,17 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   let enteredEnemyCastle = false;
   let attackCount = 0;
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
-  let focusWasAssigned = false;
-  let retreatUntilTick = 0;
-  let dashAttempts = 0;
-  let dashStarts = 0;
-  let dashContacts = 0;
-  let dashRejections = 0;
-  const guardHits: Record<(typeof PLAZA_GUARD_IDS)[number], number> = {
-    E25: 0,
-    E26: 0,
-    E27: 0,
-  };
   const guardDamage: Record<(typeof PLAZA_GUARD_IDS)[number], number> = {
     E25: 0,
     E26: 0,
     E27: 0,
   };
-  const guardDeathTicks: Record<(typeof PLAZA_GUARD_IDS)[number], number> = { E25: -1, E26: -1, E27: -1 };
-  let allGuardsDeadTick = -1;
-  let allGuardsDeadPosition: BattleState["fixedActors"]["P1"]["position"] | undefined;
-  let firstEnemyEdgeTick = -1;
 
   for (let tick = 0; tick < state.matchLimitTicks && state.phase === "running"; tick += 1) {
     if (!state.actors.P1.alive) {
       state = stepBattle(state);
       if (state.actors.P1.alive) {
         focusGuardId = undefined;
-        focusWasAssigned = false;
-        retreatUntilTick = 0;
         phase = deliveries === 0 ? "pickup" : "return-plaza";
       }
       continue;
@@ -249,55 +213,26 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     } else {
       const interaction = getInteraction(state, "P1", 0);
       const dashReady = state.tick >= (state.dashCooldownUntilTick.P1 ?? 0);
-      if (state.tick < retreatUntilTick) {
-        const retreatDirection = p1AwayFromNearestGuardDirection(state);
-        if (state.dashes.P1) {
-          nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
-        } else if (dashReady) {
-          nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: retreatDirection }));
-        } else {
-          nextState = stepBattle(state, publicP1Intent(state, { direction: retreatDirection }));
-        }
-      } else {
-
       if (state.dashes.P1) {
         nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
       } else if (interaction.attackTargetId &&
           PLAZA_GUARD_IDS.includes(interaction.attackTargetId as (typeof PLAZA_GUARD_IDS)[number])) {
         const targetId = interaction.attackTargetId;
         const direction = p1ToActorDirection(state, targetId);
-        const finishWithDash = false;
-        const intent = finishWithDash
-          ? publicP1Intent(state, { direction: NEUTRAL, dash: direction })
-          : publicP1Intent(state, { direction, attack: true });
-        if (intent.dash !== undefined) dashAttempts += 1;
-        nextState = stepBattle(state, intent);
-        if (intent.dash !== undefined) {
-          if (nextState.lastStep.acceptedInputKinds.includes("dash")) dashStarts += 1;
-          if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) dashContacts += 1;
-          if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
-        }
+        nextState = stepBattle(state, publicP1Intent(state, { direction, attack: true }));
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
-          // Keep the next public attack frame focused on the same physical snapshot.
-          retreatUntilTick = nextState.tick;
           attackCount += 1;
         }
       } else if (PLAZA_GUARD_IDS.every((actorId) => !state.actors[actorId].alive)) {
         const routeDirection = p1ToEnemyCastleDirection(state);
-        if (dashReady) {
-          dashAttempts += 1;
-          nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: routeDirection }));
-          if (nextState.lastStep.acceptedInputKinds.includes("dash")) dashStarts += 1;
-          if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
-        } else {
-          nextState = stepBattle(state, publicP1Intent(state, { direction: routeDirection }));
-        }
+        nextState = dashReady
+          ? stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: routeDirection }))
+          : stepBattle(state, publicP1Intent(state, { direction: routeDirection }));
       } else {
         // Keep one observed guard in focus until that actor is defeated; a
         // dash without a contact would discard steering time.
         if (!focusGuardId || !state.actors[focusGuardId].alive) {
           focusGuardId = nearestLiveGuardId(state);
-          focusWasAssigned = true;
         }
         const focusDirection = focusGuardId ? p1ToActorDirection(state, focusGuardId) : { x: 1, y: 0 } as BattleDirection;
         const focusPosition = focusGuardId ? state.fixedActors[focusGuardId]?.position : undefined;
@@ -310,41 +245,25 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           focusActor.currentRoomId === state.actors.P1.currentRoomId;
         if (focusGuardId && focusSharesPlazaSpace) {
           // Keep the public combat snapshot stable while the observed guard
-          // is in contact recovery.  The direction is still public movement
+          // is in contact recovery. The direction is still public movement
           // toward that observed target, so P1 closes the knockback gap while
           // attack suppresses a stale NPC movement snapshot.
           nextState = stepBattle(state, publicP1Intent(state, { direction: focusDirection, attack: true }));
         } else if (focusGuardId && dashReady && focusDistance <= state.rules.dashDistanceSubunits + 1_000) {
-          dashAttempts += 1;
           nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: focusDirection }));
-          if (nextState.lastStep.acceptedInputKinds.includes("dash")) dashStarts += 1;
           if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
-            dashContacts += 1;
             attackCount += 1;
           }
-          if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
         } else {
           nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToNearestGuardDirection(state, focusGuardId) }));
         }
       }
-      }
     }
-
     state = nextState;
-    if (allGuardsDeadTick === -1 && PLAZA_GUARD_IDS.every((actorId) => !state.actors[actorId].alive)) {
-      allGuardsDeadTick = state.tick;
-      allGuardsDeadPosition = { ...state.fixedActors.P1.position };
-    }
-    if (firstEnemyEdgeTick === -1 && state.fixedActors.P1.position.x >= P1_EXIT_X - 750 && Math.abs(state.fixedActors.P1.position.y - PLAZA_Y) <= 9_500) firstEnemyEdgeTick = state.tick;
     for (const event of state.lastStep.events) {
-      if (event.type !== "actor_died" && event.type !== "actor_damaged") continue;
-      if (!PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number])) continue;
+      if (event.type !== "actor_damaged" ||
+          !PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number])) continue;
       const guardId = event.actorId as (typeof PLAZA_GUARD_IDS)[number];
-      if (event.type === "actor_died" && guardDeathTicks[guardId] === -1) {
-        guardDeathTicks[guardId] = state.tick;
-      }
-      if (event.type !== "actor_damaged") continue;
-      guardHits[guardId] += 1;
       guardDamage[guardId] += event.amount;
     }
     if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
@@ -372,12 +291,11 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     "the standard AI keeps all three plaza guard registrations generation-bound",
   );
   assert.ok(attackCount > 0, "the battle uses public contact attacks");
-  const guardStateSummary = PLAZA_GUARD_IDS.map((guardId) => `${guardId}:hits=${guardHits[guardId]},damage=${guardDamage[guardId]},health=${state.actors[guardId].health},alive=${state.actors[guardId].alive}`).join("; ");
   for (const guardId of PLAZA_GUARD_IDS) {
-    assert.equal(guardDamage[guardId] >= state.rules.actorHealth, true, guardId + " receives enough public contact damage to be defeated (" + guardStateSummary + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", dashAttempts=" + dashAttempts + ", dashStarts=" + dashStarts + ", dashContacts=" + dashContacts + ", dashRejections=" + dashRejections + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
-    assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing (" + guardStateSummary + ", deathTicks=" + JSON.stringify(guardDeathTicks) + ", tick=" + state.tick + ", outcome=" + state.outcome + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guardGeneration=" + state.actors[guardId].generation + ", attackCount=" + attackCount + ", p1DeathCount=" + state.actors.P1.deathCount + ", allGuardsDeadTick=" + allGuardsDeadTick + ", allGuardsDeadPosition=" + JSON.stringify(allGuardsDeadPosition) + ", firstEnemyEdgeTick=" + firstEnemyEdgeTick + ")");
+    assert.equal(guardDamage[guardId] >= state.rules.actorHealth, true, guardId + " receives enough public contact damage to be defeated");
+    assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing");
   }
-  assert.equal(enteredEnemyCastle, true, "held public direction crosses after every live plaza guard is defeated (tick=" + state.tick + ", phase=" + state.phase + ", outcome=" + state.outcome + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", p1Location=" + JSON.stringify(state.actors.P1.location) + ", p1Generation=" + state.actors.P1.generation + ", crossings=" + JSON.stringify(state.plaza.enemyCrossings) + ", guards=" + JSON.stringify(Object.fromEntries(PLAZA_GUARD_IDS.map((guardId) => [guardId, { alive: state.actors[guardId].alive, generation: state.actors[guardId].generation, location: state.actors[guardId].location, position: state.fixedActors[guardId]?.position }])) ) + ")");
+  assert.equal(enteredEnemyCastle, true, "held public direction crosses after every live plaza guard is defeated");
   assert.equal(state.actors.P1.location.castleTeam, "enemy");
   assert.equal(state.plaza.enemyCrossings["P1:" + state.actors.P1.generation]?.allowed, true);
   assert.equal(state.lastStep.acceptedInputKinds.includes("direction"), true);
