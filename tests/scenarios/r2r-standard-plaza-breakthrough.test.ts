@@ -103,6 +103,19 @@ function p1AwayFromNearestGuardDirection(state: BattleState): BattleDirection {
   return direction.x === 0 && direction.y === 0 ? { x: -1, y: 0 } : direction;
 }
 
+function nearestLiveGuardId(state: BattleState): (typeof PLAZA_GUARD_IDS)[number] | undefined {
+  const position = state.fixedActors.P1.position;
+  return PLAZA_GUARD_IDS
+    .map((actorId) => state.actors[actorId])
+    .filter((actor) => actor.alive && actor.location.area === "plaza")
+    .map((actor) => ({ actor, position: state.fixedActors[actor.id]!.position }))
+    .sort((left, right) => {
+      const leftDistance = (left.position.x - position.x) ** 2 + (left.position.y - position.y) ** 2;
+      const rightDistance = (right.position.x - position.x) ** 2 + (right.position.y - position.y) ** 2;
+      return leftDistance - rightDistance || left.actor.id.localeCompare(right.actor.id);
+    })[0]?.actor.id as (typeof PLAZA_GUARD_IDS)[number] | undefined;
+}
+
 function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeof PLAZA_GUARD_IDS)[number]): BattleDirection {
   const position = state.fixedActors.P1.position;
   const candidates = PLAZA_GUARD_IDS
@@ -123,6 +136,12 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
   })[0];
 
   if (!target) return { x: 1, y: 0 };
+  if (Math.abs(target.position.y - position.y) > 50) {
+    return { x: 0, y: sign(target.position.y - position.y) };
+  }
+  if (Math.abs(target.position.x - position.x) > 50) {
+    return { x: sign(target.position.x - position.x), y: 0 };
+  }
   const direction = {
     x: sign(target.position.x - position.x),
     y: sign(target.position.y - position.y),
@@ -214,7 +233,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         // Keep one observed guard in focus until that actor is defeated; a
         // dash without a contact would discard steering time.
         if (!focusGuardId || !state.actors[focusGuardId].alive) {
-          focusGuardId = PLAZA_GUARD_IDS.find((guardId) => state.actors[guardId].alive && state.actors[guardId].location.area === "plaza");
+          focusGuardId = nearestLiveGuardId(state);
         }
         nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToNearestGuardDirection(state, focusGuardId) }));
       }
@@ -222,9 +241,6 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     }
 
     state = nextState;
-    if (!reachedPlaza && state.actors.P1.location.area === "plaza") {
-      throw new Error("DEBUG plaza positions P1=" + JSON.stringify(state.fixedActors.P1.position) + " guards=" + JSON.stringify(Object.fromEntries(PLAZA_GUARD_IDS.map((guardId) => [guardId, { position: state.fixedActors[guardId].position, health: state.actors[guardId].health, alive: state.actors[guardId].alive }]))) );
-    }
     if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
     if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
