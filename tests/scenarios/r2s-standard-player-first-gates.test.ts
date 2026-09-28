@@ -228,7 +228,7 @@ test("標準配分の主人公P1は先頭2部位を破壊しG1/G2を開けて敵
         ? publicP1Intent(state, {
           handle: "deliver",
           slot: 0,
-          route: "direct",
+          route: "detour",
           part: targetPart,
           contextToken: interaction.contextToken,
         })
