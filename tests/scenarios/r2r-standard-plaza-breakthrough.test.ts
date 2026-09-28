@@ -243,6 +243,9 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
       }
     }
 
+    if (state.actors.P1.alive && !nextState.actors.P1.alive) {
+      throw new Error("DEBUG P1 death tick=" + state.tick + " events=" + JSON.stringify(nextState.lastStep.events) + " p1=" + JSON.stringify(state.fixedActors.P1.position) + " guards=" + JSON.stringify(Object.fromEntries(PLAZA_GUARD_IDS.map((guardId) => [guardId, { position: state.fixedActors[guardId].position, health: state.actors[guardId].health, dash: state.dashes[guardId] }]))) );
+    }
     state = nextState;
     for (const event of state.lastStep.events) {
       if (event.type !== "actor_damaged" || !PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number])) continue;
