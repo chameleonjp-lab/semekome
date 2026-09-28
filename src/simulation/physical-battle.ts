@@ -668,14 +668,14 @@ function sharesPhysicalCombatSpace(left: ActorState, right: ActorState): boolean
 }
 
 /** Resolve the nearest contact target from the current authoritative snapshot. */
-function meleeTargetAtActor(state: BattleState, actor: ActorState): ActorState | undefined {
+function meleeTargetAtActor(state: BattleState, actor: ActorState, includeInvulnerable = false): ActorState | undefined {
   if (!actor.alive || actorIsProtected(state, actor) || state.dashes[actor.id]) return undefined;
   const from = actorFixed(state, actor.id);
   const contactLimit = ACTOR_RADIUS_SUBUNITS * 2 + 2;
   return Object.values(state.actors)
     .filter((candidate) => candidate.id !== actor.id && candidate.alive && candidate.team !== actor.team &&
       !actorIsProtected(state, candidate) &&
-      (candidate.damageImmuneUntilTick === null || state.tick >= candidate.damageImmuneUntilTick) &&
+      (includeInvulnerable || candidate.damageImmuneUntilTick === null || state.tick >= candidate.damageImmuneUntilTick) &&
       sharesPhysicalCombatSpace(actor, candidate))
     .map((candidate) => ({ candidate, position: actorFixed(state, candidate.id) }))
     .filter(({ candidate, position }) => distanceSquared(from, position) <= contactLimit * contactLimit &&
@@ -4132,10 +4132,14 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
     ? normalContactBridge(next, next.actors.P1)
     : undefined;
   if (intent?.attack === true && report.rejected.length === 0 && !normalBridge) {
-    // Pressing attack with no currently valid target is a harmless public
-    // no-op. Keep the contact snapshot stable for this tick so an adjacent
-    // NPC cannot start a new movement/dash while the player is recovering.
-    report.acceptedInputKinds.push("attack");
+    // A target that is still in post-hit immunity remains a physical
+    // neighbour, even though it cannot receive another damage bridge yet.
+    // Preserve the invalid-input contract when no neighbour exists at all.
+    if (meleeTargetAtActor(next, next.actors.P1, true)) {
+      report.acceptedInputKinds.push("attack");
+    } else {
+      addRejection(report, 0, "invalid_transition", "no adjacent enemy actor for normal contact attack");
+    }
   }
   const generatedBridges = normalBridge ? [...dashResult.bridges, normalBridge] : dashResult.bridges;
   applyR2bBridges(next, intent, generatedBridges, dashResult.simulatedActorIds, report, events);
