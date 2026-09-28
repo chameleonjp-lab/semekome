@@ -90,8 +90,11 @@ function p1FromRespawnToPlazaDirection(state: BattleState): BattleDirection {
 
 function p1ToEnemyCastleDirection(state: BattleState): BattleDirection {
   const position = state.fixedActors.P1.position;
-  if (Math.abs(position.y - PLAZA_Y) > 50) return { x: 0, y: sign(PLAZA_Y - position.y) };
-  return { x: 1, y: 0 };
+  const direction = {
+    x: sign(P1_EXIT_X - position.x),
+    y: sign(PLAZA_Y - position.y),
+  };
+  return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
 function p1ToActorDirection(state: BattleState, actorId: string): BattleDirection {
@@ -273,6 +276,16 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
           // Keep the next public attack frame focused on the same physical snapshot.\n          retreatUntilTick = nextState.tick;
           attackCount += 1;
+        }
+      } else if (PLAZA_GUARD_IDS.every((actorId) => !state.actors[actorId].alive)) {
+        const routeDirection = p1ToEnemyCastleDirection(state);
+        if (dashReady) {
+          dashAttempts += 1;
+          nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: routeDirection }));
+          if (nextState.lastStep.acceptedInputKinds.includes("dash")) dashStarts += 1;
+          if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
+        } else {
+          nextState = stepBattle(state, publicP1Intent(state, { direction: routeDirection }));
         }
       } else {
         // Keep one observed guard in focus until that actor is defeated; a
