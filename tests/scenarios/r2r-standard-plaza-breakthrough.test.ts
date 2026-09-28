@@ -203,6 +203,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     E26: 0,
     E27: 0,
   };
+  const guardDeathTicks: Record<(typeof PLAZA_GUARD_IDS)[number], number> = { E25: -1, E26: -1, E27: -1 };
 
   for (let tick = 0; tick < state.matchLimitTicks && state.phase === "running"; tick += 1) {
     if (!state.actors.P1.alive) {
@@ -311,6 +312,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
       const guardId = event.actorId as (typeof PLAZA_GUARD_IDS)[number];
       guardHits[guardId] += 1;
       guardDamage[guardId] += event.amount;
+      if (event.type === "actor_died" && guardDeathTicks[guardId] === -1) guardDeathTicks[guardId] = state.tick;
     }
     if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
     if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
@@ -340,7 +342,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   const guardStateSummary = PLAZA_GUARD_IDS.map((guardId) => `${guardId}:hits=${guardHits[guardId]},damage=${guardDamage[guardId]},health=${state.actors[guardId].health},alive=${state.actors[guardId].alive}`).join("; ");
   for (const guardId of PLAZA_GUARD_IDS) {
     assert.equal(guardDamage[guardId] >= state.rules.actorHealth, true, guardId + " receives enough public contact damage to be defeated (" + guardStateSummary + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", dashAttempts=" + dashAttempts + ", dashStarts=" + dashStarts + ", dashContacts=" + dashContacts + ", dashRejections=" + dashRejections + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
-    assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing");
+    assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing (" + guardStateSummary + ", deathTicks=" + JSON.stringify(guardDeathTicks) + ", tick=" + state.tick + ", outcome=" + state.outcome + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guardGeneration=" + state.actors[guardId].generation + ")");
   }
   assert.equal(enteredEnemyCastle, true, "held public direction crosses after every live plaza guard is defeated (tick=" + state.tick + ", phase=" + state.phase + ", outcome=" + state.outcome + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", p1Location=" + JSON.stringify(state.actors.P1.location) + ", p1Generation=" + state.actors.P1.generation + ", crossings=" + JSON.stringify(state.plaza.enemyCrossings) + ", guards=" + JSON.stringify(Object.fromEntries(PLAZA_GUARD_IDS.map((guardId) => [guardId, { alive: state.actors[guardId].alive, generation: state.actors[guardId].generation, location: state.actors[guardId].location, position: state.fixedActors[guardId]?.position }])) ) + ")");
   assert.equal(state.actors.P1.location.castleTeam, "enemy");
