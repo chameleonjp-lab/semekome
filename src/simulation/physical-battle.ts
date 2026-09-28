@@ -118,6 +118,21 @@ export interface FixedPoint {
 export type BattleDirection = { x: -1 | 0 | 1; y: -1 | 0 | 1 };
 export type BattleRoute = ArtilleryRoute;
 export type BattleHandle = "pickup" | "drop" | "deliver" | "load" | "repair" | "launch" | "intercept";
+export type AllyActorId = "P2" | "P3";
+export type AllyCommandKind = "hold" | "supply";
+
+/** A player-facing order is intentionally limited to the two support actors. */
+export interface AllyCommand {
+  allyId: AllyActorId;
+  kind: AllyCommandKind;
+}
+
+/** A hold order is bound to the ally's current life generation. */
+export interface AllyOrder {
+  kind: "hold";
+  generation: number;
+  issuedAtTick: number;
+}
 
 /** Renderer/input adapters submit semantics, never object/collision internals. */
 export interface BattleIntent {
@@ -130,6 +145,8 @@ export interface BattleIntent {
   dash?: BattleDirection;
   /** Edge-triggered normal melee contact attack. */
   attack?: boolean;
+  /** Explicit support-actor order; object ids and coordinates are not accepted. */
+  allyCommand?: AllyCommand;
   handle?: BattleHandle;
   slot?: number;
   route?: BattleRoute;
@@ -397,6 +414,8 @@ export interface BattleState extends WorldState {
   repairs: BattleRepairState;
   /** Fixed-point movement decisions for enemy internal soldiers. */
   enemyDecisions: Record<string, PhysicalEnemyDecision>;
+  /** Explicit P1 orders for the two player support actors. */
+  allyOrders: Record<AllyActorId, AllyOrder | null>;
   /** Latest UI route/part selection; read at the actual enqueue tick. */
   launchSelections: Record<string, { route?: BattleRoute; part?: PartId }>;
   nextLaunchTick: Record<TeamId, number>;
@@ -3540,6 +3559,39 @@ function processSupportDefense(state: BattleState, actor: ActorState): boolean {
   return true;
 }
 
+function holdSupportPosition(state: BattleState, actor: ActorState): void {
+  const assignment = state.crew.assignments[actor.id] ?? {
+    actorId: actor.id,
+    task: "idle" as CrewTask,
+    path: [],
+    pathIndex: 0,
+  };
+  assignment.task = "idle";
+  assignment.targetCaseId = undefined;
+  assignment.targetTurretId = undefined;
+  assignment.targetRoomId = undefined;
+  assignment.targetActorId = undefined;
+  assignment.targetPosition = undefined;
+  assignment.path = [];
+  assignment.pathIndex = 0;
+  assignment.stuckTicks = 0;
+  state.crew.assignments[actor.id] = assignment;
+}
+
+function processExplicitSupportOrder(state: BattleState, actor: ActorState): boolean {
+  if (actor.team !== PLAYER_TEAM || !isAllyActorId(actor.id)) return false;
+  const order = state.allyOrders[actor.id];
+  if (!order) return false;
+  if (order.generation !== actor.generation) {
+    // A hold order never follows an ally into a new life generation.  This
+    // prevents a stale command from silently overriding the fresh respawn AI.
+    state.allyOrders[actor.id] = null;
+    return false;
+  }
+  if (!processSupportDefense(state, actor)) holdSupportPosition(state, actor);
+  return true;
+}
+
 function normalContactBridge(state: BattleState, actor: ActorState): R2bBridgeRequest | undefined {
   const target = meleeTargetAtActor(state, actor);
   if (!target) return undefined;
@@ -3570,6 +3622,7 @@ function processCrewAI(state: BattleState, events: WorldEvent[], suppressNpcMove
     const decision = state.enemyDecisions[actor.id];
     if (decision && enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
     if (actor.role === "support") {
+      if (processExplicitSupportOrder(state, actor)) continue;
       if (!processSupportDefense(state, actor)) processCarrierAI(state, actor, events);
     } else if (actor.role === "ammo_carrier") processCarrierAI(state, actor, events);
     else if (actor.role === "shooter") processShooterAI(state, actor);
@@ -3607,6 +3660,7 @@ function finishRespawns(state: BattleState, events: WorldEvent[]): void {
     actor.alive = true;
     actor.health = actor.maxHealth;
     actor.generation += 1;
+    if (actor.team === PLAYER_TEAM && isAllyActorId(actor.id)) state.allyOrders[actor.id] = null;
     actor.respawnAtTick = null;
     actor.protectedUntilTick = state.tick + state.rules.spawnProtectionTicks;
     actor.damageImmuneUntilTick = null;
@@ -3723,6 +3777,7 @@ export function createBattle(options: CreateBattleOptions): BattleState {
     crew: { assignments: {} },
     repairs: { tasks: {}, equipmentTasks: {}, budgetUsed: { player: 0, enemy: 0 } },
     enemyDecisions: {},
+    allyOrders: { P2: null, P3: null },
     launchSelections: {},
     nextLaunchTick: { player: 0, enemy: 0 },
     eventLogLimit: EVENT_LOG_LIMIT,
@@ -3759,6 +3814,54 @@ function resolveActor(state: BattleState, intent: BattleIntent, report: StepRepo
   return actor;
 }
 
+function isAllyActorId(value: unknown): value is AllyActorId {
+  return value === "P2" || value === "P3";
+}
+
+function isAllyCommandKind(value: unknown): value is AllyCommandKind {
+  return value === "hold" || value === "supply";
+}
+
+function applyAllyCommand(state: BattleState, command: unknown, report: StepReport): boolean {
+  if (!command || typeof command !== "object") {
+    addRejection(report, 0, "invalid_transition", "ally command must be an object");
+    return false;
+  }
+  const candidate = command as Record<string, unknown>;
+  if (!isAllyActorId(candidate.allyId)) {
+    addRejection(report, 0, "invalid_transition", "ally command target must be P2 or P3");
+    return false;
+  }
+  if (!isAllyCommandKind(candidate.kind)) {
+    addRejection(report, 0, "invalid_transition", "ally command must be hold or supply");
+    return false;
+  }
+  const ally = state.actors[candidate.allyId];
+  if (!ally || ally.team !== PLAYER_TEAM || ally.role !== "support") {
+    addRejection(report, 0, "invalid_transition", "ally command target is not a player support actor");
+    return false;
+  }
+  if (!ally.alive) {
+    addRejection(report, 0, "dead_actor", "an order cannot target a defeated ally generation");
+    return false;
+  }
+
+  if (candidate.kind === "hold") {
+    state.allyOrders[candidate.allyId] = {
+      kind: "hold",
+      generation: ally.generation,
+      issuedAtTick: state.tick,
+    };
+  } else {
+    state.allyOrders[candidate.allyId] = null;
+  }
+  // A new explicit order cancels only the previous movement plan.  The next
+  // AI pass decides whether the ally defends locally or resumes supply work.
+  resetAssignment(state, candidate.allyId);
+  report.acceptedInputKinds.push(`ally:${candidate.kind}:${candidate.allyId}`);
+  return true;
+}
+
 function applyIntent(state: BattleState, intent: BattleIntent | undefined, report: StepReport, events: WorldEvent[]): void {
   if (!intent) return;
   if (!intent.matchId) {
@@ -3779,6 +3882,7 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
     addRejection(report, 0, "invalid_transition", "attack and dash cannot be combined");
     return;
   }
+  if (intent.allyCommand !== undefined && !applyAllyCommand(state, intent.allyCommand, report)) return;
   const repair = activeAnyRepair(state, actor.id);
   const movementRequested = (intent.direction !== undefined && isFiniteDirection(intent.direction) && (intent.direction.x !== 0 || intent.direction.y !== 0)) ||
     intent.dash !== undefined || intent.attack === true;
