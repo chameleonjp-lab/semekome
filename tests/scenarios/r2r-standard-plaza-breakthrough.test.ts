@@ -107,6 +107,15 @@ function nearestLiveGuardId(state: BattleState): (typeof PLAZA_GUARD_IDS)[number
     })[0]?.actor.id as (typeof PLAZA_GUARD_IDS)[number] | undefined;
 }
 
+function deepestLiveGuardId(state: BattleState): (typeof PLAZA_GUARD_IDS)[number] | undefined {
+  const position = state.fixedActors.P1.position;
+  return PLAZA_GUARD_IDS
+    .map((actorId) => state.actors[actorId])
+    .filter((actor) => actor.alive && actor.location.area === "plaza")
+    .map((actor) => ({ actor, position: state.fixedActors[actor.id]!.position }))
+    .sort((left, right) => right.position.x - left.position.x || left.actor.id.localeCompare(right.actor.id))[0]?.actor.id as (typeof PLAZA_GUARD_IDS)[number] | undefined;
+}
+
 function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeof PLAZA_GUARD_IDS)[number]): BattleDirection {
   const position = state.fixedActors.P1.position;
   const candidates = PLAZA_GUARD_IDS
@@ -127,11 +136,17 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
   })[0];
 
   if (!target) return { x: 1, y: 0 };
-  if (Math.abs(target.position.y - position.y) > 50) {
-    return { x: 0, y: sign(target.position.y - position.y) };
+  const laneY = preferredGuardId
+    ? Math.max(state.layout.plaza.y0 * 1_000 + 1_000, target.position.y - 7_000)
+    : target.position.y;
+  if (Math.abs(position.y - laneY) > 50) {
+    return { x: 0, y: sign(laneY - position.y) };
   }
   if (Math.abs(target.position.x - position.x) > 50) {
     return { x: sign(target.position.x - position.x), y: 0 };
+  }
+  if (Math.abs(target.position.y - position.y) > 50) {
+    return { x: 0, y: sign(target.position.y - position.y) };
   }
   const direction = {
     x: sign(target.position.x - position.x),
@@ -154,6 +169,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   let enteredEnemyCastle = false;
   let attackCount = 0;
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
+  let focusWasAssigned = false;
   let retreatUntilTick = 0;
   let dashAttempts = 0;
   let dashStarts = 0;
@@ -223,9 +239,26 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         // Keep one observed guard in focus until that actor is defeated; a
         // dash without a contact would discard steering time.
         if (!focusGuardId || !state.actors[focusGuardId].alive) {
-          focusGuardId = nearestLiveGuardId(state);
+          focusGuardId = focusWasAssigned ? nearestLiveGuardId(state) : deepestLiveGuardId(state);
+          focusWasAssigned = true;
         }
-        nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToNearestGuardDirection(state, focusGuardId) }));
+        const focusDirection = focusGuardId ? p1ToActorDirection(state, focusGuardId) : { x: 1, y: 0 } as BattleDirection;
+        const focusPosition = focusGuardId ? state.fixedActors[focusGuardId]?.position : undefined;
+        const focusDistance = focusPosition
+          ? Math.hypot(focusPosition.x - state.fixedActors.P1.position.x, focusPosition.y - state.fixedActors.P1.position.y)
+          : Number.POSITIVE_INFINITY;
+        if (focusGuardId && dashReady && focusDistance <= state.rules.dashDistanceSubunits + 1_000) {
+          dashAttempts += 1;
+          nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: focusDirection }));
+          if (nextState.lastStep.acceptedInputKinds.includes("dash")) dashStarts += 1;
+          if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
+            dashContacts += 1;
+            attackCount += 1;
+          }
+          if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
+        } else {
+          nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToNearestGuardDirection(state, focusGuardId) }));
+        }
       }
       }
     }
