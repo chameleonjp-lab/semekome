@@ -233,7 +233,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
         }
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
-          retreatUntilTick = nextState.tick;
+          retreatUntilTick = nextState.tick + 48;
           attackCount += 1;
         }
       } else {
