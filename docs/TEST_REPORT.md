@@ -17,7 +17,7 @@ P1の公開入力からP2/P3へ `hold` / `supply` を送り、守備中の現在
 |全Node回帰|291/291通過|
 |資料・型・製品ビルド|資料57/57、`npm run typecheck`、`npm run build` 通過|
 |差分空白|`git diff --check` 通過|
-|ブラウザ / 実機・製品全体|Quality #218：Node 291/291、資料57/57、build、Chromium/WebKit 56/56通過。iPhone実機は未確認|
+|ブラウザ / 実機・製品全体|Quality #224：Node 291/291、資料57/57、build、Chromium/WebKit 56/56通過。iPhone実機は未確認|
 
 今回の合格範囲は、P1からP2/P3への守備・補給復帰命令と、R2mの同室局所防衛への接続に限る。別室救援、命令の優先順位、敵味方30人の通常行動、標準一戦の勝利、結果・得点・ランキング、iPhone実機・試遊へ読み替えない。
 
