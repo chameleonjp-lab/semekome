@@ -156,7 +156,9 @@ test("標準配分の主人公P1は広場警備3人を通常攻撃で撃破し�
         const targetId = interaction.attackTargetId;
         const targetHealth = state.actors[targetId].health;
         const direction = p1ToActorDirection(state, targetId);
-        const intent = dashReady
+        const isPlazaGuard = PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number]);
+        const finishWithDash = isPlazaGuard && targetHealth <= state.rules.dashActorDamage && dashReady;
+        const intent = finishWithDash
           ? publicP1Intent(state, { direction: NEUTRAL, dash: direction })
           : publicP1Intent(state, { direction: NEUTRAL, attack: true });
         nextState = stepBattle(state, intent);
