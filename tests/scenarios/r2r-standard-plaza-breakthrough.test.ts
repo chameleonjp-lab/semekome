@@ -190,7 +190,13 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   for (let tick = 0; tick < state.matchLimitTicks && state.phase === "running"; tick += 1) {
     if (!state.actors.P1.alive) {
       state = stepBattle(state);
-      if (state.actors.P1.alive) phase = deliveries === 0 ? "pickup" : "return-plaza";
+      if (state.actors.P1.alive) {
+        focusGuardId = undefined;
+        focusWasAssigned = false;
+        retreatUntilTick = 0;
+        noOpAttackRejectedFor = undefined;
+        phase = deliveries === 0 ? "pickup" : "return-plaza";
+      }
       continue;
     }
 
@@ -233,14 +239,14 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
         }
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
-          retreatUntilTick = nextState.tick + 48;
+          retreatUntilTick = nextState.tick;
           attackCount += 1;
         }
       } else {
         // Keep one observed guard in focus until that actor is defeated; a
         // dash without a contact would discard steering time.
         if (!focusGuardId || !state.actors[focusGuardId].alive) {
-          focusGuardId = focusWasAssigned ? nearestLiveGuardId(state) : deepestLiveGuardId(state);
+          focusGuardId = nearestLiveGuardId(state);
           focusWasAssigned = true;
         }
         const focusDirection = focusGuardId ? p1ToActorDirection(state, focusGuardId) : { x: 1, y: 0 } as BattleDirection;
