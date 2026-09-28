@@ -307,7 +307,7 @@ test('味方命令は画面からP2の守備と補給復帰を一更新ずつ送
   await page.clock.runFor(3100);
 
   const battle = page.locator('.battle');
-  await page.getByRole('button', { name: '味方命令' }).click();
+  await page.locator('.ally-orders summary').click();
   const p2 = page.locator('#ally-p2-command');
   await expect(p2).toContainText('守備を指示');
   await p2.click();
