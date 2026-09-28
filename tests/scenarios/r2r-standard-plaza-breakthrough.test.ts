@@ -76,6 +76,14 @@ function p1ToPlazaDirection(state: BattleState): BattleDirection {
  * public direction; no guard id, coordinate, health, or crossing permission
  * is sent to the battle.
  */
+function p1ToActorDirection(state: BattleState, actorId: string): BattleDirection {
+  const position = state.fixedActors.P1.position;
+  const target = state.fixedActors[actorId]?.position;
+  if (!target) return { x: 1, y: 0 };
+  const direction = { x: sign(target.x - position.x), y: sign(target.y - position.y) };
+  return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
+}
+
 function p1ToNearestGuardDirection(state: BattleState): BattleDirection {
   const position = state.fixedActors.P1.position;
   const target = PLAZA_GUARD_IDS
@@ -141,10 +149,17 @@ test("標準配分の主人公P1は広場警備3人を通常攻撃で撃破し�
       nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToPlazaDirection(state) }));
     } else {
       const interaction = getInteraction(state, "P1", 0);
-      if (interaction.attackTargetId) {
+      const dashReady = state.tick >= (state.dashCooldownUntilTick.P1 ?? 0);
+      if (state.dashes.P1) {
+        nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
+      } else if (interaction.attackTargetId) {
         const targetId = interaction.attackTargetId;
         const targetHealth = state.actors[targetId].health;
-        nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, attack: true }));
+        const direction = p1ToActorDirection(state, targetId);
+        const intent = dashReady
+          ? publicP1Intent(state, { direction: NEUTRAL, dash: direction })
+          : publicP1Intent(state, { direction: NEUTRAL, attack: true });
+        nextState = stepBattle(state, intent);
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
           attackCount += 1;
           if (PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number])) {
@@ -154,7 +169,11 @@ test("標準配分の主人公P1は広場警備3人を通常攻撃で撃破し�
           }
         }
       } else {
-        nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToNearestGuardDirection(state) }));
+        const direction = p1ToNearestGuardDirection(state);
+        const intent = dashReady
+          ? publicP1Intent(state, { direction: NEUTRAL, dash: direction })
+          : publicP1Intent(state, { direction });
+        nextState = stepBattle(state, intent);
       }
     }
 
