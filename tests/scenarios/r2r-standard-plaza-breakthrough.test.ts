@@ -169,11 +169,9 @@ test("標準配分の主人公P1は広場警備3人を通常攻撃で撃破し�
           }
         }
       } else {
-        const direction = p1ToNearestGuardDirection(state);
-        const intent = dashReady
-          ? publicP1Intent(state, { direction: NEUTRAL, dash: direction })
-          : publicP1Intent(state, { direction });
-        nextState = stepBattle(state, intent);
+        // Keep chasing with ordinary movement until a real contact snapshot
+        // exists; a dash without a contact would discard steering time.
+        nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToNearestGuardDirection(state) }));
       }
     }
 
