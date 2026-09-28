@@ -191,6 +191,9 @@ test("標準配分の主人公P1は先頭2部位を破壊しG1/G2を開けて敵
   let deliveries = 0;
   let reachedPlaza = false;
   let enteredEnemyCastle = false;
+  let projectileLaunches = 0;
+  let projectileImpacts = 0;
+  let partDamageEvents = 0;
   let attackCount = 0;
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
   const guardDamage: Record<(typeof PLAZA_GUARD_IDS)[number], number> = {
@@ -280,6 +283,9 @@ test("標準配分の主人公P1は先頭2部位を破壊しG1/G2を開けて敵
 
     state = nextState;
     for (const event of state.lastStep.events) {
+      if (event.type === "projectile_launched") projectileLaunches += 1;
+      if (event.type === "projectile_impacted") projectileImpacts += 1;
+      if (event.type === "part_damaged") partDamageEvents += 1;
       if (event.type !== "actor_damaged" ||
           !PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number])) continue;
       const guardId = event.actorId as (typeof PLAZA_GUARD_IDS)[number];
@@ -306,7 +312,7 @@ test("標準配分の主人公P1は先頭2部位を破壊しG1/G2を開けて敵
     }
   }
 
-  assert.equal(state.phase, "running", "the standard route reaches the gate boundary before the match ends (tick=" + state.tick + ", outcome=" + state.outcome + ", deliveries=" + deliveries + ", destroyed=" + JSON.stringify(state.castles.enemy.destroyedPartIds) + ", phase=" + phase + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", p1Location=" + JSON.stringify(state.actors.P1.location) + ")");
+  assert.equal(state.phase, "running", "the standard route reaches the gate boundary before the match ends (tick=" + state.tick + ", outcome=" + state.outcome + ", deliveries=" + deliveries + ", launches=" + projectileLaunches + ", impacts=" + projectileImpacts + ", partDamageEvents=" + partDamageEvents + ", destroyed=" + JSON.stringify(state.castles.enemy.destroyedPartIds) + ", phase=" + phase + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", p1Location=" + JSON.stringify(state.actors.P1.location) + ")");
   assert.ok(deliveries >= 5, "P1 makes enough public deliveries for the first two standard exterior parts");
   assert.deepEqual(state.castles.enemy.destroyedPartIds, ["P1", "P2"], "the first two exterior parts are destroyed in order");
   assert.deepEqual(state.castles.enemy.openGateIds, ["G1", "G2"], "the first two prefix gates open");
