@@ -270,7 +270,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
     const hintBox = (await page.locator('.battle-hint').boundingBox())!;
     const cargoBox = (await page.locator('.cargo-controls').boundingBox())!;
     expect(hintBox.y + hintBox.height, `battle hint overlaps cargo controls at ${viewport.width}px`).toBeLessThanOrEqual(cargoBox.y + 1);
-    for (const selector of ['#pause-battle', '[data-slot="0"]', '[data-slot="1"]', '#battle-action', '#battle-drop', '#battle-attack', '#battle-dash', '#route-toggle', '#target-part', '#battle-help', '.movement-pad']) {
+    for (const selector of ['#pause-battle', '[data-slot="0"]', '[data-slot="1"]', '#battle-action', '#battle-drop', '#battle-attack', '#battle-dash', '#route-toggle', '#target-part', '.ally-orders summary', '#battle-help', '.movement-pad']) {
       const box = (await page.locator(selector).boundingBox())!;
       expect(box.width, selector).toBeGreaterThanOrEqual(48);
       expect(box.height, selector).toBeGreaterThanOrEqual(48);
@@ -280,7 +280,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
       expect(box.y + box.height, selector).toBeLessThanOrEqual(viewport.height + 1);
     }
     expect((await page.locator('canvas').boundingBox())!.height).toBeGreaterThan(110);
-    const controls = await Promise.all(['.movement-pad', '#battle-action', '#battle-drop', '#battle-attack', '#battle-dash', '[data-slot="0"]', '[data-slot="1"]', '#route-toggle', '#target-part', '#battle-help'].map(async selector => ({ selector, box: (await page.locator(selector).boundingBox())! })));
+    const controls = await Promise.all(['.movement-pad', '#battle-action', '#battle-drop', '#battle-attack', '#battle-dash', '[data-slot="0"]', '[data-slot="1"]', '#route-toggle', '#target-part', '.ally-orders summary', '#battle-help'].map(async selector => ({ selector, box: (await page.locator(selector).boundingBox())! })));
     for (let left = 0; left < controls.length; left++) for (let right = left + 1; right < controls.length; right++) {
       const a = controls[left], b = controls[right];
       const overlapX = Math.min(a.box.x + a.box.width, b.box.x + b.box.width) - Math.max(a.box.x, b.box.x);
@@ -295,6 +295,37 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
     await page.getByRole('button', { name: '閉じる', exact: true }).click();
     await expect(page.getByRole('button', { name: '再開する' })).toBeVisible();
   }
+});
+
+test('味方命令は画面からP2の守備と補給復帰を一更新ずつ送れる', async ({ page }) => {
+  test.setTimeout(60000);
+  await page.clock.install({ time: new Date('2026-09-28T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-09-28T00:01:00Z'));
+  await page.goto('/');
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
+  await page.getByLabel('あなたの名前').fill('味方命令検査');
+  await page.getByRole('button', { name: '確認を開始する' }).click();
+  const battle = page.locator('.battle');
+  await expect(battle).toHaveAttribute('data-phase', 'countdown');
+  // WebKit may use the first animation frame only to establish SessionClock's baseline.
+  // Advance in small slices so the countdown cannot consume the whole run before the
+  // first frame is observed.
+  for (let attempt = 0; attempt < 40 && await battle.getAttribute('data-phase') !== 'running'; attempt += 1) {
+    await page.clock.runFor(100);
+  }
+  await expect(battle).toHaveAttribute('data-phase', 'running');
+  await expect(page.locator('.battle-overlay')).toBeHidden();
+
+  await page.locator('.ally-orders summary').click();
+  const p2 = page.locator('#ally-p2-command');
+  await expect(p2).toContainText('守備を指示');
+  await p2.click();
+  await page.clock.runFor(100);
+  await expect(battle).toHaveAttribute('data-ally-p2-order', 'hold');
+  await expect(p2).toContainText('補給へ戻す');
+  await p2.click();
+  await page.clock.runFor(100);
+  await expect(battle).toHaveAttribute('data-ally-p2-order', 'supply');
 });
 
 test('通常の移動と作業ボタンだけで弾薬庫から砲台へ運び、主人公が発射する', async ({ page }) => {
