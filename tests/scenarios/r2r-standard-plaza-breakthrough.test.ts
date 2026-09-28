@@ -120,6 +120,10 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   let reachedPlaza = false;
   let enteredEnemyCastle = false;
   let attackCount = 0;
+  let dashAttempts = 0;
+  let dashStarts = 0;
+  let dashContacts = 0;
+  let dashRejections = 0;
   const guardHits: Record<(typeof PLAZA_GUARD_IDS)[number], number> = {
     E25: 0,
     E26: 0,
@@ -162,7 +166,13 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         const intent = finishWithDash
           ? publicP1Intent(state, { direction: NEUTRAL, dash: direction })
           : publicP1Intent(state, { direction: NEUTRAL, attack: true });
+        if (intent.dash !== undefined) dashAttempts += 1;
         nextState = stepBattle(state, intent);
+        if (intent.dash !== undefined) {
+          if (nextState.lastStep.acceptedInputKinds.includes("dash")) dashStarts += 1;
+          if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) dashContacts += 1;
+          if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
+        }
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
           attackCount += 1;
           if (PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number])) {
@@ -203,7 +213,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   );
   assert.ok(attackCount > 0, "the battle uses public contact attacks");
   for (const guardId of PLAZA_GUARD_IDS) {
-    assert.equal(guardHits[guardId] >= 4, true, guardId + " receives the configured repeated contact damage (hits=" + guardHits[guardId] + ", health=" + state.actors[guardId].health + ", alive=" + state.actors[guardId].alive + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
+    assert.equal(guardHits[guardId] >= 4, true, guardId + " receives the configured repeated contact damage (hits=" + guardHits[guardId] + ", health=" + state.actors[guardId].health + ", alive=" + state.actors[guardId].alive + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", dashAttempts=" + dashAttempts + ", dashStarts=" + dashStarts + ", dashContacts=" + dashContacts + ", dashRejections=" + dashRejections + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
     assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing");
   }
   assert.equal(enteredEnemyCastle, true, "held public direction crosses after every live plaza guard is defeated");
