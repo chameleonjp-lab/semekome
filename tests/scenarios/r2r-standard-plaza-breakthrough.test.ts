@@ -213,6 +213,9 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     E27: 0,
   };
   const guardDeathTicks: Record<(typeof PLAZA_GUARD_IDS)[number], number> = { E25: -1, E26: -1, E27: -1 };
+  let allGuardsDeadTick = -1;
+  let allGuardsDeadPosition: BattleState["fixedActors"]["P1"]["position"] | undefined;
+  let firstEnemyEdgeTick = -1;
 
   for (let tick = 0; tick < state.matchLimitTicks && state.phase === "running"; tick += 1) {
     if (!state.actors.P1.alive) {
@@ -326,7 +329,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     }
 
     state = nextState;
-    for (const event of state.lastStep.events) {
+    if (allGuardsDeadTick === -1 && PLAZA_GUARD_IDS.every((actorId) => !state.actors[actorId].alive)) {\n      allGuardsDeadTick = state.tick;\n      allGuardsDeadPosition = { ...state.fixedActors.P1.position };\n    }\n    if (firstEnemyEdgeTick === -1 && state.fixedActors.P1.position.x >= P1_EXIT_X - 750 && Math.abs(state.fixedActors.P1.position.y - PLAZA_Y) <= 9_500) firstEnemyEdgeTick = state.tick;\n    for (const event of state.lastStep.events) {
       if (!PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number])) continue;
       const guardId = event.actorId as (typeof PLAZA_GUARD_IDS)[number];
       if (event.type === "actor_died" && guardDeathTicks[guardId] === -1) {
@@ -364,7 +367,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   const guardStateSummary = PLAZA_GUARD_IDS.map((guardId) => `${guardId}:hits=${guardHits[guardId]},damage=${guardDamage[guardId]},health=${state.actors[guardId].health},alive=${state.actors[guardId].alive}`).join("; ");
   for (const guardId of PLAZA_GUARD_IDS) {
     assert.equal(guardDamage[guardId] >= state.rules.actorHealth, true, guardId + " receives enough public contact damage to be defeated (" + guardStateSummary + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", dashAttempts=" + dashAttempts + ", dashStarts=" + dashStarts + ", dashContacts=" + dashContacts + ", dashRejections=" + dashRejections + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
-    assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing (" + guardStateSummary + ", deathTicks=" + JSON.stringify(guardDeathTicks) + ", tick=" + state.tick + ", outcome=" + state.outcome + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guardGeneration=" + state.actors[guardId].generation + ", attackCount=" + attackCount + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
+    assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing (" + guardStateSummary + ", deathTicks=" + JSON.stringify(guardDeathTicks) + ", tick=" + state.tick + ", outcome=" + state.outcome + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guardGeneration=" + state.actors[guardId].generation + ", attackCount=" + attackCount + ", p1DeathCount=" + state.actors.P1.deathCount + ", allGuardsDeadTick=" + allGuardsDeadTick + ", allGuardsDeadPosition=" + JSON.stringify(allGuardsDeadPosition) + ", firstEnemyEdgeTick=" + firstEnemyEdgeTick + ")");
   }
   assert.equal(enteredEnemyCastle, true, "held public direction crosses after every live plaza guard is defeated (tick=" + state.tick + ", phase=" + state.phase + ", outcome=" + state.outcome + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", p1Location=" + JSON.stringify(state.actors.P1.location) + ", p1Generation=" + state.actors.P1.generation + ", crossings=" + JSON.stringify(state.plaza.enemyCrossings) + ", guards=" + JSON.stringify(Object.fromEntries(PLAZA_GUARD_IDS.map((guardId) => [guardId, { alive: state.actors[guardId].alive, generation: state.actors[guardId].generation, location: state.actors[guardId].location, position: state.fixedActors[guardId]?.position }])) ) + ")");
   assert.equal(state.actors.P1.location.castleTeam, "enemy");
