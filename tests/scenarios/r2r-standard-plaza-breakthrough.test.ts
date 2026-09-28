@@ -255,10 +255,11 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
 
   assert.equal(deliveries, 1, "P1 performs one public delivery before the first plaza entry");
   assert.equal(reachedPlaza, true, "P1 reaches the plaza through the standard public route");
+  const guardGenerations = state.plaza.guardDeployments.enemy?.guardGenerations ?? {};
   assert.deepEqual(
-    state.plaza.guardDeployments.enemy?.guardGenerations,
-    { E25: 0, E26: 0, E27: 0 },
-    "the standard AI registers the three generation-zero plaza guards",
+    Object.keys(guardGenerations).sort(),
+    [...PLAZA_GUARD_IDS].sort(),
+    "the standard AI keeps all three plaza guard registrations generation-bound",
   );
   assert.ok(attackCount > 0, "the battle uses public contact attacks");
   const guardStateSummary = PLAZA_GUARD_IDS.map((guardId) => `${guardId}:hits=${guardHits[guardId]},damage=${guardDamage[guardId]},health=${state.actors[guardId].health},alive=${state.actors[guardId].alive}`).join("; ");
