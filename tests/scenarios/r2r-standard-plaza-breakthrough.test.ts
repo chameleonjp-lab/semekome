@@ -76,6 +76,18 @@ function p1ToPlazaDirection(state: BattleState): BattleDirection {
  * public direction; no guard id, coordinate, health, or crossing permission
  * is sent to the battle.
  */
+function p1FromRespawnToPlazaDirection(state: BattleState): BattleDirection {
+  const position = state.fixedActors.P1.position;
+  if (Math.abs(position.y - PLAZA_Y) > 50) return { x: 0, y: sign(PLAZA_Y - position.y) };
+  // The player respawn room sits left of the central corridor. Re-enter the
+  // corridor at its authored horizontal passage before taking the public
+  // front-entry route; reusing the first-life route would walk into the room
+  // wall and leave a respawned P1 stranded.
+  if (position.x < 66_500) return { x: 1, y: 0 };
+  if (Math.abs(position.x - P1_EXIT_X) > 50) return { x: sign(P1_EXIT_X - position.x), y: 0 };
+  return { x: 1, y: 0 };
+}
+
 function p1ToActorDirection(state: BattleState, actorId: string): BattleDirection {
   const position = state.fixedActors.P1.position;
   const target = state.fixedActors[actorId]?.position;
@@ -214,7 +226,8 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         : publicP1Intent(state, { direction: p1ToTurretDirection(state) });
       nextState = stepBattle(state, intent);
     } else if (phase === "plaza-route" || phase === "return-plaza") {
-      nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToPlazaDirection(state) }));
+      const direction = phase === "return-plaza" ? p1FromRespawnToPlazaDirection(state) : p1ToPlazaDirection(state);
+      nextState = stepBattle(state, publicP1Intent(state, { direction }));
     } else {
       const interaction = getInteraction(state, "P1", 0);
       if (state.tick < retreatUntilTick) {
