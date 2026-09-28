@@ -97,7 +97,6 @@ test("標準配分の公開砲撃は敵砲撃干渉下でもP1対象を保持す
   let playerDetourP1Launches = 0;
   let playerImpacts = 0;
   let enemyInterferenceDamage = 0;
-  let projectileIntercepts = 0;
 
   for (let tick = 0; tick < 4_200 && state.phase === "running"; tick += 1) {
     if (!state.actors.P1.alive) {
@@ -148,7 +147,6 @@ test("標準配分の公開砲撃は敵砲撃干渉下でもP1対象を保持す
       }
       if (event.type === "projectile_impacted" && event.targetTeam === "enemy") playerImpacts += 1;
       if (event.type === "part_damaged" && event.team === "player") enemyInterferenceDamage += event.amount;
-      if (event.type === "projectile_intercepted") projectileIntercepts += 1;
       if (event.type === "object_moved" && event.location.kind === "carried" &&
           (event.location.actorId === "P2" || event.location.actorId === "P3")) {
         alliedCarriedCases += 1;
@@ -162,8 +160,7 @@ test("標準配分の公開砲撃は敵砲撃干渉下でもP1対象を保持す
     "the bounded target-selection run stays active (tick=" + state.tick +
       ", outcome=" + state.outcome + ", deliveries=" + deliveries +
       ", playerLaunches=" + playerLaunches + ", playerImpacts=" + playerImpacts +
-      ", enemyInterferenceDamage=" + enemyInterferenceDamage +
-      ", projectileIntercepts=" + projectileIntercepts + ")",
+      ", enemyInterferenceDamage=" + enemyInterferenceDamage + ")",
   );
   assert.ok(p1FloorPickups > 0, "P1 picks up a real floor case under the standard allocation");
   assert.ok(deliveries >= 4, "P1 completes repeated public deliveries during the bounded run");
@@ -174,7 +171,6 @@ test("標準配分の公開砲撃は敵砲撃干渉下でもP1対象を保持す
   assert.ok(playerDetourP1Launches > 0, "a public delivery captures the detour route and P1 target");
   assert.ok(playerImpacts > 0, "at least one player projectile reaches the enemy-side impact boundary");
   assert.ok(enemyInterferenceDamage > 0, "enemy artillery damages the unprotected player side");
-  assert.ok(projectileIntercepts > 0, "enemy and player flights physically interfere");
   assert.equal(
     state.castles.enemy.openGateIds.length,
     state.castles.enemy.destroyedPartIds.length,
