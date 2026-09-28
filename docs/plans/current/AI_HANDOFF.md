@@ -1,5 +1,14 @@
 # 実装担当への引き継ぎ / 第5版
 
+## 最新作業枝：R2u 標準配分で敵外装P1を破壊しG1を開門
+
+R2tで固定した標準配分・保護なしの公開砲撃経路を、敵外装P1の初回破壊まで進める統合シナリオを追加した。敵砲撃・味方運搬・敵AIを止めず、実床取得、公開配送、敵外装P1への実損傷、P1破壊、G1だけの開門を確認する。固定seedの実行は5,970更新で破壊に達し、その更新後も勝敗は未確定である。
+
+検査は8,000更新を上限にし、外装P1が破壊された更新で停止する。破壊状態、イベント、開門状態を直接注入しない。診断目的で同じ状態を終了まで継続した別実行では12,887更新で敵勝利となったため、今回の結果を標準一戦の勝利や実戦バランス合格に読み替えない。
+
+変更対象は `tests/scenarios/r2u-standard-player-first-exterior-destruction.test.ts` と独立レビュー・記録資料であり、`src/`、画面、標準配分、AIの時計は変更していない。ローカルではNode298/298、資料57/57、typecheck、buildを通過した。通常QualityのChromium/WebKit検査は既定スキップで、今回の変更では実行していない。
+
+
 ## 最新作業枝：Qualityのbrowser検査を既定スキップ
 
 開発テンポを保つため、通常のQualityでは資料検査、Node検査、型検査・ビルドを実行し、Chromium/WebKitのbrowser検査をSkippedにする。browserのインストール、フォント導入、検査、レポートartifactは削除しない。
@@ -14,7 +23,7 @@ R2sの標準配分・保護fixtureなし・敵砲撃稼働下の公開砲撃を�
 
 変更対象は tests/scenarios/r2t-standard-player-first-exterior-damage.test.ts、docs/R2T_STANDARD_PLAYER_FIRST_EXTERIOR_DAMAGE_REVIEW.md、資料5件であり、src、画面、標準配分、AIの時計は変更していない。Quality #394で資料57/57、Node297/297、型・ビルド、Chromium/WebKit56/56が通過した。これは「標準配分で敵外装P1へ実損傷を与える」bounded runであり、P1破壊・G1開門・敵城内進入・標準一戦の勝利、正式な味方命令、結果・ランキング、実機は未完了である。独立読み取りは ../../R2T_STANDARD_PLAYER_FIRST_EXTERIOR_DAMAGE_REVIEW.md、検査結果は ../../TEST_REPORT.md、残件は ../../RELEASE_CHECKLIST.md を参照する。
 
-今回もmainへの直接変更・マージ・公開は行わない。次の単位では、R2tの実損傷からP1破壊・G1開門へ進む経路を、標準条件の火力・敵砲撃・復活・敵味方行動に合わせて再分割する。
+R2uでP1破壊・G1開門まで確認した後も、敵城内への進入と標準一戦の勝利は未完了として残す。
 
 
 
