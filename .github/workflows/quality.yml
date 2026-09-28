@@ -4,6 +4,13 @@ on:
   pull_request:
   push:
     branches: [main, 'feat/**']
+  workflow_dispatch:
+    inputs:
+      run_browser:
+        description: Run Chromium/WebKit browser tests
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -16,6 +23,8 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    env:
+      RUN_BROWSER: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_browser) || contains(github.event.pull_request.labels.*.name, 'run-browser') }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -29,11 +38,24 @@ jobs:
       - run: npm run check:docs
       - run: npm run test
       - run: npm run build
-      - run: npx playwright install --with-deps chromium webkit
-      - run: sudo apt-get install -y fonts-noto-cjk
-      - run: npm run test:browser
+      - name: Report browser test mode
+        run: |
+          if [ "${RUN_BROWSER}" = "true" ]; then
+            echo "Browser tests enabled (workflow_dispatch input or run-browser label)."
+          else
+            echo "Browser tests skipped by default; use workflow_dispatch with run_browser=true or the run-browser label when needed."
+          fi
+      - name: Install browser dependencies
+        if: env.RUN_BROWSER == 'true'
+        run: npx playwright install --with-deps chromium webkit
+      - name: Install browser fonts
+        if: env.RUN_BROWSER == 'true'
+        run: sudo apt-get install -y fonts-noto-cjk
+      - name: Run browser tests
+        if: env.RUN_BROWSER == 'true'
+        run: npm run test:browser
       - uses: actions/upload-artifact@v4
-        if: always()
+        if: always() && env.RUN_BROWSER == 'true'
         with:
           name: browser-report
           path: playwright-report/
