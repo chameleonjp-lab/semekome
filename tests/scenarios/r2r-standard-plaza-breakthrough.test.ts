@@ -84,6 +84,25 @@ function p1ToActorDirection(state: BattleState, actorId: string): BattleDirectio
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
+function p1AwayFromNearestGuardDirection(state: BattleState): BattleDirection {
+  const position = state.fixedActors.P1.position;
+  const target = PLAZA_GUARD_IDS
+    .map((actorId) => state.actors[actorId])
+    .filter((actor) => actor.alive && actor.location.area === "plaza")
+    .map((actor) => ({ actor, position: state.fixedActors[actor.id]!.position }))
+    .sort((left, right) => {
+      const leftDistance = (left.position.x - position.x) ** 2 + (left.position.y - position.y) ** 2;
+      const rightDistance = (right.position.x - position.x) ** 2 + (right.position.y - position.y) ** 2;
+      return leftDistance - rightDistance || left.actor.id.localeCompare(right.actor.id);
+    })[0];
+  if (!target) return { x: -1, y: 0 };
+  const direction = {
+    x: sign(position.x - target.position.x),
+    y: sign(position.y - target.position.y),
+  };
+  return direction.x === 0 && direction.y === 0 ? { x: -1, y: 0 } : direction;
+}
+
 function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeof PLAZA_GUARD_IDS)[number]): BattleDirection {
   const position = state.fixedActors.P1.position;
   const candidates = PLAZA_GUARD_IDS
@@ -125,6 +144,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   let enteredEnemyCastle = false;
   let attackCount = 0;
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
+  let retreatUntilTick = 0;
   let dashAttempts = 0;
   let dashStarts = 0;
   let dashContacts = 0;
@@ -159,6 +179,9 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
       nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToPlazaDirection(state) }));
     } else {
       const interaction = getInteraction(state, "P1", 0);
+      if (state.tick < retreatUntilTick) {
+        nextState = stepBattle(state, publicP1Intent(state, { direction: p1AwayFromNearestGuardDirection(state) }));
+      } else {
       const dashReady = state.tick >= (state.dashCooldownUntilTick.P1 ?? 0);
       if (state.dashes.P1) {
         nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
@@ -179,6 +202,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
         }
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
+          retreatUntilTick = nextState.tick + nextState.rules.damageInvulnerabilityTicks;
           attackCount += 1;
           if (PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number])) {
             const guardId = targetId as (typeof PLAZA_GUARD_IDS)[number];
@@ -193,6 +217,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           focusGuardId = PLAZA_GUARD_IDS.find((guardId) => state.actors[guardId].alive && state.actors[guardId].location.area === "plaza");
         }
         nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToNearestGuardDirection(state, focusGuardId) }));
+      }
       }
     }
 
