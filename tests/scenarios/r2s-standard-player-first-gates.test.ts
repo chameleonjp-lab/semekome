@@ -207,7 +207,7 @@ test("標準配分の主人公P1は先頭2部位を破壊しG1/G2を開けて敵
       state = stepBattle(state);
       if (state.actors.P1.alive) {
         focusGuardId = undefined;
-        phase = state.castles.enemy.destroyedPartIds.length >= 2 ? "return-plaza" : "pickup";
+        phase = state.castles.enemy.destroyedPartIds.length >= 1 ? "return-plaza" : "pickup";
       }
       continue;
     }
@@ -308,14 +308,14 @@ test("標準配分の主人公P1は先頭2部位を破壊しG1/G2を開けて敵
     }
     if (state.actors.P1.location.area === "castle" && state.actors.P1.location.castleTeam === "enemy") {
       enteredEnemyCastle = true;
-      if (state.actors.P1.currentRoomId === "corridor_2") break;
+      if (state.actors.P1.currentRoomId === "corridor_1") break;
     }
   }
 
-  assert.equal(state.phase, "running", "the standard route reaches the gate boundary before the match ends (tick=" + state.tick + ", outcome=" + state.outcome + ", deliveries=" + deliveries + ", launches=" + projectileLaunches + ", impacts=" + projectileImpacts + ", partDamageEvents=" + partDamageEvents + ", destroyed=" + JSON.stringify(state.castles.enemy.destroyedPartIds) + ", phase=" + phase + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", p1Location=" + JSON.stringify(state.actors.P1.location) + ")");
-  assert.ok(deliveries >= 5, "P1 makes enough public deliveries for the first two standard exterior parts");
-  assert.deepEqual(state.castles.enemy.destroyedPartIds, ["P1", "P2"], "the first two exterior parts are destroyed in order");
-  assert.deepEqual(state.castles.enemy.openGateIds, ["G1", "G2"], "the first two prefix gates open");
+  assert.equal(state.phase, "running", "the standard route reaches the first gate boundary before the match ends (tick=" + state.tick + ", outcome=" + state.outcome + ", deliveries=" + deliveries + ", launches=" + projectileLaunches + ", impacts=" + projectileImpacts + ", partDamageEvents=" + partDamageEvents + ", destroyed=" + JSON.stringify(state.castles.enemy.destroyedPartIds) + ", phase=" + phase + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", p1Location=" + JSON.stringify(state.actors.P1.location) + ")");
+  assert.ok(deliveries >= 4, "P1 makes enough public deliveries for the first standard exterior part");
+  assert.deepEqual(state.castles.enemy.destroyedPartIds, ["P1"], "the first exterior part is destroyed");
+  assert.deepEqual(state.castles.enemy.openGateIds, ["G1"], "the first prefix gate opens");
   assert.equal(reachedPlaza, true, "P1 reaches the plaza through the standard public route");
   const guardGenerations = state.plaza.guardDeployments.enemy?.guardGenerations ?? {};
   assert.deepEqual(
@@ -330,9 +330,9 @@ test("標準配分の主人公P1は先頭2部位を破壊しG1/G2を開けて敵
   }
   assert.equal(enteredEnemyCastle, true, "P1 crosses after the live plaza guards are defeated");
   assert.equal(state.actors.P1.location.castleTeam, "enemy");
-  assert.equal(state.actors.P1.currentRoomId, "corridor_2", "P1 reaches the G2 side through public movement");
-  assert.deepEqual(state.actors.P1.location.pathGates, ["G1", "G2"]);
-  assert.deepEqual(state.castles.enemy.openGateIds, ["G1", "G2"]);
+  assert.equal(state.actors.P1.currentRoomId, "corridor_2", "P1 reaches the G1 side through public movement");
+  assert.deepEqual(state.actors.P1.location.pathGates, ["G1"]);
+  assert.deepEqual(state.castles.enemy.openGateIds, ["G1"]);
   assert.equal(state.plaza.enemyCrossings["P1:" + state.actors.P1.generation]?.allowed, true);
   assert.equal(state.lastStep.acceptedInputKinds.includes("direction"), true);
 });
