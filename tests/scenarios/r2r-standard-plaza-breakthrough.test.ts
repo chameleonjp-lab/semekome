@@ -174,7 +174,7 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
 }
 
 test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃破し敵城側へ越境する", { timeout: 300_000 }, () => {
-  let state = createBattle({ matchId: "r2r-standard-plaza-breakthrough", seed: 20260913 });
+  let state = createBattle({ matchId: "r2r-standard-plaza-breakthrough", seed: 20260901 });
   assert.deepEqual(state.logistics.playerAllocation, STANDARD_ALLOCATION);
 
   for (const actorId of ["P1", "P2", "P3", ...PLAZA_GUARD_IDS] as const) {
