@@ -249,7 +249,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         const finishWithDash = false;
         const intent = finishWithDash
           ? publicP1Intent(state, { direction: NEUTRAL, dash: direction })
-          : publicP1Intent(state, { direction: NEUTRAL, attack: true });
+          : publicP1Intent(state, { direction, attack: true });
         if (intent.dash !== undefined) dashAttempts += 1;
         nextState = stepBattle(state, intent);
         if (intent.dash !== undefined) {
@@ -258,7 +258,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
         }
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
-          retreatUntilTick = nextState.tick + 48;
+          retreatUntilTick = nextState.tick + 24;
           attackCount += 1;
         }
       } else {
