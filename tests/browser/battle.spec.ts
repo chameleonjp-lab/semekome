@@ -305,6 +305,7 @@ test('味方命令は画面からP2の守備と補給復帰を一更新ずつ送
   await page.getByLabel('あなたの名前').fill('味方命令検査');
   await page.getByRole('button', { name: '確認を開始する' }).click();
   await page.clock.runFor(3100);
+  await expect(page.locator('.battle-overlay')).toBeHidden();
 
   const battle = page.locator('.battle');
   await page.locator('.ally-orders summary').click();
