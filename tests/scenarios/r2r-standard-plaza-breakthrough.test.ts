@@ -227,7 +227,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         const targetId = interaction.attackTargetId;
         const direction = p1ToActorDirection(state, targetId);
         const isPlazaGuard = PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number]);
-        const finishWithDash = isPlazaGuard && dashReady;
+        const finishWithDash = false;
         const intent = finishWithDash
           ? publicP1Intent(state, { direction: NEUTRAL, dash: direction })
           : publicP1Intent(state, { direction: NEUTRAL, attack: true });
