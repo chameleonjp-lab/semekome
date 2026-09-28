@@ -266,7 +266,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
         }
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
-          retreatUntilTick = nextState.tick + 36;
+          // Keep the next public attack frame focused on the same physical snapshot.\n          retreatUntilTick = nextState.tick;
           attackCount += 1;
         }
       } else {
@@ -285,11 +285,12 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         const focusSharesPlazaSpace = focusActor?.location.area === "plaza" &&
           state.actors.P1.location.area === "plaza" &&
           focusActor.currentRoomId === state.actors.P1.currentRoomId;
-        if (focusGuardId && focusSharesPlazaSpace && focusDistance <= 700 && noOpAttackRejectedFor !== focusGuardId) {
+        if (focusGuardId && focusSharesPlazaSpace && focusDistance <= 1_500 && noOpAttackRejectedFor !== focusGuardId) {
           // Keep the public combat snapshot stable while a nearby guard is
-          // recovering from contact immunity; the engine treats this attack
-          // press as a harmless no-op until a valid target returns.
-          nextState = stepBattle(state, publicP1Intent(state, { attack: true }));
+          // recovering from contact immunity.  The direction is still public
+          // movement toward the observed target, so P1 closes the knockback
+          // gap while attack suppresses a stale NPC movement snapshot.
+          nextState = stepBattle(state, publicP1Intent(state, { direction: focusDirection, attack: true }));
           if (nextState.lastStep.rejected.some((rejection) => rejection.detail === "no adjacent enemy actor for normal contact attack")) {
             noOpAttackRejectedFor = focusGuardId;
           }
