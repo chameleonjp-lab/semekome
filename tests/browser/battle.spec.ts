@@ -306,7 +306,13 @@ test('味方命令は画面からP2の守備と補給復帰を一更新ずつ送
   await page.getByRole('button', { name: '確認を開始する' }).click();
   const battle = page.locator('.battle');
   await expect(battle).toHaveAttribute('data-phase', 'countdown');
-  await page.clock.runFor(3100);
+  // WebKit may use the first animation frame only to establish SessionClock's baseline.
+  // Advance in small slices so the countdown cannot consume the whole run before the
+  // first frame is observed.
+  for (let attempt = 0; attempt < 40 && await battle.getAttribute('data-phase') !== 'running'; attempt += 1) {
+    await page.clock.runFor(100);
+  }
+  await expect(battle).toHaveAttribute('data-phase', 'running');
   await expect(page.locator('.battle-overlay')).toBeHidden();
 
   await page.locator('.ally-orders summary').click();
