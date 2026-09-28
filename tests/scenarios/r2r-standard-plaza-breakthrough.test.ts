@@ -86,21 +86,12 @@ function p1ToActorDirection(state: BattleState, actorId: string): BattleDirectio
 
 function p1AwayFromNearestGuardDirection(state: BattleState): BattleDirection {
   const position = state.fixedActors.P1.position;
-  const target = PLAZA_GUARD_IDS
-    .map((actorId) => state.actors[actorId])
-    .filter((actor) => actor.alive && actor.location.area === "plaza")
-    .map((actor) => ({ actor, position: state.fixedActors[actor.id]!.position }))
-    .sort((left, right) => {
-      const leftDistance = (left.position.x - position.x) ** 2 + (left.position.y - position.y) ** 2;
-      const rightDistance = (right.position.x - position.x) ** 2 + (right.position.y - position.y) ** 2;
-      return leftDistance - rightDistance || left.actor.id.localeCompare(right.actor.id);
-    })[0];
-  if (!target) return { x: -1, y: 0 };
-  const direction = {
-    x: sign(position.x - target.position.x),
-    y: sign(position.y - target.position.y),
-  };
-  return direction.x === 0 && direction.y === 0 ? { x: -1, y: 0 } : direction;
+  const targetId = nearestLiveGuardId(state);
+  const target = targetId ? state.fixedActors[targetId]?.position : undefined;
+  if (!target) return { x: 0, y: -1 };
+  // Leave the authored guard row before re-engaging. This keeps the public
+  // direction from walking through a neighbouring guard after knockback.
+  return { x: 0, y: position.y <= target.y ? -1 : 1 };
 }
 
 function nearestLiveGuardId(state: BattleState): (typeof PLAZA_GUARD_IDS)[number] | undefined {
