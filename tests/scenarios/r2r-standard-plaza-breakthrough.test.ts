@@ -84,20 +84,24 @@ function p1ToActorDirection(state: BattleState, actorId: string): BattleDirectio
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
-function p1ToNearestGuardDirection(state: BattleState): BattleDirection {
+function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeof PLAZA_GUARD_IDS)[number]): BattleDirection {
   const position = state.fixedActors.P1.position;
-  const target = PLAZA_GUARD_IDS
+  const candidates = PLAZA_GUARD_IDS
     .map((actorId) => state.actors[actorId])
     .filter((actor) => actor.alive && actor.location.area === "plaza")
-    .map((actor) => ({ actor, position: state.fixedActors[actor.id].position }))
-    .sort((left, right) => {
-      // Keep the public chase focused on the most damaged live guard. Health
-      // is an ordinary actor observation; it is never sent as an input.
-      const healthDelta = left.actor.health - right.actor.health;
-      const leftDistance = (left.position.x - position.x) ** 2 + (left.position.y - position.y) ** 2;
-      const rightDistance = (right.position.x - position.x) ** 2 + (right.position.y - position.y) ** 2;
-      return healthDelta || leftDistance - rightDistance || left.actor.id.localeCompare(right.actor.id);
-    })[0];
+    .map((actor) => ({ actor, position: state.fixedActors[actor.id].position }));
+  const preferred = preferredGuardId
+    ? candidates.find((candidate) => candidate.actor.id === preferredGuardId)
+    : undefined;
+  const target = preferred ?? candidates.sort((left, right) => {
+    // Keep the public chase focused on one observed live guard until it is
+    // defeated. Health is an ordinary actor observation; it is never sent as
+    // an input.
+    const healthDelta = left.actor.health - right.actor.health;
+    const leftDistance = (left.position.x - position.x) ** 2 + (left.position.y - position.y) ** 2;
+    const rightDistance = (right.position.x - position.x) ** 2 + (right.position.y - position.y) ** 2;
+    return healthDelta || leftDistance - rightDistance || left.actor.id.localeCompare(right.actor.id);
+  })[0];
 
   if (!target) return { x: 1, y: 0 };
   const direction = {
@@ -120,6 +124,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   let reachedPlaza = false;
   let enteredEnemyCastle = false;
   let attackCount = 0;
+  let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
   let dashAttempts = 0;
   let dashStarts = 0;
   let dashContacts = 0;
@@ -182,13 +187,17 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           }
         }
       } else {
-        // Keep chasing with ordinary movement until a real contact snapshot
-        // exists; a dash without a contact would discard steering time.
-        nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToNearestGuardDirection(state) }));
+        // Keep one observed guard in focus until that actor is defeated; a
+        // dash without a contact would discard steering time.
+        if (!focusGuardId || !state.actors[focusGuardId].alive) {
+          focusGuardId = PLAZA_GUARD_IDS.find((guardId) => state.actors[guardId].alive && state.actors[guardId].location.area === "plaza");
+        }
+        nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToNearestGuardDirection(state, focusGuardId) }));
       }
     }
 
     state = nextState;
+    if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
     if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
       deliveries += 1;
@@ -212,8 +221,9 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     "the standard AI registers the three generation-zero plaza guards",
   );
   assert.ok(attackCount > 0, "the battle uses public contact attacks");
+  const guardStateSummary = PLAZA_GUARD_IDS.map((guardId) => `${guardId}:hits=${guardHits[guardId]},health=${state.actors[guardId].health},alive=${state.actors[guardId].alive}`).join("; ");
   for (const guardId of PLAZA_GUARD_IDS) {
-    assert.equal(guardHits[guardId] >= 4, true, guardId + " receives the configured repeated contact damage (hits=" + guardHits[guardId] + ", health=" + state.actors[guardId].health + ", alive=" + state.actors[guardId].alive + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", dashAttempts=" + dashAttempts + ", dashStarts=" + dashStarts + ", dashContacts=" + dashContacts + ", dashRejections=" + dashRejections + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
+    assert.equal(guardHits[guardId] >= 4, true, guardId + " receives the configured repeated contact damage (" + guardStateSummary + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", dashAttempts=" + dashAttempts + ", dashStarts=" + dashStarts + ", dashContacts=" + dashContacts + ", dashRejections=" + dashRejections + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
     assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing");
   }
   assert.equal(enteredEnemyCastle, true, "held public direction crosses after every live plaza guard is defeated");
