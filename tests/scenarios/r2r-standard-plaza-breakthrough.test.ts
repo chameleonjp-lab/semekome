@@ -247,7 +247,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         const focusDistance = focusPosition
           ? Math.hypot(focusPosition.x - state.fixedActors.P1.position.x, focusPosition.y - state.fixedActors.P1.position.y)
           : Number.POSITIVE_INFINITY;
-        if (focusGuardId && focusDistance <= 1_100) {
+        if (focusGuardId && focusDistance <= 900) {
           // Keep the public combat snapshot stable while a nearby guard is
           // recovering from contact immunity; the engine treats this attack
           // press as a harmless no-op until a valid target returns.
