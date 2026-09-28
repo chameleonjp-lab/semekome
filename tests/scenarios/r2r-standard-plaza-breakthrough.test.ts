@@ -206,27 +206,39 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
         nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
       } else if (interaction.attackTargetId) {
         const targetId = interaction.attackTargetId;
-        const targetHealth = state.actors[targetId].health;
-        const direction = p1ToActorDirection(state, targetId);
-        const isPlazaGuard = PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number]);
-        const finishWithDash = isPlazaGuard && dashReady;
-        const intent = finishWithDash
-          ? publicP1Intent(state, { direction: NEUTRAL, dash: direction })
-          : publicP1Intent(state, { direction: NEUTRAL, attack: true });
-        if (intent.dash !== undefined) dashAttempts += 1;
-        nextState = stepBattle(state, intent);
-        if (intent.dash !== undefined) {
-          if (nextState.lastStep.acceptedInputKinds.includes("dash")) dashStarts += 1;
-          if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) dashContacts += 1;
-          if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
-        }
-        if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
-          retreatUntilTick = nextState.tick + nextState.rules.damageInvulnerabilityTicks;
-          attackCount += 1;
-          if (PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number])) {
-            const guardId = targetId as (typeof PLAZA_GUARD_IDS)[number];
-            guardHits[guardId] += 1;
-            assert.equal(nextState.actors[guardId].health, targetHealth - nextState.rules.dashActorDamage);
+        const focusIsLive = focusGuardId !== undefined &&
+          state.actors[focusGuardId].alive &&
+          state.actors[focusGuardId].location.area === "plaza";
+        if (focusIsLive && targetId !== focusGuardId) {
+          // The public interaction snapshot may expose a neighbouring guard
+          // after knockback. Keep the one observed focus target instead of
+          // turning a single engagement into a multi-target loop.
+          nextState = stepBattle(state, publicP1Intent(state, {
+            direction: p1ToNearestGuardDirection(state, focusGuardId),
+          }));
+        } else {
+          const targetHealth = state.actors[targetId].health;
+          const direction = p1ToActorDirection(state, targetId);
+          const isPlazaGuard = PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number]);
+          const finishWithDash = isPlazaGuard && dashReady;
+          const intent = finishWithDash
+            ? publicP1Intent(state, { direction: NEUTRAL, dash: direction })
+            : publicP1Intent(state, { direction: NEUTRAL, attack: true });
+          if (intent.dash !== undefined) dashAttempts += 1;
+          nextState = stepBattle(state, intent);
+          if (intent.dash !== undefined) {
+            if (nextState.lastStep.acceptedInputKinds.includes("dash")) dashStarts += 1;
+            if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) dashContacts += 1;
+            if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
+          }
+          if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
+            retreatUntilTick = nextState.tick + nextState.rules.damageInvulnerabilityTicks;
+            attackCount += 1;
+            if (PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number])) {
+              const guardId = targetId as (typeof PLAZA_GUARD_IDS)[number];
+              guardHits[guardId] += 1;
+              assert.equal(nextState.actors[guardId].health, targetHealth - nextState.rules.dashActorDamage);
+            }
           }
         }
       } else {
