@@ -300,6 +300,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
 test('味方命令は画面からP2の守備と補給復帰を一更新ずつ送れる', async ({ page }) => {
   test.setTimeout(60000);
   await page.clock.install({ time: new Date('2026-09-28T00:00:00Z') });
+  await page.clock.pauseAt(new Date('2026-09-28T00:01:00Z'));
   await page.goto('/');
   await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('味方命令検査');
