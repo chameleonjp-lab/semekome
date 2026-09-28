@@ -1,10 +1,20 @@
 # 実装担当への引き継ぎ / 第5版
 
+## 最新作業枝：R2s 標準配分の公開砲撃対象と敵砲撃干渉
+
+R2rの標準広場突破後、標準配分・保護fixtureなし・敵砲撃稼働下で、P1の公開取得・配送・砲撃選択を4,200更新まで検査する統合検証を追加した。公開 deliver は detour ルートと敵外装P1を選び、実発射イベントでP1対象が保持されることを確認する。P2/P3の通常運搬と、敵砲撃による未保護の自陣外装損傷も同じ固定seedで確認する。
+
+変更対象は tests/scenarios/r2s-standard-player-first-gates.test.ts、docs/R2S_STANDARD_PLAYER_SIEGE_TARGET_REVIEW.md、資料5件であり、src、画面、標準配分、AIの時計は変更していない。Quality #388で資料57/57、Node296/296、型・ビルド、Chromium/WebKit56/56が通過した。これは「標準配分でP1対象を保持して発射へ進む」bounded runであり、P1外装破壊・G1開門・敵城内進入・標準一戦の勝利、正式な味方命令、結果・ランキング、実機は未完了である。独立読み取りは ../../R2S_STANDARD_PLAYER_SIEGE_TARGET_REVIEW.md、検査結果は ../../TEST_REPORT.md、残件は ../../RELEASE_CHECKLIST.md を参照する。
+
+今回もmainへの直接変更・マージ・公開は行わない。次の単位では、標準条件の火力・迎撃・復活・敵味方行動を含む敵城側の残り経路を、R2sの対象選択境界とは別に再分割する。
+
+
+
 ## 最新作業枝：R2r 標準広場警備3人の通常撃破と敵城側越境
 
 R2qの標準配分・敵味方稼働・保護fixtureなしのP1広場到達から続け、E25〜E27へ公開通常攻撃を繰り返し、3人の世代0を撃破して敵城側へ越境する統合検証を追加した。攻撃対象は現在の物理接触から取得し、移動中は現在位置だけを使った公開方向を送る。警備ID・座標・体力・保護状態・通過権の直接注入、bridge、dashは検査入力へ追加していない。
 
-変更対象は tests/scenarios/r2r-standard-plaza-breakthrough.test.ts と docs/R2R_STANDARD_PLAZA_BREAKTHROUGH_REVIEW.md であり、src、画面、標準配分、AIの時計は変更していない。これは「標準条件で広場警備3人を倒して敵城側へ入る」境界であり、敵城内の7部位・7門・核・終局、正式な味方命令の拡張、結果・ランキング、実機は未完了である。独立読み取りは ../../R2R_STANDARD_PLAZA_BREAKTHROUGH_REVIEW.md、検査結果は ../../TEST_REPORT.md、残件は ../../RELEASE_CHECKLIST.md を参照する。
+変更対象は tests/scenarios/r2r-standard-plaza-breakthrough.test.ts、docs/R2R_STANDARD_PLAZA_BREAKTHROUGH_REVIEW.md、src/simulation/physical-battle.ts、src/simulation/enemy-rules.ts であり、R2rでは無敵境界と広場警備のpost維持を補正した。画面、標準配分、AIの時計は変更していない。これは「標準条件で広場警備3人を倒して敵城側へ入る」境界であり、敵城内の7部位・7門・核・終局、正式な味方命令の拡張、結果・ランキング、実機は未完了である。独立読み取りは ../../R2R_STANDARD_PLAZA_BREAKTHROUGH_REVIEW.md、検査結果は ../../TEST_REPORT.md、残件は ../../RELEASE_CHECKLIST.md を参照する。
 
 今回もmainへの直接変更・マージ・公開は行わない。次の単位では、敵城内の残りの外装・門・核接触を標準条件へ広げるか、味方命令の優先順位・対象指定を別責任範囲として切り分ける。
 
