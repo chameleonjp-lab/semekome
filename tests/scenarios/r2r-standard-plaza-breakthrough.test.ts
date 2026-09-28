@@ -337,6 +337,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     }
     if (firstEnemyEdgeTick === -1 && state.fixedActors.P1.position.x >= P1_EXIT_X - 750 && Math.abs(state.fixedActors.P1.position.y - PLAZA_Y) <= 9_500) firstEnemyEdgeTick = state.tick;
     for (const event of state.lastStep.events) {
+      if (event.type !== "actor_died" && event.type !== "actor_damaged") continue;
       if (!PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number])) continue;
       const guardId = event.actorId as (typeof PLAZA_GUARD_IDS)[number];
       if (event.type === "actor_died" && guardDeathTicks[guardId] === -1) {
