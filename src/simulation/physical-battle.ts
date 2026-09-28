@@ -666,6 +666,26 @@ function meleeTargetAtActor(state: BattleState, actor: ActorState): ActorState |
     .at(0)?.candidate;
 }
 
+/**
+ * Support actors defend only the physical room they currently share with an
+ * enemy.  They do not receive hidden information about another room or the
+ * enemy's future supply, and they never cross a gate as a side effect of
+ * defending.  This keeps automatic support behaviour local until the separate
+ * ally-command unit defines explicit orders.
+ */
+function supportThreatAtActor(state: BattleState, actor: ActorState): ActorState | undefined {
+  if (!actor.alive || actor.role !== "support" || actorIsProtected(state, actor)) return undefined;
+  const from = actorFixed(state, actor.id);
+  return Object.values(state.actors)
+    .filter((candidate) => candidate.team === ENEMY_TEAM && candidate.alive && !actorIsProtected(state, candidate) &&
+      sharesPhysicalCombatSpace(actor, candidate))
+    .map((candidate) => ({ candidate, position: actorFixed(state, candidate.id) }))
+    .filter(({ candidate, position }) => hasPhysicalLineOfSight(state, actor, from, position))
+    .sort((left, right) => distanceSquared(from, left.position) - distanceSquared(from, right.position) ||
+      String(left.candidate.id).localeCompare(String(right.candidate.id)))
+    .at(0)?.candidate;
+}
+
 function casePosition(caseState: BattleCaseState): FixedPoint | undefined {
   return caseState.position ? copyPoint(caseState.position) : caseState.currentPosition ? copyPoint(caseState.currentPosition) : undefined;
 }
@@ -1667,7 +1687,7 @@ function retreatTargetPoint(state: BattleState, actor: ActorState, threat: Actor
   return canOccupy(state, team, target) ? target : roomTargetPoint(state, team, actor.currentRoomId);
 }
 
-function startEnemyDash(state: BattleState, actor: ActorState, target: FixedPoint): boolean {
+function startActorDash(state: BattleState, actor: ActorState, target: FixedPoint): boolean {
   if (!actor.alive || actorIsProtected(state, actor) || state.dashes[actor.id]) return false;
   if (state.tick < (state.dashCooldownUntilTick[actor.id] ?? 0)) return false;
   const current = actorFixed(state, actor.id);
@@ -1713,7 +1733,7 @@ function tryStartEnemyCoreAssaultDash(state: BattleState, actor: ActorState): bo
   if (!coreContact) return false;
   const equipmentContact = dashEquipmentContact(state, actor, current, requested, endpoint);
   if (equipmentContact && equipmentContact.progress <= coreContact.progress) return false;
-  return startEnemyDash(state, actor, target);
+  return startActorDash(state, actor, target);
 }
 
 function enemyDecisionUsesPhysicalMover(actor: ActorState, intent: PhysicalEnemyIntent): boolean {
@@ -1793,7 +1813,7 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
       assignment.targetRoomId = undefined;
       if (hasPhysicalLineOfSight(state, actor, actorFixed(state, actor.id), target) &&
           distanceSquared(actorFixed(state, actor.id), target) <= (state.rules.dashDistanceSubunits + ACTOR_RADIUS_SUBUNITS * 2) ** 2 &&
-          startEnemyDash(state, actor, target)) continue;
+          startActorDash(state, actor, target)) continue;
       if (canPlanAuthoredPath && assignment.path.length === 0 && pathPlansRemaining > 0) {
         assignment.path = actorTargetPath(state, actor, target);
         assignment.pathIndex = 0;
@@ -3484,6 +3504,42 @@ function processShooterAI(state: BattleState, actor: ActorState): void {
   state.crew.assignments[actor.id] = assignment;
 }
 
+function processSupportDefense(state: BattleState, actor: ActorState): boolean {
+  if (state.dashes[actor.id]) return true;
+  const threat = supportThreatAtActor(state, actor);
+  if (!threat) return false;
+
+  const assignment = state.crew.assignments[actor.id] ?? {
+    actorId: actor.id,
+    task: "idle" as CrewTask,
+    path: [],
+    pathIndex: 0,
+  };
+  assignment.task = "defend";
+  assignment.targetActorId = threat.id;
+  assignment.targetCaseId = undefined;
+  assignment.targetTurretId = undefined;
+  assignment.targetRoomId = undefined;
+  assignment.path = [];
+  assignment.pathIndex = 0;
+  assignment.stuckTicks = 0;
+
+  const from = actorFixed(state, actor.id);
+  const target = actorFixed(state, threat.id);
+  const dashRange = state.rules.dashDistanceSubunits + ACTOR_RADIUS_SUBUNITS * 2;
+  if (distanceSquared(from, target) <= dashRange * dashRange && startActorDash(state, actor, target)) {
+    state.crew.assignments[actor.id] = assignment;
+    return true;
+  }
+
+  // The support unit may approach an intruder in its current space, but the
+  // local defence task never creates an authored cross-room or cross-castle
+  // route.  The normal carrier loop resumes once the threat leaves or dies.
+  moveDirectlyToward(state, actor, target);
+  state.crew.assignments[actor.id] = assignment;
+  return true;
+}
+
 function normalContactBridge(state: BattleState, actor: ActorState): R2bBridgeRequest | undefined {
   const target = meleeTargetAtActor(state, actor);
   if (!target) return undefined;
@@ -3513,7 +3569,9 @@ function processCrewAI(state: BattleState, events: WorldEvent[], suppressNpcMove
   for (const actor of Object.values(state.actors).sort((left, right) => left.id.localeCompare(right.id))) {
     const decision = state.enemyDecisions[actor.id];
     if (decision && enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
-    if (actor.role === "ammo_carrier" || actor.role === "support") processCarrierAI(state, actor, events);
+    if (actor.role === "support") {
+      if (!processSupportDefense(state, actor)) processCarrierAI(state, actor, events);
+    } else if (actor.role === "ammo_carrier") processCarrierAI(state, actor, events);
     else if (actor.role === "shooter") processShooterAI(state, actor);
   }
 }
