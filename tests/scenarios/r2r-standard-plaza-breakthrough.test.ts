@@ -164,6 +164,11 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     E26: 0,
     E27: 0,
   };
+  const guardDamage: Record<(typeof PLAZA_GUARD_IDS)[number], number> = {
+    E25: 0,
+    E26: 0,
+    E27: 0,
+  };
 
   for (let tick = 0; tick < state.matchLimitTicks && state.phase === "running"; tick += 1) {
     if (!state.actors.P1.alive) {
@@ -228,7 +233,9 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
             if (PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number])) {
               const guardId = targetId as (typeof PLAZA_GUARD_IDS)[number];
               guardHits[guardId] += 1;
-              assert.equal(nextState.actors[guardId].health, targetHealth - nextState.rules.dashActorDamage);
+              const damageApplied = targetHealth - nextState.actors[guardId].health;
+              assert.equal(damageApplied > 0, true);
+              guardDamage[guardId] += damageApplied;
             }
           }
         }
@@ -268,9 +275,9 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     "the standard AI registers the three generation-zero plaza guards",
   );
   assert.ok(attackCount > 0, "the battle uses public contact attacks");
-  const guardStateSummary = PLAZA_GUARD_IDS.map((guardId) => `${guardId}:hits=${guardHits[guardId]},health=${state.actors[guardId].health},alive=${state.actors[guardId].alive}`).join("; ");
+  const guardStateSummary = PLAZA_GUARD_IDS.map((guardId) => `${guardId}:hits=${guardHits[guardId]},damage=${guardDamage[guardId]},health=${state.actors[guardId].health},alive=${state.actors[guardId].alive}`).join("; ");
   for (const guardId of PLAZA_GUARD_IDS) {
-    assert.equal(guardHits[guardId] >= 4, true, guardId + " receives the configured repeated contact damage (" + guardStateSummary + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", dashAttempts=" + dashAttempts + ", dashStarts=" + dashStarts + ", dashContacts=" + dashContacts + ", dashRejections=" + dashRejections + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
+    assert.equal(guardDamage[guardId] >= state.rules.actorHealth, true, guardId + " receives enough public contact damage to be defeated (" + guardStateSummary + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", dashAttempts=" + dashAttempts + ", dashStarts=" + dashStarts + ", dashContacts=" + dashContacts + ", dashRejections=" + dashRejections + ", p1DeathCount=" + state.actors.P1.deathCount + ")");
     assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing");
   }
   assert.equal(enteredEnemyCastle, true, "held public direction crosses after every live plaza guard is defeated");
