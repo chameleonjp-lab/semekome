@@ -304,10 +304,11 @@ test('味方命令は画面からP2の守備と補給復帰を一更新ずつ送
   await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('味方命令検査');
   await page.getByRole('button', { name: '確認を開始する' }).click();
+  const battle = page.locator('.battle');
+  await expect(battle).toHaveAttribute('data-phase', 'countdown');
   await page.clock.runFor(3100);
   await expect(page.locator('.battle-overlay')).toBeHidden();
 
-  const battle = page.locator('.battle');
   await page.locator('.ally-orders summary').click();
   const p2 = page.locator('#ally-p2-command');
   await expect(p2).toContainText('守備を指示');
