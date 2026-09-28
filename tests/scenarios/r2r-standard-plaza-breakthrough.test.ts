@@ -223,7 +223,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
             if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
           }
           if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
-            retreatUntilTick = nextState.tick + nextState.rules.damageInvulnerabilityTicks;
+            retreatUntilTick = nextState.tick;
             attackCount += 1;
             if (PLAZA_GUARD_IDS.includes(targetId as (typeof PLAZA_GUARD_IDS)[number])) {
               const guardId = targetId as (typeof PLAZA_GUARD_IDS)[number];
