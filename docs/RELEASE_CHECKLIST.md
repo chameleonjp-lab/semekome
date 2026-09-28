@@ -4,7 +4,7 @@
 
 ## Quality CIの実行方針
 
-通常のQualityでは資料検査、Node検査、型検査・ビルドを実行し、Chromium/WebKitのbrowser検査は既定でスキップする。browser用のステップはworkflowから削除せず、画面・入力・レイアウト・描画・ブラウザー依存の大きな変更時だけ、手動実行のrun_browser=trueまたはPRのrun-browserラベルで有効化する。browserをスキップした成功はブラウザー回帰の合格を意味しない。詳細はdocs/QUALITY_CI_POLICY.mdを参照する。
+通常のQualityでは資料検査、Node検査、型検査・ビルドを実行し、Chromium/WebKitのbrowser検査は既定でスキップする。browser用のステップはworkflowから削除せず、画面・入力・レイアウト・描画・ブラウザー依存の大きな変更時だけ、手動実行のrun_browser=trueまたはPRのrun-browserラベルで有効化する。browserをスキップした成功はブラウザー回帰の合格を意味しない。Quality #398では資料57/57、Node297/297、型・ビルド、通常artifactが成功し、browser系ステップはSkippedとなった。詳細はdocs/QUALITY_CI_POLICY.mdを参照する。
 
 
 ## R2sの判定

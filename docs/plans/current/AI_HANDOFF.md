@@ -4,7 +4,7 @@
 
 開発テンポを保つため、通常のQualityでは資料検査、Node検査、型検査・ビルドを実行し、Chromium/WebKitのbrowser検査をSkippedにする。browserのインストール、フォント導入、検査、レポートartifactは削除しない。
 
-画面・入力・レイアウト・描画・ブラウザー依存の大きな変更、または明示的な回帰確認が必要なときは、ActionsのQualityをrun_browser=trueで手動実行するか、PRへrun-browserラベルを付けてQualityを再実行する。browserをスキップした成功はブラウザー回帰の合格とは分けて記録する。詳細は../../QUALITY_CI_POLICY.mdを参照する。
+画面・入力・レイアウト・描画・ブラウザー依存の大きな変更、または明示的な回帰確認が必要なときは、ActionsのQualityをrun_browser=trueで手動実行するか、PRへrun-browserラベルを付けてQualityを再実行する。Quality #398で資料57/57、Node297/297、型・ビルド、通常artifactの成功と、browser系ステップのSkippedを確認した。browserをスキップした成功はブラウザー回帰の合格とは分けて記録する。詳細は../../QUALITY_CI_POLICY.mdを参照する。
 
 今回のCI設定変更は検査対象の削除ではなく、通常実行の既定値を短縮する切替である。ゲームルール・画面・公開・ランキング・実機確認の完了範囲は広げない。
 
