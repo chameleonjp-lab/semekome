@@ -183,7 +183,7 @@ test("標準配分の主人公P1は広場警備3人を通常攻撃で撃破し�
   );
   assert.ok(attackCount > 0, "the battle uses public normal contact attacks");
   for (const guardId of PLAZA_GUARD_IDS) {
-    assert.equal(guardHits[guardId] >= 4, true, guardId + " receives the configured repeated contact damage");
+    assert.equal(guardHits[guardId] >= 4, true, guardId + " receives the configured repeated contact damage (hits=" + guardHits[guardId] + ", health=" + state.actors[guardId].health + ", alive=" + state.actors[guardId].alive + ", tick=" + state.tick + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", guard=" + JSON.stringify(state.fixedActors[guardId] ? state.fixedActors[guardId].position : null) + ", attacks=" + attackCount + ", deaths=" + playerDeaths + ")");
     assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing");
   }
   assert.equal(playerDeaths, 0, "P1 remains alive while completing the standard plaza breakthrough");
