@@ -306,7 +306,7 @@ test("標準配分の主人公P1は先頭2部位を破壊しG1/G2を開けて敵
     }
   }
 
-  assert.equal(state.phase, "running", "the standard route reaches the gate boundary before the match ends");
+  assert.equal(state.phase, "running", "the standard route reaches the gate boundary before the match ends (tick=" + state.tick + ", outcome=" + state.outcome + ", deliveries=" + deliveries + ", destroyed=" + JSON.stringify(state.castles.enemy.destroyedPartIds) + ", phase=" + phase + ", p1=" + JSON.stringify(state.fixedActors.P1.position) + ", p1Location=" + JSON.stringify(state.actors.P1.location) + ")");
   assert.ok(deliveries >= 5, "P1 makes enough public deliveries for the first two standard exterior parts");
   assert.deepEqual(state.castles.enemy.destroyedPartIds, ["P1", "P2"], "the first two exterior parts are destroyed in order");
   assert.deepEqual(state.castles.enemy.openGateIds, ["G1", "G2"], "the first two prefix gates open");
