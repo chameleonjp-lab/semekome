@@ -88,10 +88,16 @@ function p1FromRespawnToPlazaDirection(state: BattleState): BattleDirection {
   return { x: 1, y: 0 };
 }
 
+function p1ToEnemyCastleDirection(state: BattleState): BattleDirection {
+  const position = state.fixedActors.P1.position;
+  if (Math.abs(position.y - PLAZA_Y) > 50) return { x: 0, y: sign(PLAZA_Y - position.y) };
+  return { x: 1, y: 0 };
+}
+
 function p1ToActorDirection(state: BattleState, actorId: string): BattleDirection {
   const position = state.fixedActors.P1.position;
   const target = state.fixedActors[actorId]?.position;
-  if (!target) return { x: 1, y: 0 };
+  if (!target) return p1ToEnemyCastleDirection(state);
   const direction = { x: sign(target.x - position.x), y: sign(target.y - position.y) };
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
@@ -252,7 +258,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           if (nextState.lastStep.rejected.length > 0) dashRejections += 1;
         }
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
-          retreatUntilTick = nextState.tick;
+          retreatUntilTick = nextState.tick + 24;
           attackCount += 1;
         }
       } else {
