@@ -1,5 +1,15 @@
 # 実装担当への引き継ぎ / 第5版
 
+## 最新作業枝：R2t 標準配分で敵外装P1へ実損傷を与える
+
+R2sの標準配分・保護fixtureなし・敵砲撃稼働下の公開砲撃を一段進め、P1が公開 deliver で detour ルートと敵外装P1を選び、実発射後にP1のhealthが下がる統合検証を追加した。P2/P3の通常運搬と、敵砲撃による未保護の自陣外装損傷も同じ固定seedで確認する。
+
+変更対象は tests/scenarios/r2t-standard-player-first-exterior-damage.test.ts、docs/R2T_STANDARD_PLAYER_FIRST_EXTERIOR_DAMAGE_REVIEW.md、資料5件であり、src、画面、標準配分、AIの時計は変更していない。Quality #394で資料57/57、Node297/297、型・ビルド、Chromium/WebKit56/56が通過した。これは「標準配分で敵外装P1へ実損傷を与える」bounded runであり、P1破壊・G1開門・敵城内進入・標準一戦の勝利、正式な味方命令、結果・ランキング、実機は未完了である。独立読み取りは ../../R2T_STANDARD_PLAYER_FIRST_EXTERIOR_DAMAGE_REVIEW.md、検査結果は ../../TEST_REPORT.md、残件は ../../RELEASE_CHECKLIST.md を参照する。
+
+今回もmainへの直接変更・マージ・公開は行わない。次の単位では、R2tの実損傷からP1破壊・G1開門へ進む経路を、標準条件の火力・敵砲撃・復活・敵味方行動に合わせて再分割する。
+
+
+
 ## 最新作業枝：R2s 標準配分の公開砲撃対象と敵砲撃干渉
 
 R2rの標準広場突破後、標準配分・保護fixtureなし・敵砲撃稼働下で、P1の公開取得・配送・砲撃選択を4,200更新まで検査する統合検証を追加した。公開 deliver は detour ルートと敵外装P1を選び、実発射イベントでP1対象が保持されることを確認する。P2/P3の通常運搬と、敵砲撃による未保護の自陣外装損傷も同じ固定seedで確認する。
