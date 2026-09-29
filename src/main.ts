@@ -66,7 +66,7 @@ function home(): void {
       <p class="home-copy">弾を運んで撃ち合い、<br>7つの門を開いて、敵の核へ。</p></div>
       <figure class="home-stage" role="img" aria-label="自陣と敵陣が広場を挟んで向かい合う戦場"><img class="home-art" src="${GAME_ART_URLS.stage}" alt="" aria-hidden="true" /><figcaption class="home-stage-labels"><span>自陣</span><span>広場</span><span>敵陣</span></figcaption></figure>
       <div class="home-actions"><button class="primary" id="open-battle" aria-label="通常戦を始める">通常戦を始める</button><button id="open-preview">配置を確認する</button><button id="open-atlas">素材図鑑</button><button id="open-rules">ルール説明</button></div>
-      <p class="home-notice">通常戦は、名前入力・補給編成・カウントダウンを経て実戦を開始します。<br>勝敗表示まで接続済みです。結果詳細・スコア・ランキングは未接続です。</p>
+      <p class="home-notice">通常戦は、名前入力・補給編成・カウントダウンを経て実戦を開始します。<br>結果画面まで接続済みです。承認済みスコア・ランキングは未接続です。</p>
     </section>
     <dialog aria-labelledby="rules-title"><div class="dialog-head"><h2 id="rules-title">セメコメのルール</h2><button id="close-rules">閉じる</button></div>
       <div class="rules-body"><ol>

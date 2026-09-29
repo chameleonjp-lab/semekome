@@ -48,53 +48,69 @@ function supplyAllocationRows(): string {
 }
 
 export function openBattleSetup(app: HTMLElement, goHome: () => void): () => void {
-  let disposeBattle = () => {};
-  let started = false;
-  app.innerHTML = `<section class="battle-setup" aria-label="通常戦の名前と補給の編成"><p class="eyebrow">通常戦の準備</p>
-    <h1>出撃の準備</h1><p>名前と補給の編成を決めると、3秒のカウントダウン後に通常戦が始まります。<br>弾薬庫で弾を拾い、砲台へ運びます。補助員と敵も同じ戦場で動きます。</p>
-    <form novalidate><label for="player-name">あなたの名前</label><input id="player-name" name="playerName" autocomplete="nickname" aria-describedby="name-hint name-error" placeholder="1〜20文字" required>
-    <p id="name-hint">前後の空白は取り除きます。名前の外部送信は行いません。</p><p id="name-error" role="alert"></p>
-    <section class="supply-setup" aria-labelledby="supply-setup-title"><h2 id="supply-setup-title">補給の編成</h2><p>使う種類を4つ選び、合計8個にします。標準配分をそのまま使うこともできます。</p><div class="supply-allocation">${supplyAllocationRows()}</div><p id="supply-summary" aria-live="polite"></p><p id="supply-error" aria-live="polite"></p></section>
-    <button type="submit" class="primary">確認を開始する</button><button type="button" id="cancel-setup">ホームへ戻る</button></form>
-    <p class="scope-note">通常戦は、名前入力・補給編成・カウントダウン・実戦・勝敗表示まで進みます。結果詳細・承認済みスコア・ランキングは次の段階です。</p></section>`;
-  bindArtImageFallbacks(app);
-  const input = app.querySelector<HTMLInputElement>('#player-name')!;
-  const supplyError = app.querySelector<HTMLElement>('#supply-error')!;
-  refreshSupplyAllocationSummary(app);
-  for (const control of app.querySelectorAll<HTMLSelectElement>('[data-supply-type], [data-supply-count]')) {
-    control.addEventListener('change', () => {
-      if (control.matches('[data-supply-type]')) {
-        const art = control.closest('.supply-row')?.querySelector<HTMLImageElement>('[data-supply-art]');
-      if (art) setArtImageSource(art, GAME_ART_URLS[control.value as CaseType]);
-      }
-      refreshSupplyAllocationSummary(app);
-      supplyError.textContent = '';
-    });
-  }
-  app.querySelector('#cancel-setup')!.addEventListener('click', goHome);
-  app.querySelector('form')!.addEventListener('submit', event => {
-    event.preventDefault();
-    if (started) return;
-    const validation = validatePlayerName(input.value);
-    app.querySelector('#name-error')!.textContent = validation.error ?? '';
-    input.setAttribute('aria-invalid', String(Boolean(validation.error)));
-    if (validation.error) { input.focus(); return; }
-    const allocation = readSupplyAllocation(app);
-    try {
-      const validatedAllocation = validateSupplyAllocation(allocation);
-      supplyError.textContent = '';
-      started = true;
-      disposeBattle = mountBattle(app, validation.name, validatedAllocation, goHome);
-    } catch (error) {
-      supplyError.textContent = allocationErrorMessage(error);
-      app.querySelector<HTMLSelectElement>('[data-supply-type]')?.focus();
-      return;
+  let disposeActive = () => {};
+  let closed = false;
+  const leaveToHome = () => {
+    disposeActive();
+    disposeActive = () => {};
+    goHome();
+  };
+  const renderSetup = () => {
+    if (closed) return;
+    disposeActive();
+    disposeActive = () => {};
+    let started = false;
+    app.innerHTML = `<section class="battle-setup" aria-label="通常戦の名前と補給の編成"><p class="eyebrow">通常戦の準備</p>
+      <h1>出撃の準備</h1><p>名前と補給の編成を決めると、3秒のカウントダウン後に通常戦が始まります。<br>弾薬庫で弾を拾い、砲台へ運びます。補助員と敵も同じ戦場で動きます。</p>
+      <form novalidate><label for="player-name">あなたの名前</label><input id="player-name" name="playerName" autocomplete="nickname" aria-describedby="name-hint name-error" placeholder="1〜20文字" required>
+      <p id="name-hint">前後の空白は取り除きます。名前の外部送信は行いません。</p><p id="name-error" role="alert"></p>
+      <section class="supply-setup" aria-labelledby="supply-setup-title"><h2 id="supply-setup-title">補給の編成</h2><p>使う種類を4つ選び、合計8個にします。標準配分をそのまま使うこともできます。</p><div class="supply-allocation">${supplyAllocationRows()}</div><p id="supply-summary" aria-live="polite"></p><p id="supply-error" aria-live="polite"></p></section>
+      <button type="submit" class="primary">確認を開始する</button><button type="button" id="cancel-setup">ホームへ戻る</button></form>
+      <p class="scope-note">通常戦は、名前入力・補給編成・カウントダウン・実戦・結果画面まで進みます。承認済みスコア・ランキング接続は未完了です。</p></section>`;
+    bindArtImageFallbacks(app);
+    const input = app.querySelector<HTMLInputElement>('#player-name')!;
+    const supplyError = app.querySelector<HTMLElement>('#supply-error')!;
+    refreshSupplyAllocationSummary(app);
+    for (const control of app.querySelectorAll<HTMLSelectElement>('[data-supply-type], [data-supply-count]')) {
+      control.addEventListener('change', () => {
+        if (control.matches('[data-supply-type]')) {
+          const art = control.closest('.supply-row')?.querySelector<HTMLImageElement>('[data-supply-art]');
+          if (art) setArtImageSource(art, GAME_ART_URLS[control.value as CaseType]);
+        }
+        refreshSupplyAllocationSummary(app);
+        supplyError.textContent = '';
+      });
     }
-  });
-  return () => disposeBattle();
+    app.querySelector('#cancel-setup')!.addEventListener('click', leaveToHome);
+    app.querySelector('form')!.addEventListener('submit', event => {
+      event.preventDefault();
+      if (started) return;
+      const validation = validatePlayerName(input.value);
+      app.querySelector('#name-error')!.textContent = validation.error ?? '';
+      input.setAttribute('aria-invalid', String(Boolean(validation.error)));
+      if (validation.error) { input.focus(); return; }
+      const allocation = readSupplyAllocation(app);
+      try {
+        const validatedAllocation = validateSupplyAllocation(allocation);
+        supplyError.textContent = '';
+        started = true;
+        disposeActive = mountBattle(app, validation.name, validatedAllocation, leaveToHome, renderSetup);
+      } catch (error) {
+        supplyError.textContent = allocationErrorMessage(error);
+        app.querySelector<HTMLSelectElement>('[data-supply-type]')?.focus();
+        return;
+      }
+    });
+  };
+  renderSetup();
+  return () => {
+    closed = true;
+    disposeActive();
+    disposeActive = () => {};
+  };
 }
 
-function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: readonly CaseType[], goHome: () => void): () => void {
+function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: readonly CaseType[], goHome: () => void, onReplay: () => void): () => void {
   const random = new Uint32Array(1); crypto.getRandomValues(random);
   let state = createBattle({ matchId: crypto.randomUUID(), seed: random[0], playerSupplyAllocation });
   let countdown = 180;
@@ -122,7 +138,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled><img class="action-icon" alt="" hidden><span class="action-label">弾に近づく</span></button><div class="action-row"><button id="battle-drop" disabled><span class="drop-icon" aria-hidden="true">↓</span><span>選択中の弾を置く</span></button><button id="battle-attack" type="button" aria-label="近接攻撃。近くに攻撃対象なし" disabled><span class="attack-label">敵に近づく</span></button></div></div><button id="battle-dash" class="dash-control" type="button" aria-label="突進" aria-describedby="dash-status" disabled><span class="dash-label">突進</span><span id="dash-status" class="dash-status">操作開始後に使用できます</span><span class="dash-progress" aria-hidden="true"><i></i></span></button></div>
     <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵 ${partDisplayName(id)}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><details class="ally-orders"><summary aria-label="味方命令">味方</summary><div class="ally-order-buttons"><button id="ally-p2-command" type="button" data-ally-id="P2">P2：守備を指示</button><button id="ally-p3-command" type="button" data-ally-id="P3">P3：守備を指示</button></div><p id="ally-order-hint">守備中は現在位置を保ち、同室の敵だけを防衛します。</p></details><button id="battle-help" aria-label="操作説明">?</button></div>
     <div class="battle-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div><p id="overlay-title" class="overlay-title" role="status">開始まで</p><strong class="countdown-number">3</strong><p class="terminal-result" aria-live="polite" hidden></p><p class="overlay-description">左のパッドで移動・右のボタンで弾を扱う。敵と接触したら近接攻撃</p><button id="resume-battle" class="primary" hidden>再開する</button><button id="leave-battle">準備を中止する</button></div></div>
-    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">通常戦の操作</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>弾薬庫で、床の弾に近づいて拾います。敵陣や広場の床弾も拾えます。</li><li>弾を砲台へ運び、受け渡し枠へ渡すか砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>自陣の修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li><li>敵と接触した状態で「近接攻撃」を押すと、敵に1回の接触ダメージを与えます。キーボードではXキー、コアへの勝利攻撃は突進です。</li><li>突進はボタンまたはSpaceを押し始めたとき1回だけ発動します。移動中は現在方向、停止中は最後の移動方向（初期は右）へ進み、再使用待ちの間は使えません。</li><li>「味方」からP2/P3へ守備を指示すると、その位置を保ちながら同室の敵だけを防衛します。もう一度押すと補給へ戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動と敵AIの戦闘は同じ通常戦の中で進みます。終局時は勝敗と理由を表示します。結果詳細・承認済みスコア・ランキングは未接続です。外装7部位を壊しただけでは勝敗は決まりません。</p></div></dialog></section>`;
+    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">通常戦の操作</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>弾薬庫で、床の弾に近づいて拾います。敵陣や広場の床弾も拾えます。</li><li>弾を砲台へ運び、受け渡し枠へ渡すか砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>自陣の修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li><li>敵と接触した状態で「近接攻撃」を押すと、敵に1回の接触ダメージを与えます。キーボードではXキー、コアへの勝利攻撃は突進です。</li><li>突進はボタンまたはSpaceを押し始めたとき1回だけ発動します。移動中は現在方向、停止中は最後の移動方向（初期は右）へ進み、再使用待ちの間は使えません。</li><li>「味方」からP2/P3へ守備を指示すると、その位置を保ちながら同室の敵だけを防衛します。もう一度押すと補給へ戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動と敵AIの戦闘は同じ通常戦の中で進みます。終局時は勝敗と理由を結果画面に表示し、実戦の記録も残します。承認済みスコア・ランキング・共有は未接続です。外装7部位を壊しただけでは勝敗は決まりません。</p></div></dialog></section>`;
   const screen = app.querySelector<HTMLElement>('.battle')!;
   screen.dataset.matchId = state.matchId;
   screen.dataset.flow = 'normal';
@@ -426,6 +442,36 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     targetPartSelect.disabled = !canInteract() || !actor.alive;
     equipmentTargetSelect.disabled = !canInteract() || !actor.alive;
   };
+  let resultShown = false;
+  const showResult = () => {
+    if (resultShown || disposed) return;
+    resultShown = true;
+    const title = state.outcome === 'player_win' ? '勝利'
+      : state.outcome === 'enemy_win' ? '敗北' : '引き分け';
+    const reason = state.outcome === 'player_win' ? '敵コアへの有効命中'
+      : state.outcome === 'enemy_win' ? '自陣コアへの有効命中'
+        : state.castles.player.core.hit && state.castles.enemy.core.hit ? '同一更新内の同時コア命中' : '時間切れ';
+    const elapsedSeconds = Math.floor(state.tick / 60);
+    const elapsed = `${Math.floor(elapsedSeconds / 60)}:${String(elapsedSeconds % 60).padStart(2, '0')}`;
+    const outcomeClass = state.outcome === 'player_win' ? 'is-win' : state.outcome === 'enemy_win' ? 'is-loss' : 'is-draw';
+    app.innerHTML = `<section class="battle-result ${outcomeClass}" aria-label="通常戦の結果" data-flow="normal-result" data-outcome="${state.outcome}" data-match-id="${state.matchId}" data-tick="${state.tick}" data-player-dash-starts="${playerDashStarts}">
+      <p class="eyebrow">通常戦の結果</p><h1>${title}</h1><p class="result-reason" data-result-reason>${reason}</p>
+      <p class="result-player">プレイヤー：<strong data-result-player-name></strong></p>
+      <dl class="result-metrics" aria-label="実戦の記録">
+        <div><dt>経過時間</dt><dd>${elapsed}</dd></div>
+        <div><dt>敵外装</dt><dd>${state.castles.enemy.destroyedPartIds.length}/7 破壊</dd></div>
+        <div><dt>敵の門</dt><dd>${state.castles.enemy.openGateIds.length}/7 開放</dd></div>
+        <div><dt>主人公の砲撃</dt><dd>${playerOperatedLaunches} 発</dd></div>
+      </dl>
+      <section class="result-section" aria-labelledby="result-score-title"><h2 id="result-score-title">スコア</h2><p data-result-score-status="pending">得点式の承認待ちです。現在は表示しません。</p></section>
+      <section class="result-section" aria-labelledby="result-ranking-title"><h2 id="result-ranking-title">ランキング・共有</h2><p data-result-ranking-status="unavailable">共有側のゲーム登録値（game_id / game_slug / URL）確認待ちです。結果は保存・送信しません。</p></section>
+      <div class="result-actions"><button id="restart-battle" class="primary">再戦の準備へ</button><button id="result-home">ホームへ戻る</button></div>
+      <p class="result-note">次の試合は新しい試合状態として開始され、今回の入力・物体・復活状態を持ち越しません。</p>
+    </section>`;
+    app.querySelector<HTMLElement>('[data-result-player-name]')!.textContent = name;
+    app.querySelector<HTMLButtonElement>('#restart-battle')!.addEventListener('click', onReplay, { once: true });
+    app.querySelector<HTMLButtonElement>('#result-home')!.addEventListener('click', goHome, { once: true });
+  };
   const loop = (now: number) => {
     if (disposed) return;
     if (!paused && state.phase !== 'ended') {
@@ -471,7 +517,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
       }
     } else clock.reset();
     updateOverlay(); updateHud(); render(state, part, slot);
-    if (state.phase === 'ended') { frame = 0; return; }
+    if (state.phase === 'ended') { showResult(); frame = 0; return; }
     frame = requestAnimationFrame(loop);
   };
   if (document.hidden) { state = setBattleVisibility(state, false); stop(); }

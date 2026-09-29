@@ -20,6 +20,24 @@
 #supply-summary { color: #d1f2e8; font-variant-numeric: tabular-nums; }
 #supply-error { min-height: 1.2em; color: #ffc6b9; }
 .scope-note { margin-top: 24px; }
+.battle-result { max-width: 620px; height: 100%; margin: auto; overflow-y: auto; overscroll-behavior: contain; padding: 28px 18px 36px; }
+.battle-result h1 { margin: 8px 0 4px; font-size: clamp(2.6rem, 12vw, 4.2rem); }
+.battle-result.is-win h1 { color: #b8ece0; }
+.battle-result.is-loss h1 { color: #ffc6b9; }
+.battle-result.is-draw h1 { color: #f1d796; }
+.result-reason { margin: 0; color: #d5e7e4; font-size: 1.05rem; font-weight: 700; }
+.result-player { margin: 18px 0 14px; color: #b7cbd2; }
+.result-player strong { color: #f1f6f4; }
+.result-metrics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin: 0 0 16px; }
+.result-metrics div { padding: 10px; border: 1px solid #3f5b65; border-radius: 10px; background: #172b36; }
+.result-metrics dt { color: #9fb8c3; font-size: .7rem; }
+.result-metrics dd { margin: 4px 0 0; color: #f0f6f4; font-size: 1rem; font-variant-numeric: tabular-nums; }
+.result-section { margin-top: 12px; padding: 12px 14px; border: 1px solid #3f5b65; border-radius: 12px; background: #172b36; }
+.result-section h2 { margin: 0 0 4px; font-size: .95rem; }
+.result-section p { margin: 0; color: #b9cdd4; font-size: .78rem; line-height: 1.55; }
+.result-actions { display: grid; gap: 8px; margin-top: 18px; }
+.result-actions button { width: 100%; }
+.result-note { margin: 18px 0 0; color: #8fa8b2; font-size: .72rem; line-height: 1.6; }
 .battle { height: 100%; max-width: 1050px; margin: auto; padding: 8px 10px; display: grid; grid-template-rows: 48px 34px minmax(110px, 1fr) minmax(32px, auto) 48px 124px 54px; gap: 6px; position: relative; overflow: hidden; }
 .battle button, .battle select { font-size: .8rem; min-width: 48px; padding: 8px; }
 .battle-header { min-width: 0; display: flex; align-items: center; gap: 10px; }
