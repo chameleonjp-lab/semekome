@@ -1,12 +1,21 @@
 # セメコメの実装判断
 
+## R2u 標準配分で敵外装P1を破壊しG1を開門する
+
+R2tで確認した実損傷から一段進め、同じ固定seed・標準配分・敵味方無保護の通常初期状態で、公開操作による敵外装P1の破壊とG1の開門を確認する。検査は敵砲撃、味方の運搬、敵AIを止めずに進め、8,000更新を上限として、外装P1が初めて破壊された更新で打ち切る。
+
+検査は公開 `pickup` / `load` / `deliver` と `direction` のみを使い、砲撃対象にP1を指定する。外装のhealthを直接変更せず、破壊や門開放を入力しない。破壊イベントが敵外装P1・G1の一度だけであること、破壊済み部位と開いた門がそれぞれP1・G1だけであること、その更新後も戦闘が継続することを確認する。
+
+R2uで確認したのは最初の外装・門だけであり、敵城内への進入、残り6部位・6門、標準一戦の勝利、敵味方30人全員の通常行動、結果・得点・ランキング、実機・試遊は完了扱いにしない。独立レビューは [R2U_STANDARD_PLAYER_FIRST_EXTERIOR_DESTRUCTION_REVIEW.md](R2U_STANDARD_PLAYER_FIRST_EXTERIOR_DESTRUCTION_REVIEW.md) を参照する。
+
+
 ## R2t 標準配分で敵外装P1へ実損傷を与える
 
 R2sで公開砲撃の対象保持と敵砲撃干渉を確認したため、次の最小単位として、同じ標準条件で敵外装P1のhealthが下がるところまでを固定する。P1/P2/P3を保護せず、実床ケース取得、detour・P1の公開選択、実発射、part_damaged の順を同じ固定seedで観測する。
 
 R2tは外装を破壊する入力、門を直接開ける入力、座標越境、警備ID・通過権の注入を作らない。team=enemy / partId=P1 の損傷イベントとhealth低下だけを完了条件にし、破壊・G1開門・敵城内進入は次の単位へ残す。敵砲撃による未保護の自陣損傷とP2/P3の通常運搬も確認するが、標準一戦の勝利や敵味方30人全体の完成とは解釈しない。
 
-長い標準経路では敵勝利が先に確定する試行が残っているため、R2tは火力・敵砲撃・復活・敵味方行動の調整を隠さない。次のPRでP1破壊・G1開門へ進む場合も、実測した境界ごとに分けて確認する。独立読み取りは [R2T_STANDARD_PLAYER_FIRST_EXTERIOR_DAMAGE_REVIEW.md](R2T_STANDARD_PLAYER_FIRST_EXTERIOR_DAMAGE_REVIEW.md) を参照する。
+R2tの時点では、長い標準経路で敵勝利が先に確定する試行が残っていた。後続のR2uで、標準条件のままP1破壊・G1開門が戦闘継続中に成立するところまでを別に確認した。独立読み取りは [R2T_STANDARD_PLAYER_FIRST_EXTERIOR_DAMAGE_REVIEW.md](R2T_STANDARD_PLAYER_FIRST_EXTERIOR_DAMAGE_REVIEW.md) を参照する。
 
 
 
