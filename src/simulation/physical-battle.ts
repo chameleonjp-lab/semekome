@@ -3512,9 +3512,16 @@ function processCarrierAI(state: BattleState, actor: ActorState, events: WorldEv
   moveAIAlongPath(state, actor, assignment, turret.operatorPosition);
   if (!actorIsProtected(state, actor)) {
     let delivered = false;
+    // Enemy turrets use the direct route. Once the player has opened a gate,
+    // keep support fire on the detour route so opposing shots do not cancel
+    // the supply needed to open the next gate.
+    const playerIsAdvancingThroughEnemyCastle = actor.team === PLAYER_TEAM && actor.role === "support" &&
+      state.castles.enemy.destroyedPartIds.length > 0 &&
+      state.castles.enemy.destroyedPartIds.length < state.layout.enemy.coreRouteGates.length;
+    const route: BattleRoute | undefined = playerIsAdvancingThroughEnemyCastle ? "detour" : undefined;
     for (const item of [...carried]) {
       if (turret.handoffIds.length >= STAGING_SLOTS_PER_TURRET) break;
-      delivered = deliverCase(state, actor, item, undefined, undefined, events, turret) || delivered;
+      delivered = deliverCase(state, actor, item, route, undefined, events, turret) || delivered;
     }
     if (delivered && actor.cargoIds.length === 0) {
       assignment.task = "idle";
