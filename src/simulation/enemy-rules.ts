@@ -26,6 +26,13 @@ export function observeEnemy(battle: BattleState, actor: ActorState): EnemyObser
     .sort((a, b) => (a.position.x - actor.position.x) ** 2 + (a.position.y - actor.position.y) ** 2 -
       (b.position.x - actor.position.x) ** 2 - (b.position.y - actor.position.y) ** 2 || ordered(a.id, b.id)).map(other => other.id);
   const turret = actor.turretId ? turretDefinition(battle, actor.team, actor.turretId) : undefined;
+  const playerUnderPressure = Object.values(battle.world.actors).some(other => other.team === "player" && other.alive &&
+    (other.location.area === "plaza" || other.location.area === "castle" && other.location.castleTeam === actor.team));
+  const opposingCrossings = actor.team === "enemy"
+    ? battle.world.plaza.playerCrossings
+    : battle.world.plaza.enemyCrossings;
+  const opposingSideHasBreached = Object.values(opposingCrossings).some(crossing => crossing.allowed);
+  const dispatchedGuardGeneration = battle.world.plaza.guardDeployments[actor.team]?.guardGenerations[String(actor.id)];
   return {
     role: actor.role, health: actor.health, homeRoomId: actor.homeRoomId, currentRoomId: actor.currentRoomId,
     inHomeCastle: actor.location.area === "castle" && actor.location.castleTeam === actor.team,
@@ -38,7 +45,11 @@ export function observeEnemy(battle: BattleState, actor: ActorState): EnemyObser
       actor.location.area === "castle" && o.location.team === actor.location.castleTeam && o.location.roomId === actor.location.roomId && near(actor.position, o.location.position))
       .map(o => o.id).sort(ordered),
     turret: turret ? { id: turret.id, roomId: turret.roomId, atPosition: atTurret(actor, turret), hasCapacity: queueFor(battle, actor.team, turret.id).length < turret.queueCapacity } : undefined,
-    canAssault: actor.canAssaultOtherVehicle === true, canGuardPlaza: actor.canGuardPlaza === true,
+    canAssault: actor.canAssaultOtherVehicle === true,
+    canGuardPlaza: actor.canGuardPlaza === true &&
+      (dispatchedGuardGeneration === undefined
+        ? !opposingSideHasBreached
+        : actor.generation <= dispatchedGuardGeneration || !(playerUnderPressure || opposingSideHasBreached)),
   };
 }
 

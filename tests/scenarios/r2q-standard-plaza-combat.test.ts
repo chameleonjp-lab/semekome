@@ -137,7 +137,7 @@ test("標準配分の主人公P1は広場の実警備へ最初の通常接触攻
   assert.equal(state.actors.P1.alive, true, "P1 survives until the first public contact attack");
   assert.equal(state.actors.P1.location.area, "plaza");
   assert.equal(state.plaza.guardDeployments.enemy?.guardGenerations[attackTargetId], state.actors[attackTargetId].generation);
-  assert.equal(state.actors[attackTargetId].health, guardHealthBefore! - state.rules.dashActorDamage);
+  assert.equal(state.actors[attackTargetId].health, guardHealthBefore! - state.rules.normalContactDamage);
   assert.deepEqual(state.fixedActors.P1.position, p1PositionBeforeAttack);
   assert.equal(state.dashes.P1, undefined, "normal contact attack does not start a dash");
   assert.equal(state.lastStep.acceptedInputKinds.includes("bridge:actor_contact"), true);

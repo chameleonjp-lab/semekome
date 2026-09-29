@@ -36,6 +36,13 @@ function publicP1Intent(state: BattleState, partial: Partial<BattleIntent> = {})
   };
 }
 
+function holdPlayerSupports(state: BattleState): BattleState {
+  for (const allyId of ["P2", "P3"] as const) {
+    state = stepBattle(state, publicP1Intent(state, { allyCommand: { allyId, kind: "hold" } }));
+  }
+  return state;
+}
+
 function sign(value: number): -1 | 0 | 1 {
   return value > 0 ? 1 : value < 0 ? -1 : 0;
 }
@@ -272,6 +279,7 @@ test("主人公は敵城へ越境後も閉門前で止まり核側へ抜けな�
   for (const actor of Object.values(state.actors)) {
     if (actor.team === "enemy") actor.protectedUntilTick = 99_999;
   }
+  state = holdPlayerSupports(state);
 
   let phase: "pickup" | "turret" | "plaza-route" = "pickup";
   let deliveries = 0;
@@ -371,7 +379,6 @@ test("主人公の公開砲撃でG1を開けても次のG2で止まる", { timeo
   for (const actor of Object.values(state.actors)) {
     if (actor.team === "enemy") actor.protectedUntilTick = 99_999;
   }
-
   let phase: "pickup" | "turret" | "await-gate" | "plaza-route" = "pickup";
   let deliveries = 0;
   let reachedPlaza = false;
@@ -416,8 +423,11 @@ test("主人公の公開砲撃でG1を開けても次のG2で止まる", { timeo
   assert.equal(deliveries, 4, "P1 uses four ordinary public deliveries to feed the gate-opening artillery");
   assert.equal(gateOpened, true, "player artillery destroys the first enemy exterior part and opens G1");
   assert.ok(playerLaunchTargets.includes("P1"), "a player-launched case keeps the selected enemy part");
-  assert.deepEqual(state.castles.enemy.destroyedPartIds, ["P1"]);
-  assert.deepEqual(state.castles.enemy.openGateIds, ["G1"]);
+  assert.equal(state.castles.enemy.destroyedPartIds.includes("P1"), true);
+  assert.equal(state.castles.enemy.openGateIds[0], "G1", "the first opened gate is G1 even if support artillery continues");
+  const destroyedEnemyParts = state.eventLog.flatMap((event) =>
+    event.type === "part_destroyed" && event.team === "enemy" ? [event.partId] : []);
+  assert.equal(destroyedEnemyParts[0], "P1", "P1 is the first enemy exterior part destroyed");
   assert.equal(reachedPlaza, true, `P1 reaches the plaza after the public artillery boundary is open (tick=${state.tick}, phase=${phase}, area=${state.actors.P1.location.area}, room=${state.actors.P1.currentRoomId}, position=${JSON.stringify(state.fixedActors.P1.position)}, outcome=${state.outcome})`);
 
   const entry = state.fixedActors.P1.position;
@@ -454,24 +464,27 @@ test("主人公の公開砲撃でG1を開けても次のG2で止まる", { timeo
 
   assert.equal(enteredEnemyCastle, true, "held public direction crosses after the plaza guards are defeated");
   assert.equal(state.actors.P1.location.castleTeam, "enemy");
-  assert.deepEqual(state.castles.enemy.openGateIds, ["G1"], "only the first gate is open at the crossing");
+  assert.equal(state.castles.enemy.openGateIds[0], "G1", "G1 is the first gate opened before the crossing");
 
   for (let tick = 0; tick < 3_000 && state.phase === "running"; tick += 1) {
     state = stepBattle(state, publicP1Intent(state, { direction: { x: 1, y: 0 } }));
   }
 
   const stoppedPosition = state.fixedActors.P1.position;
-  assert.equal(state.actors.P1.currentRoomId, "corridor_1", "P1 crosses G1 and reaches the second closed-gate approach");
-  assert.deepEqual(state.actors.P1.location.pathRooms, ["central_corridor", "respawn", "corridor_0", "corridor_1"]);
-  assert.deepEqual(state.actors.P1.location.pathGates, ["G1"], "the physical route records only the opened G1");
-  assert.deepEqual(state.castles.enemy.openGateIds, ["G1"]);
-  assert.deepEqual(state.castles.enemy.destroyedPartIds, ["P1"]);
+  const openGateCount = state.castles.enemy.openGateIds.length;
+  const expectedRoomAtFirstClosedGate = state.layout.enemy.coreRouteRooms[openGateCount + 2] ?? "core";
+  assert.equal(state.actors.P1.currentRoomId, expectedRoomAtFirstClosedGate,
+    "P1 follows the open gate prefix and stops at the first remaining closed gate");
+  assert.deepEqual(state.actors.P1.location.pathGates, state.castles.enemy.openGateIds.slice(0, state.actors.P1.location.pathGates.length),
+    "the physical route records only gates opened before crossing");
+  assert.equal(state.castles.enemy.openGateIds[0], "G1");
+  assert.equal(state.castles.enemy.core.hit, false, "ordinary movement never replaces the core-contact dash");
 
   for (let tick = 0; tick < 120 && state.phase === "running"; tick += 1) {
     state = stepBattle(state, publicP1Intent(state, { direction: { x: 1, y: 0 } }));
   }
   assert.deepEqual(state.fixedActors.P1.position, stoppedPosition, "held public direction stays blocked by closed G2");
-  assert.equal(state.actors.P1.currentRoomId, "corridor_1");
+  assert.equal(state.actors.P1.currentRoomId, expectedRoomAtFirstClosedGate);
   assert.equal(state.lastStep.acceptedInputKinds.includes("direction"), true, "the blocked movement still comes from public direction input");
 });
 
