@@ -232,7 +232,12 @@ test("標準配分の味方砲台AIを維持し、警備3人撃破後に公開�
       }
     } else {
       const interaction = getInteraction(state, "P1", 0);
-      const allGuardsDead = PLAZA_GUARD_IDS.every((actorId) => !state.actors[actorId].alive);
+      // A defeated generation respawns at its authored home pad after 20s;
+      // home-castle guards do not recreate the old plaza blockade.  The
+      // crossing decision therefore waits only for live guards physically in
+      // the plaza, not for every actor generation to remain dead.
+      const allGuardsClearedFromPlaza = PLAZA_GUARD_IDS.every((actorId) =>
+        !state.actors[actorId].alive || state.actors[actorId].location.area !== "plaza");
       const dashReady = state.tick >= (state.dashCooldownUntilTick.P1 ?? 0);
       if (state.dashes.P1) {
         nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
@@ -240,7 +245,7 @@ test("標準配分の味方砲台AIを維持し、警備3人撃破後に公開�
         const targetId = interaction.attackTargetId;
         nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToActorDirection(state, targetId), attack: true }));
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) attackCount += 1;
-      } else if (allGuardsDead) {
+      } else if (allGuardsClearedFromPlaza) {
         if (!state.castles.enemy.openGateIds.includes("G1")) {
           nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
         } else {

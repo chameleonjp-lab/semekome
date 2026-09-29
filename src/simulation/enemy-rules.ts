@@ -29,8 +29,8 @@ export function observeEnemy(battle: BattleState, actor: ActorState): EnemyObser
   const playerUnderPressure = Object.values(battle.world.actors).some(other => other.team === "player" && other.alive &&
     (other.location.area === "plaza" || other.location.area === "castle" && other.location.castleTeam === actor.team));
   const opposingCrossings = actor.team === "enemy"
-    ? battle.world.plaza.playerCrossings
-    : battle.world.plaza.enemyCrossings;
+    ? battle.world.plaza.enemyCrossings
+    : battle.world.plaza.playerCrossings;
   const opposingSideHasBreached = Object.values(opposingCrossings).some(crossing => crossing.allowed);
   const dispatchedGuardGeneration = battle.world.plaza.guardDeployments[actor.team]?.guardGenerations[String(actor.id)];
   return {
@@ -45,7 +45,7 @@ export function observeEnemy(battle: BattleState, actor: ActorState): EnemyObser
       actor.location.area === "castle" && o.location.team === actor.location.castleTeam && o.location.roomId === actor.location.roomId && near(actor.position, o.location.position))
       .map(o => o.id).sort(ordered),
     turret: turret ? { id: turret.id, roomId: turret.roomId, atPosition: atTurret(actor, turret), hasCapacity: queueFor(battle, actor.team, turret.id).length < turret.queueCapacity } : undefined,
-    canAssault: actor.canAssaultOtherVehicle === true,
+    canAssault: actor.canAssaultOtherVehicle === true && !opposingSideHasBreached,
     canGuardPlaza: actor.canGuardPlaza === true &&
       (dispatchedGuardGeneration === undefined
         ? !opposingSideHasBreached
