@@ -93,6 +93,23 @@ test("assault room observation preserves common role priority and has a legacy f
   });
 });
 
+test("主人公が敵陣にいるだけでは、侵入兵の進軍を停止しない", () => {
+  let state = createBattle({ matchId: "enemy-assault-continues", seed: 1321 });
+  placeInRoom(state, "E29", "player", "central_corridor");
+  placeInRoom(state, "P1", "enemy", "central_corridor");
+  placeInRoom(state, "P2", "player", "battery_a");
+  placeInRoom(state, "P3", "player", "battery_b");
+  const start = { ...state.fixedActors.E29.position };
+
+  state = stepBattle(state);
+
+  assert.deepEqual(state.enemyDecisions.E29.intent, {
+    kind: "move_goal", roomId: "corridor_0", purpose: "assault",
+  });
+  assert.equal(state.crew.assignments.E29.task, "idle");
+  assert.notDeepEqual(state.fixedActors.E29.position, start, "the assault uses fixed-step movement");
+});
+
 test("E29 and E30 wait at closed gates, re-plan by gate state, walk all rooms, then dash-hit the core", () => {
   for (const actorId of ["E29", "E30"] as const) {
     let state = createBattle({ matchId: `enemy-core-assault-${actorId}`, seed: actorId === "E29" ? 1301 : 1303 });

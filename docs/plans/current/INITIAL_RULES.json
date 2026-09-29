@@ -11,6 +11,10 @@
     "timeout_outcome": "draw",
     "legacy_replay_policy": "reject_older_ruleset_with_message_preserve_settings"
   },
+  "physical_battle": {
+    "enemy_launch_cooldown_ticks": 72,
+    "notice_ja": "通常ルート検査用の未承認補足値。共通砲撃ルールの48更新枠とは分離し、敵側の物理戦ペースだけを暫定調整する。"
+  },
   "actor": {
     "health": 4,
     "floor_speed_units_per_second": 3.0,
