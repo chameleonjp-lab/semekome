@@ -35,6 +35,19 @@ test("R2b internal soldiers choose authored plaza/assault goals and move without
   assert.equal(next.fixedActors.E29.position.y, state.fixedActors.E29.position.y);
 });
 
+test("R2b assault soldiers yield after a cleared opposing crossing", () => {
+  const crossed = createBattle({ matchId: "r2b-assault-defense-crossing", seed: 323 });
+  crossed.plaza.enemyCrossings["P1:1"] = {
+    actorIds: ["P1"],
+    capturedAtTick: 0,
+    guardGenerations: {},
+    allowed: true,
+  };
+  const crossedNext = stepBattle(crossed, p1Intent(crossed));
+  assert.notEqual(crossedNext.enemyDecisions.E29.intent.kind === "move_goal" && crossedNext.enemyDecisions.E29.intent.purpose, "assault");
+  assert.notEqual(crossedNext.enemyDecisions.E30.intent.kind === "move_goal" && crossedNext.enemyDecisions.E30.intent.purpose, "assault");
+});
+
 test("R2b internal soldier defense starts an AI dash and bridges damage with the public tick", () => {
   const state = createBattle({ matchId: "r2b-internal-defend", seed: 313 });
   const enemyPosition = { ...state.fixedActors.E17.position };

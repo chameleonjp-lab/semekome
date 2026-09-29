@@ -1507,9 +1507,13 @@ function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyO
   // the old blockade; their new generation stays at home unless redeployed.
   const homeUnderPlayerPressure = Object.values(state.actors).some((candidate) => candidate.team === PLAYER_TEAM && candidate.alive &&
     (candidate.location.area === "plaza" || candidate.location.area === "castle" && candidate.location.castleTeam === ENEMY_TEAM));
-  const opposingCrossings = actor.team === ENEMY_TEAM ? state.plaza.playerCrossings : state.plaza.enemyCrossings;
+  const opposingCrossings = actor.team === ENEMY_TEAM ? state.plaza.enemyCrossings : state.plaza.playerCrossings;
   const opposingSideHasBreached = Object.values(opposingCrossings).some((crossing) => crossing.allowed);
-  const canAssault = actor.canAssaultOtherVehicle === true && !homeUnderPlayerPressure;
+  // A successful opposing breach is durable public state. Keep assault-capable
+  // soldiers from resuming the old core rush after the invader leaves the
+  // room; the authored enemy invasion path remains available until that
+  // crossing is actually established.
+  const canAssault = actor.canAssaultOtherVehicle === true && !homeUnderPlayerPressure && !opposingSideHasBreached;
   const dispatchedGuardGeneration = state.plaza.guardDeployments[actor.team]?.guardGenerations[String(actor.id)];
   const canGuardPlaza = actor.canGuardPlaza === true &&
     (dispatchedGuardGeneration === undefined
