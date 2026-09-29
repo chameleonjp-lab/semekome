@@ -164,7 +164,7 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
-test("標準配分の味方砲台AIを維持し、警備3人撃破後に公開操作でG1を越える", { timeout: 300_000 }, () => {
+test("標準配分の通常ルートで敵外装P1/P2を破壊し、G1通過後にG2を開く", { timeout: 300_000 }, () => {
   let state = createBattle({ matchId: "r2v-standard-player-g1-infiltration", seed: 20260913 });
   assert.deepEqual(state.logistics.playerAllocation, STANDARD_ALLOCATION);
   for (const actorId of ["P1", "P2", "P3", ...PLAZA_GUARD_IDS] as const) {
@@ -175,10 +175,15 @@ test("標準配分の味方砲台AIを維持し、警備3人撃破後に公開�
   let deliveries = 0;
   let reachedPlaza = false;
   let crossedG1 = false;
+  let p2DestructionTick: number | null = null;
+  let supportDetourP2Launches = 0;
+  let supportDetourP2Impacts = 0;
+  let supportDetourP2Interceptions = 0;
   let p1AwaySupportLaunches = 0;
   let attackCount = 0;
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
   const guardDamage: Record<(typeof PLAZA_GUARD_IDS)[number], number> = { E25: 0, E26: 0, E27: 0 };
+  const supportP2ProjectileIds = new Set<string>();
 
   for (let tick = 0; tick < state.matchLimitTicks && state.phase === "running"; tick += 1) {
     if (!state.actors.P1.alive) {
@@ -285,6 +290,23 @@ test("標準配分の味方砲台AIを維持し、警備3人撃破後に公開�
           (event.sourceActorId === "P2" || event.sourceActorId === "P3") && p1AwayFromTurret) {
         p1AwaySupportLaunches += 1;
       }
+      if (event.type === "projectile_launched" && event.team === "player" &&
+          (event.sourceActorId === "P2" || event.sourceActorId === "P3") &&
+          event.route === "detour" && event.targetPart === "P2") {
+        supportP2ProjectileIds.add(event.projectileId);
+        supportDetourP2Launches += 1;
+      }
+      if (event.type === "projectile_impacted" && supportP2ProjectileIds.has(event.projectileId) &&
+          event.targetTeam === "enemy" && event.targetPart === "P2") {
+        supportDetourP2Impacts += 1;
+      }
+      if (event.type === "projectile_intercepted" &&
+          (supportP2ProjectileIds.has(event.firstProjectileId) || supportP2ProjectileIds.has(event.secondProjectileId))) {
+        supportDetourP2Interceptions += 1;
+      }
+      if (event.type === "part_destroyed" && event.team === "enemy" && event.partId === "P2") {
+        p2DestructionTick = state.tick;
+      }
     }
     if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
     if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
@@ -299,13 +321,16 @@ test("標準配分の味方砲台AIを維持し、警備3人撃破後に公開�
     if (state.actors.P1.location.area === "castle" && state.actors.P1.location.castleTeam === "enemy") phase = "gate-route";
     if (phase === "gate-route" && state.actors.P1.currentRoomId === "corridor_1") {
       crossedG1 = true;
-      break;
     }
+    if (state.castles.enemy.exterior.P2.destroyed) break;
   }
 
   assert.ok(deliveries >= 4, "P1 stages at least four ordinary public deliveries before leaving the turret");
   assert.equal(reachedPlaza, true, "P1 reaches the plaza through the standard public route");
   assert.ok(p1AwaySupportLaunches > 0, "P2/P3 AI operates queued artillery after P1 leaves the turret");
+  assert.ok(supportDetourP2Launches > 0, "P2/P3 switch to the detour route and target P2 after G1 opens");
+  assert.ok(supportDetourP2Impacts > 0, "a P2/P3 detour projectile reaches enemy exterior P2");
+  assert.equal(supportDetourP2Interceptions, 0, "enemy direct fire does not intercept the P2/P3 detour shots");
   assert.ok(state.castles.enemy.openGateIds.includes("G1"), `the standard player artillery opens G1 during the route (tick=${state.tick}, deliveries=${deliveries}, supportLaunches=${p1AwaySupportLaunches}, P1health=${state.castles.enemy.exterior.P1.health}, guards=${JSON.stringify(guardDamage)}, P1area=${state.actors.P1.location.area}, P1room=${state.actors.P1.currentRoomId}, phase=${phase}, outcome=${state.outcome})`);
   assert.ok(attackCount > 0, "the plaza fight uses public contact attacks");
   const dispatchedGuardGenerations = state.plaza.guardDeployments.enemy?.guardGenerations ?? {};
@@ -343,7 +368,10 @@ test("標準配分の味方砲台AIを維持し、警備3人撃破後に公開�
   assert.equal(state.actors.P1.location.castleTeam, "enemy");
   assert.equal(state.actors.P1.currentRoomId, "corridor_1");
   assert.deepEqual(state.actors.P1.location.pathGates, ["G1"], "only the opened G1 is crossed");
-  assert.deepEqual(state.castles.enemy.openGateIds, ["G1"]);
+  assert.ok(p2DestructionTick !== null && p2DestructionTick <= state.tick, "P2 is destroyed during the ordinary match");
+  assert.equal(p2DestructionTick, state.tick, "the scenario stops on the update that destroys P2");
+  assert.deepEqual(state.castles.enemy.destroyedPartIds, ["P1", "P2"]);
+  assert.deepEqual(state.castles.enemy.openGateIds, ["G1", "G2"]);
   assert.equal(state.rules.enemyRespawnTicks, 1_200, "enemy generations keep their required 20-second respawn");
   assert.equal(state.outcome, "ongoing", "crossing G1 does not end the battle");
 });
