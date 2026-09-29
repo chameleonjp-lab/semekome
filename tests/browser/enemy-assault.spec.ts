@@ -59,15 +59,15 @@ test('敵AIの核への実突進で敗北し、停止中と終局後は世界も
   await expect(battle).toHaveAttribute('data-tick', pausedTick!);
   await page.getByRole('button', { name: '再開する' }).click();
   await page.clock.runFor(3000);
-  await expect(battle).toHaveAttribute('data-phase', 'ended');
-  await expect(page.locator('.battle-overlay')).toContainText('敗北');
-  await expect(page.locator('#battle-dash')).toBeDisabled();
-  const endedTick = await battle.getAttribute('data-tick');
+  const result = page.locator('.battle-result');
+  await expect(result).toHaveAttribute('data-outcome', 'enemy_win');
+  await expect(result).toContainText('敗北');
+  const endedTick = await result.getAttribute('data-tick');
   await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
   await page.keyboard.press('Space');
   await page.keyboard.press('ArrowRight');
   await page.clock.runFor(1000);
-  await expect(battle).toHaveAttribute('data-tick', endedTick!);
+  await expect(result).toHaveAttribute('data-tick', endedTick!);
   const trace = await page.evaluate(() => (globalThis as unknown as {
     __enemyAssaultTrace: { outcomes: number; coreHits: number; stepsAfterEnd: number; movement: number };
   }).__enemyAssaultTrace);

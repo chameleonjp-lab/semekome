@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('通常戦はホームから名前・カウントダウンを経て実戦の勝敗表示まで進む', async ({ page }) => {
+test('通常戦はホームから名前・カウントダウンを経て結果画面と再戦準備まで進む', async ({ page }) => {
   test.setTimeout(180_000);
   const errors: string[] = [];
   page.on('pageerror', error => errors.push(error.message));
@@ -70,9 +70,21 @@ test('通常戦はホームから名前・カウントダウンを経て実戦�
   // production initial battle. No fixture state or terminal result is added.
   await page.clock.runFor(105_000);
 
-  await expect(battle).toHaveAttribute('data-phase', 'ended');
-  await expect(battle).toHaveAttribute('data-outcome', 'enemy_win');
-  await expect(page.locator('.battle-overlay')).toContainText('敗北');
-  await expect(page.locator('.overlay-title')).toHaveText('通常戦を終了しました');
+  const result = page.locator('.battle-result');
+  await expect(result).toHaveAttribute('data-flow', 'normal-result');
+  await expect(result).toHaveAttribute('data-outcome', 'enemy_win');
+  await expect(result).toContainText('敗北');
+  await expect(result).toContainText('自陣コアへの有効命中');
+  await expect(result.locator('[data-result-score-status="pending"]')).toContainText('得点式の承認待ち');
+  await expect(result.locator('[data-result-ranking-status="unavailable"]')).toContainText('game_id / game_slug / URL');
+  await expect(result.locator('[data-result-player-name]')).toHaveText('通常戦の開始検査');
+
+  const endedMatchId = await result.getAttribute('data-match-id');
+  await page.getByRole('button', { name: '再戦の準備へ' }).click();
+  await expect(page.locator('.battle-setup')).toBeVisible();
+  await page.getByLabel('あなたの名前').fill('再戦の状態検査');
+  await page.getByRole('button', { name: '確認を開始する' }).click();
+  await expect(page.locator('.battle')).toHaveAttribute('data-tick', '0');
+  await expect(page.locator('.battle')).not.toHaveAttribute('data-match-id', endedMatchId!);
   expect(errors).toEqual([]);
 });
