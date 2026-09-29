@@ -165,15 +165,21 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
-test("標準配分の通常ルートでP7を破壊し、P1がG7を越えてコア室に入る", { timeout: 300_000 }, () => {
-  let state = createBattle({ matchId: "r2ae-standard-player-g7-core", seed: 20260913 });
+test("標準配分の通常ルートでP1が7門を越え、有効なコア突進で勝利する", { timeout: 300_000 }, () => {
+  let state = createBattle({ matchId: "r2af-standard-player-core-victory", seed: 20260913 });
   assert.deepEqual(state.logistics.playerAllocation, STANDARD_ALLOCATION);
   const initialP3Health = state.castles.enemy.exterior.P3.health;
+  const coreRoom = state.layout.enemy.rooms.find((room) => room.id === "core");
+  assert.ok(coreRoom, "enemy core room is authored");
+  const coreCenter = {
+    x: Math.round((coreRoom.rect.x0 + coreRoom.rect.x1) * 500),
+    y: Math.round((coreRoom.rect.y0 + coreRoom.rect.y1) * 500),
+  };
   for (const actorId of ["P1", "P2", "P3", ...PLAZA_GUARD_IDS] as const) {
     assert.equal(state.actors[actorId].protectedUntilTick, null, actorId + " starts without test protection");
   }
 
-  let phase: "pickup" | "turret" | "plaza-route" | "return-plaza" | "combat" | "gate-route" = "pickup";
+  let phase: "pickup" | "turret" | "plaza-route" | "return-plaza" | "combat" | "gate-route" | "core-route" = "pickup";
   let deliveries = 0;
   let reachedPlaza = false;
   let crossedG1 = false;
@@ -220,6 +226,8 @@ test("標準配分の通常ルートでP7を破壊し、P1がG7を越えてコ�
   let supportDetourP2Interceptions = 0;
   let p1AwaySupportLaunches = 0;
   let attackCount = 0;
+  let coreDashIntentCount = 0;
+  let coreContactCount = 0;
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
   const guardDamage: Record<(typeof PLAZA_GUARD_IDS)[number], number> = { E25: 0, E26: 0, E27: 0 };
   const supportP2ProjectileIds = new Set<string>();
@@ -296,7 +304,7 @@ test("標準配分の通常ルートでP7を破壊し、P1がG7を越えてコ�
       nextState = stepBattle(state, publicP1Intent(state, {
         direction: phase === "return-plaza" ? p1FromRespawnToPlazaDirection(state) : p1ToPlazaDirection(state),
       }));
-    } else if (phase === "gate-route") {
+    } else if (phase === "gate-route" || phase === "core-route") {
       const threatId = nearestEnemyInP1Room(state);
       const interaction = getInteraction(state, "P1", 0);
       const targetPosition = threatId ? state.fixedActors[threatId]?.position : undefined;
@@ -304,6 +312,8 @@ test("標準配分の通常ルートでP7を破壊し、P1がG7を越えてコ�
       const distance = targetPosition ? Math.hypot(targetPosition.x - p1Position.x, targetPosition.y - p1Position.y) : Number.POSITIVE_INFINITY;
       const direction = threatId ? p1ToActorDirection(state, threatId) : { x: 1, y: 0 } as BattleDirection;
       const dashReady = state.tick >= (state.dashCooldownUntilTick.P1 ?? 0);
+      const isInEnemyCoreRoom = state.actors.P1.currentRoomId === "core" &&
+        state.actors.P1.location.pathGates.join(",") === "G1,G2,G3,G4,G5,G6,G7";
       if (state.dashes.P1) {
         nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
       } else if (threatId && interaction.attackTargetId === threatId) {
@@ -312,8 +322,21 @@ test("標準配分の通常ルートでP7を破壊し、P1がG7を越えてコ�
       } else if (threatId && dashReady && distance <= state.rules.dashDistanceSubunits + 1_000) {
         nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: direction }));
         if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) attackCount += 1;
+      } else if (phase === "core-route" && isInEnemyCoreRoom &&
+          Math.abs(coreCenter.y - p1Position.y) > 50) {
+        nextState = stepBattle(state, publicP1Intent(state, {
+          direction: { x: 0, y: sign(coreCenter.y - p1Position.y) },
+        }));
+      } else if (phase === "core-route" && isInEnemyCoreRoom &&
+          Math.abs(coreCenter.x - p1Position.x) <= state.rules.dashDistanceSubunits && dashReady) {
+        const coreDashDirection = { x: sign(coreCenter.x - p1Position.x) || 1, y: 0 } as BattleDirection;
+        coreDashIntentCount += 1;
+        nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: coreDashDirection }));
       } else {
-        nextState = stepBattle(state, publicP1Intent(state, { direction }));
+        const coreApproachDirection = phase === "core-route" && isInEnemyCoreRoom
+          ? { x: sign(coreCenter.x - p1Position.x), y: Math.abs(coreCenter.y - p1Position.y) > 50 ? sign(coreCenter.y - p1Position.y) : 0 } as BattleDirection
+          : direction;
+        nextState = stepBattle(state, publicP1Intent(state, { direction: coreApproachDirection }));
       }
     } else {
       const interaction = getInteraction(state, "P1", 0);
@@ -361,6 +384,7 @@ test("標準配分の通常ルートでP7を破壊し、P1がG7を越えてコ�
       }
     }
 
+    if (nextState.lastStep.acceptedInputKinds.includes("bridge:core_contact")) coreContactCount += 1;
     state = nextState;
     let trackedP3ProjectileImpactedThisTick = false;
     let p3PartDamageThisTick = 0;
@@ -518,7 +542,9 @@ test("標準配分の通常ルートでP7を破壊し、P1がG7を越えてコ�
       reachedPlaza = true;
       phase = "combat";
     }
-    if (state.actors.P1.location.area === "castle" && state.actors.P1.location.castleTeam === "enemy") phase = "gate-route";
+    if (state.actors.P1.location.area === "castle" && state.actors.P1.location.castleTeam === "enemy") {
+      phase = crossedG7 ? "core-route" : "gate-route";
+    }
     if (phase === "gate-route" && state.actors.P1.currentRoomId === "corridor_1") {
       crossedG1 = true;
     }
@@ -552,7 +578,6 @@ test("標準配分の通常ルートでP7を破壊し、P1がG7を越えてコ�
       crossedG7 = true;
       g7CrossingTick ??= state.tick;
     }
-    if (crossedG7) break;
   }
 
   assert.ok(deliveries >= 4, "P1 stages at least four ordinary public deliveries before leaving the turret");
@@ -670,8 +695,16 @@ test("標準配分の通常ルートでP7を破壊し、P1がG7を越えてコ�
   assert.equal(crossedG7, true, "P1 reaches the core room through G7");
   assert.equal(state.actors.P1.currentRoomId, "core");
   assert.deepEqual(state.actors.P1.location.pathGates, ["G1", "G2", "G3", "G4", "G5", "G6", "G7"]);
-  assert.equal(state.castles.enemy.core.hit, false, "entering the core room without a valid attack does not hit the core");
-  assert.equal(state.castles.player.core.hit, false, "the enemy has not hit the player core before this checkpoint");
+  assert.ok(coreDashIntentCount > 0, "P1 issues a public dash after reaching the enemy core room through all seven gates");
+  assert.ok(coreContactCount > 0, "the public dash makes a validated physical first contact with the core");
+  assert.ok(state.eventLog.some((event) => event.type === "core_hit_candidate" &&
+    event.attackerId === "P1" && event.targetTeam === "enemy"), "P1's core contact reaches the common victory check");
+  assert.equal(state.castles.enemy.core.hit, true, "a valid P1 dash hits the enemy core");
+  assert.equal(state.castles.player.core.hit, false, "the enemy has not hit the player core before the player victory");
   assert.equal(state.rules.enemyRespawnTicks, 1_200, "enemy generations keep their required 20-second respawn");
-  assert.equal(state.outcome, "ongoing", "entering the core room without a valid attack does not end the battle");
+  assert.equal(state.outcome, "player_win", "the valid core hit ends the standard battle in a player victory");
+  assert.equal(state.phase, "ended");
+  assert.equal(state.lastStep.acceptedInputKinds.includes("bridge:core_contact"), true);
+  assert.equal(state.lastStep.events.filter((event) => event.type === "outcome").length, 1,
+    "the terminal player victory is emitted once");
 });
