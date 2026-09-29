@@ -482,8 +482,9 @@ function supplyScenario(mode: "enemy-core-assault" | "artillery-endurance"): voi
   }
   for (const team of ["player", "enemy"] as const) {
     const launchTicks = launchesByTeam(team).map((launch) => launch.tick);
+    const minimumGap = team === "enemy" ? state.rules.enemyLaunchCooldownTicks : 48;
     for (let index = 1; index < launchTicks.length; index += 1) {
-      assert.ok(launchTicks[index] - launchTicks[index - 1] >= 48, `${team} shared launch slot is at least 48 ticks`);
+      assert.ok(launchTicks[index] - launchTicks[index - 1] >= minimumGap, `${team} shared launch slot is at least ${minimumGap} ticks`);
     }
   }
   for (const launch of record.launches) {

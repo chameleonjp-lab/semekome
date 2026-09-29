@@ -1493,27 +1493,32 @@ function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyO
     .sort((left, right) => distanceSquared(actorFixed(state, actor.id), actorFixed(state, left.id)) -
       distanceSquared(actorFixed(state, actor.id), actorFixed(state, right.id)) || String(left.id).localeCompare(String(right.id)))
     .map((candidate) => candidate.id);
+  // E29/E30 are the dedicated cross-castle assault pair. Once they have
+  // entered the opposing castle, a local support contact must not strand them
+  // in a foreign room: the gate-aware assault route remains their priority.
+  // Other internal soldiers keep the shared local-defense priority below.
+  const physicalThreats = actor.role === "internal_soldier" && actor.canAssaultOtherVehicle === true &&
+    actor.location.area === "castle" && actor.location.castleTeam !== actor.team ? [] : threats;
   const turretDefinition = actor.turretId
     ? teamLayout(state, actor.team).turrets.find((candidate) => candidate.id === actor.turretId)
     : undefined;
   const turret = turretDefinition
     ? state.artillery.turrets[turretKey(actor.team, turretDefinition.id)]
     : undefined;
-  // The two assault-capable soldiers hold their offensive route while an
-  // opposing player is visibly in the plaza or their home castle. This keeps
-  // a live invasion from being ignored in favour of an immediate core rush;
-  // once the incursion ends, the usual assault decision resumes. After a
+  // The plaza remains a contested crossing, but a player who has already
+  // entered the enemy castle is not a global stop signal for E29/E30. After a
   // successful plaza crossing, respawned guards do not automatically restore
   // the old blockade; their new generation stays at home unless redeployed.
+  const playerInPlaza = Object.values(state.actors).some((candidate) => candidate.team === PLAYER_TEAM && candidate.alive &&
+    candidate.location.area === "plaza");
   const homeUnderPlayerPressure = Object.values(state.actors).some((candidate) => candidate.team === PLAYER_TEAM && candidate.alive &&
     (candidate.location.area === "plaza" || candidate.location.area === "castle" && candidate.location.castleTeam === ENEMY_TEAM));
   const opposingCrossings = actor.team === ENEMY_TEAM ? state.plaza.enemyCrossings : state.plaza.playerCrossings;
   const opposingSideHasBreached = Object.values(opposingCrossings).some((crossing) => crossing.allowed);
-  // A successful opposing breach is durable public state. Keep assault-capable
-  // soldiers from resuming the old core rush after the invader leaves the
-  // room; the authored enemy invasion path remains available until that
-  // crossing is actually established.
-  const canAssault = actor.canAssaultOtherVehicle === true && !homeUnderPlayerPressure && !opposingSideHasBreached;
+  // A player inside the enemy castle is not a global stop signal.  Keep the
+  // plaza itself contested, but once the player has crossed, an assault unit
+  // continues its own gate-aware route toward the player's vehicle.
+  const canAssault = actor.canAssaultOtherVehicle === true && !playerInPlaza && !opposingSideHasBreached;
   const dispatchedGuardGeneration = state.plaza.guardDeployments[actor.team]?.guardGenerations[String(actor.id)];
   const canGuardPlaza = actor.canGuardPlaza === true &&
     (dispatchedGuardGeneration === undefined
@@ -1535,7 +1540,7 @@ function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyO
     homeRoomId: actor.homeRoomId,
     currentRoomId: actor.currentRoomId,
     inHomeCastle: actor.location.area === "castle" && actor.location.castleTeam === actor.team,
-    threats,
+    threats: physicalThreats,
     cargo: actor.cargoIds.filter((caseId) => state.battleCases[caseId]?.location === "carried"),
     nearbyCases,
     turret: turret && turretDefinition ? {
@@ -1617,9 +1622,6 @@ function processInternalCrossAreaGoal(
     return { handled: true, pathPlanned: false };
   }
 
-  // A guard or assault unit leaves its own castle through the authored front
-  // entry. Once an assault unit has entered the opposing castle, the regular
-  // authored-room mover resumes below in processInternalSoldierAI.
   if (actor.location.area !== "castle" || actor.location.castleTeam !== actor.team) {
     return { handled: false, pathPlanned: false };
   }
@@ -3092,7 +3094,8 @@ function autoLaunch(state: BattleState, startActors: Record<string, ActorState>,
     for (let offset = 0; offset < turrets.length; offset += 1) {
       const turret = turrets[(startIndex + offset) % turrets.length];
       if (!launchOne(state, turret, startActors, events)) continue;
-      state.artillery.nextLaunchTick[team] = state.tick + SHARED_LAUNCH_COOLDOWN_TICKS;
+      const launchCooldown = team === ENEMY_TEAM ? state.rules.enemyLaunchCooldownTicks : SHARED_LAUNCH_COOLDOWN_TICKS;
+      state.artillery.nextLaunchTick[team] = state.tick + launchCooldown;
       state.nextLaunchTick[team] = state.artillery.nextLaunchTick[team];
       state.artillery.roundRobinTurretIndex[team] = (startIndex + offset + 1) % turrets.length;
       break;
@@ -3627,12 +3630,87 @@ function processSupportDefense(state: BattleState, actor: ActorState): boolean {
   return true;
 }
 
+function supportMayEscortP1(state: BattleState, actor: ActorState): boolean {
+  if (actor.team !== PLAYER_TEAM || actor.role !== "support") return false;
+  const playerInEnemyCastle = state.actors.P1?.alive && state.actors.P1.location.area === "castle" &&
+    state.actors.P1.location.castleTeam === ENEMY_TEAM;
+  if (playerInEnemyCastle && state.castles.enemy.destroyedPartIds.length < state.layout.enemy.coreRouteGates.length) {
+    // Keep both supports on supply/defence until the artillery has opened the
+    // remaining public gates. Entering the enemy castle is not a reason to
+    // abandon the only route that can make those gates passable.
+    return false;
+  }
+  // Both supports may help the public plaza fight.  The supply-preservation
+  // boundary above applies only after P1 has entered the enemy castle, where
+  // escorting no longer takes priority over opening the remaining gates.
+  return true;
+}
+
+function processSupportReturnHome(state: BattleState, actor: ActorState): boolean {
+  if (actor.team !== PLAYER_TEAM || actor.role !== "support" || !actor.alive || actorIsProtected(state, actor)) return false;
+  if (actor.location.area === "castle" && actor.location.castleTeam === PLAYER_TEAM) return false;
+
+  const assignment = state.crew.assignments[actor.id] ?? {
+    actorId: actor.id,
+    task: "return" as CrewTask,
+    path: [],
+    pathIndex: 0,
+  };
+  assignment.task = "return";
+  assignment.targetActorId = undefined;
+  assignment.targetCaseId = undefined;
+  assignment.targetTurretId = undefined;
+
+  if (actor.location.area === "plaza") {
+    const bounds = plazaBounds(state);
+    const target = plazaEntryPoint(state, PLAYER_TEAM, actorFixed(state, actor.id).y);
+    assignment.targetRoomId = "plaza";
+    assignment.targetPosition = copyPoint(target);
+    assignment.path = [];
+    assignment.pathIndex = 0;
+    assignment.stuckTicks = 0;
+    if (actorFixed(state, actor.id).x <= bounds.x0 + PLAZA_ENTRY_TRIGGER_SUBUNITS &&
+        tryEnterCastleFromPlaza(state, actor, { x: -1, y: 0 })) return true;
+    moveDirectlyToward(state, actor, target);
+    state.crew.assignments[actor.id] = assignment;
+    return true;
+  }
+
+  if (actor.location.area === "castle" && actor.location.castleTeam === ENEMY_TEAM) {
+    const target = frontEntryCenter(state, ENEMY_TEAM);
+    const targetChanged = assignment.targetRoomId !== layoutSource.front_entry.room_id || !assignment.targetPosition ||
+      distanceSquared(assignment.targetPosition, target) > FLOOR_SUBUNITS ** 2;
+    assignment.targetRoomId = layoutSource.front_entry.room_id;
+    assignment.targetPosition = copyPoint(target);
+    if (targetChanged) {
+      assignment.path = [];
+      assignment.pathIndex = 0;
+      assignment.stuckTicks = 0;
+    }
+    if (atFrontExit(state, actor, { x: teamLayout(state, ENEMY_TEAM).frontDirection, y: 0 })) {
+      tryEnterPlaza(state, actor, { x: teamLayout(state, ENEMY_TEAM).frontDirection, y: 0 });
+    } else {
+      if (assignment.path.length === 0) {
+        assignment.path = actorTargetPath(state, actor, target);
+        assignment.pathIndex = 0;
+        assignment.stuckTicks = 0;
+      }
+      if (assignment.path.length > 0) moveAIAlongPath(state, actor, assignment, target);
+      else moveDirectlyToward(state, actor, target, true);
+    }
+    state.crew.assignments[actor.id] = assignment;
+    return true;
+  }
+
+  return false;
+}
+
 function processSupportEscortP1(state: BattleState, actor: ActorState): boolean {
   const player = state.actors.P1;
   const playerInEnemyCastle = player?.location.area === "castle" && player.location.castleTeam === ENEMY_TEAM &&
     state.castles.enemy.gates.G1.open;
   if (actor.team !== PLAYER_TEAM || actor.role !== "support" || !actor.alive || actorIsProtected(state, actor) ||
-      !player?.alive || player.location.area !== "plaza" && !playerInEnemyCastle) return false;
+      !player?.alive || player.location.area !== "plaza" && !playerInEnemyCastle || !supportMayEscortP1(state, actor)) return false;
   const assignment = state.crew.assignments[actor.id] ?? {
     actorId: actor.id,
     task: "patrol" as CrewTask,
@@ -3777,6 +3855,7 @@ function processCrewAI(state: BattleState, events: WorldEvent[], suppressNpcMove
     if (actor.role === "support") {
       if (processExplicitSupportOrder(state, actor)) continue;
       if (!processSupportDefense(state, actor) && !processSupportEscortP1(state, actor) &&
+          !processSupportReturnHome(state, actor) &&
           !processSupportTurretAI(state, actor)) processCarrierAI(state, actor, events);
     } else if (actor.role === "ammo_carrier") processCarrierAI(state, actor, events);
     else if (actor.role === "shooter") processShooterAI(state, actor);

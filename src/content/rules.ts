@@ -33,6 +33,7 @@ type InitialRulesShape = {
     player?: { respawn_ticks?: number };
     enemy?: { respawn_ticks?: number };
   };
+  physical_battle?: { enemy_launch_cooldown_ticks?: number };
 };
 
 const source = rawInitialRules as InitialRulesShape;
@@ -59,6 +60,7 @@ export const DEFAULT_RULES: RulesConfig = {
   dashActorDamage: positiveNumber(source.actor?.dash_actor_damage, 1),
   dashEquipmentDamage: positiveNumber(source.actor?.dash_equipment_damage, 10),
   dashKnockbackSubunits: Math.round(positiveNumber(source.actor?.dash_knockback_units, 0.6) * 1_000),
+  enemyLaunchCooldownTicks: positiveInteger(source.physical_battle?.enemy_launch_cooldown_ticks, 72),
   equipmentHealth: positiveNumber(source.equipment?.health, 60),
   equipmentDisabledTicks: positiveInteger(source.equipment?.disabled_ticks, 480),
   equipmentRepairWorkTicks: positiveInteger(source.equipment?.repair_work_ticks, 120),

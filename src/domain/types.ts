@@ -466,6 +466,8 @@ export interface RulesConfig {
   dashActorDamage: number;
   dashEquipmentDamage: number;
   dashKnockbackSubunits: number;
+  /** Provisional physical-battle pacing value for the enemy vehicle. */
+  enemyLaunchCooldownTicks: number;
   equipmentHealth: number;
   equipmentDisabledTicks: number;
   /** Fixed ticks required to complete a manual equipment repair. */

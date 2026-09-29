@@ -128,3 +128,50 @@ test("P2は同室でない敵を見て別室へ移動せず、敵が消えると
   assert.ok(["carry", "deliver", "idle"].includes(state.crew.assignments.P2.task), "P2 returns to the normal support loop after defence");
   assert.equal(state.actors.P2.location.area, "castle");
 });
+
+test("P1が敵城で倒れた後、護衛中のP2は自陣へ戻って通常業務へ復帰する", { timeout: 60_000 }, () => {
+  let state = createBattle({ matchId: "r2m-support-escort-return", seed: 20260920 });
+  const p1 = state.actors.P1;
+  const p2 = state.actors.P2;
+  for (const actor of [p1, p2]) {
+    actor.location = {
+      area: "castle",
+      castleTeam: "enemy",
+      roomId: "corridor_1",
+      pathRooms: ["central_corridor", "corridor_1"],
+      pathGates: ["G1"],
+    };
+    actor.currentRoomId = "corridor_1";
+    actor.position = { x: floorCell(52_500), y: floorCell(35_500) };
+    state.fixedActors[actor.id] = { position: { x: 52_500, y: 35_500 }, remainder: { x: 0, y: 0 } };
+  }
+  state.castles.enemy.exterior.P1.destroyed = true;
+  state.castles.enemy.exterior.P1.health = 0;
+  state.castles.enemy.destroyedPartIds = ["P1"];
+  state.castles.enemy.openGateIds = ["G1"];
+  state.castles.enemy.gates.G1.open = true;
+  p1.alive = false;
+  p1.health = 0;
+  p1.respawnAtTick = state.tick + state.rules.playerRespawnTicks;
+  for (const enemy of Object.values(state.actors).filter((actor) => actor.team === "enemy")) {
+    enemy.alive = false;
+    enemy.health = 0;
+    enemy.respawnAtTick = state.tick + 10_000;
+  }
+
+  let returned = false;
+  for (let tick = 0; tick < 4_000 && state.phase === "running"; tick += 1) {
+    state = stepBattle(state, p1Intent(state));
+    if (state.actors.P2.location.area === "castle" && state.actors.P2.location.castleTeam === "player") {
+      returned = true;
+      break;
+    }
+  }
+
+  assert.equal(returned, true,
+    `the escort returns through the enemy entrance and plaza instead of remaining stranded: ` +
+    `tick=${state.tick}, location=${JSON.stringify(state.actors.P2.location)}, position=${JSON.stringify(state.fixedActors.P2.position)}, ` +
+    `assignment=${JSON.stringify(state.crew.assignments.P2)}`);
+  assert.equal(state.actors.P2.location.castleTeam, "player");
+  assert.notEqual(state.crew.assignments.P2.task, "return", "the returned support is no longer trapped in the escort task");
+});

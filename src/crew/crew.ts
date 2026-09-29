@@ -1,4 +1,4 @@
-export type CrewTask = "idle" | "carry" | "deliver" | "operate" | "patrol" | "defend" | "retreat";
+export type CrewTask = "idle" | "carry" | "deliver" | "operate" | "patrol" | "defend" | "retreat" | "return";
 
 export interface CrewAssignment {
   actorId: string;
