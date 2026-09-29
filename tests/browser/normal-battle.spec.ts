@@ -28,6 +28,18 @@ test('通常戦はホームから名前・カウントダウンを経て結果�
   await expect(battle).toHaveAttribute('data-flow', 'normal');
   await expect(battle).toHaveAttribute('data-phase', 'countdown');
   await expect(battle).toHaveAttribute('data-tick', '0');
+  await expect(battle).toHaveAttribute('data-record-connection', 'unconnected');
+  await expect(battle).toHaveAttribute('data-start-record-status', 'idle');
+  const startedMatchId = await battle.getAttribute('data-match-id');
+  const startRecordId = await battle.getAttribute('data-start-record-id');
+  expect(startedMatchId).toBeTruthy();
+  expect(startRecordId).toBeTruthy();
+  const startedRecord = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) ?? 'null') as {
+    matchId: string;
+    start: { id: string; status: string };
+    result?: unknown;
+  } | null, `semekome:battle-session:${startedMatchId}`);
+  expect(startedRecord).toMatchObject({ matchId: startedMatchId, start: { id: startRecordId, status: 'idle' }, result: undefined });
 
   await page.clock.runFor(3_100);
   await expect(battle).toHaveAttribute('data-phase', 'running');
@@ -80,6 +92,22 @@ test('通常戦はホームから名前・カウントダウンを経て結果�
   await expect(result.locator('[data-result-player-name]')).toHaveText('通常戦の開始検査');
 
   const endedMatchId = await result.getAttribute('data-match-id');
+  await expect(result).toHaveAttribute('data-start-record-id', startRecordId!);
+  await expect(result).toHaveAttribute('data-record-connection', 'unconnected');
+  await expect(result).toHaveAttribute('data-start-record-status', 'idle');
+  await expect(result).toHaveAttribute('data-result-record-status', 'idle');
+  const resultSubmissionId = await result.getAttribute('data-result-submission-id');
+  expect(resultSubmissionId).toBeTruthy();
+  const finishedRecord = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) ?? 'null') as {
+    matchId: string;
+    start: { id: string };
+    result?: { submissionId: string; payload: { matchId: string } };
+  } | null, `semekome:battle-session:${endedMatchId}`);
+  expect(finishedRecord).toMatchObject({
+    matchId: endedMatchId,
+    start: { id: startRecordId },
+    result: { submissionId: resultSubmissionId, payload: { matchId: endedMatchId } },
+  });
   await page.getByRole('button', { name: '再戦の準備へ' }).click();
   await expect(page.locator('.battle-setup')).toBeVisible();
   await page.getByLabel('あなたの名前').fill('再戦の状態検査');

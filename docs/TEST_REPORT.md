@@ -1,5 +1,27 @@
 # 検査記録
 
+## R2ah：ローカル試合記録と終局結果の冪等境界
+
+R2ag取り込み後の通常戦で、開始成立時の開始記録と終局時の結果記録を同じ `matchId` へ結び付ける内部境界を追加した。得点式・ランキング接続値・外部送信先は未確定のため、今回は送信していない。
+
+- `src/presentation/battle-session-record.ts`：開始 `startId`、結果 `submissionId`、固定 payload、送信状態、`sessionStorage` 保存とメモリfallbackを実装した。同じ試合・同じ結果の再処理は同じ記録を返し、内容変更は拒否する。
+- `src/presentation/battle-screen.ts`：開始成立時に一度だけ記録し、終局結果へ記録状態と未接続状態を出す。再戦は新しい `matchId` と開始記録を使う。
+- `tests/presentation/battle-session-record.test.ts`：開始1件化、同じ結果の再送、内容変更拒否、保存後の再読込、開始内容の競合拒否を検査する。
+- `tests/browser/normal-battle.spec.ts`：開始・結果のID、未接続状態、`sessionStorage` の同一試合記録を検査するよう更新した。
+
+|検査|結果|
+|---|---|
+|新規ローカル記録単体|5/5通過|
+|全Node回帰|307/307通過（`npm test`、約117秒）|
+|資料検査|57/57通過（`npm run check:docs`）|
+|型検査・製品ビルド|`npm run build` 通過|
+|差分空白|`git diff --check` 通過|
+|Playwright対象列挙|Chromium/WebKitの対象2件を認識（`--list`）|
+|ブラウザー実行|未実施。CIの手動browser実行へ引き継ぐ|
+|iPhone実機・試遊|未確認|
+
+外部ランキングの完成、正式なスコア、開始・結果送信、上位10位取得は今回の検査範囲に含めない。詳細は [R2ahレビュー](R2AH_LOCAL_SESSION_RECORD_REVIEW.md) を参照する。
+
 ## R2ag：終局結果画面と再戦状態リセット
 
 R2af取り込み後の通常戦画面に、終局結果画面、実戦記録の表示、再戦準備への遷移を追加した。未承認の得点式は使用せず、共有側の `semekome` 登録値が未確定のためランキング送信・共有・実験場リンクも行わない。
