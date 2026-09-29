@@ -165,8 +165,8 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
-test("標準配分の通常ルートでG2を越え、支援射撃がP3へ届く", { timeout: 300_000 }, () => {
-  let state = createBattle({ matchId: "r2z-standard-player-g2-corridor2", seed: 20260913 });
+test("標準配分の通常ルートでP3を破壊し、P1がG3を越える", { timeout: 300_000 }, () => {
+  let state = createBattle({ matchId: "r2aa-standard-player-g3-corridor3", seed: 20260913 });
   assert.deepEqual(state.logistics.playerAllocation, STANDARD_ALLOCATION);
   const initialP3Health = state.castles.enemy.exterior.P3.health;
   for (const actorId of ["P1", "P2", "P3", ...PLAZA_GUARD_IDS] as const) {
@@ -178,11 +178,15 @@ test("標準配分の通常ルートでG2を越え、支援射撃がP3へ届く"
   let reachedPlaza = false;
   let crossedG1 = false;
   let crossedG2 = false;
+  let crossedG3 = false;
   let p2DestructionTick: number | null = null;
   let g2CrossingTick: number | null = null;
   let p3SupportLaunchTick: number | null = null;
   let p3SupportImpactTick: number | null = null;
   let p3SupportImpactDamage = 0;
+  let p3DestructionTick: number | null = null;
+  let g3OpenTick: number | null = null;
+  let g3CrossingTick: number | null = null;
   let supportDetourP2Launches = 0;
   let supportDetourP2Impacts = 0;
   let supportDetourP2Interceptions = 0;
@@ -199,6 +203,12 @@ test("標準配分の通常ルートでG2を越え、支援射撃がP3へ届く"
         state.actors.P1.location.pathGates.join(",") === "G1,G2") {
       crossedG2 = true;
       g2CrossingTick ??= state.tick;
+    }
+    if (state.actors.P1.location.area === "castle" && state.actors.P1.location.castleTeam === "enemy" &&
+        state.actors.P1.currentRoomId === "corridor_3" &&
+        state.actors.P1.location.pathGates.join(",") === "G1,G2,G3") {
+      crossedG3 = true;
+      g3CrossingTick ??= state.tick;
     }
     if (!state.actors.P1.alive) {
       state = stepBattle(state);
@@ -340,8 +350,12 @@ test("標準配分の通常ルートでG2を越え、支援射撃がP3へ届く"
       if (event.type === "part_destroyed" && event.team === "enemy" && event.partId === "P2") {
         p2DestructionTick = state.tick;
       }
+      if (event.type === "part_destroyed" && event.team === "enemy" && event.partId === "P3") {
+        p3DestructionTick = state.tick;
+      }
     }
     if (trackedP3ProjectileImpactedThisTick) p3SupportImpactDamage += p3PartDamageThisTick;
+    if (state.castles.enemy.openGateIds.includes("G3")) g3OpenTick ??= state.tick;
     if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
     if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
@@ -361,7 +375,12 @@ test("標準配分の通常ルートでG2を越え、支援射撃がP3へ届く"
       crossedG2 = true;
       g2CrossingTick ??= state.tick;
     }
-    if (crossedG2 && p3SupportImpactTick !== null && p3SupportImpactDamage > 0) break;
+    if (phase === "gate-route" && state.actors.P1.currentRoomId === "corridor_3" &&
+        state.actors.P1.location.pathGates.join(",") === "G1,G2,G3") {
+      crossedG3 = true;
+      g3CrossingTick ??= state.tick;
+    }
+    if (crossedG3) break;
   }
 
   assert.ok(deliveries >= 4, "P1 stages at least four ordinary public deliveries before leaving the turret");
@@ -405,8 +424,8 @@ test("標準配分の通常ルートでG2を越え、支援射撃がP3へ届く"
   })}`);
   assert.equal(state.actors.P1.location.area, "castle");
   assert.equal(state.actors.P1.location.castleTeam, "enemy");
-  assert.equal(state.actors.P1.currentRoomId, "corridor_2");
-  assert.deepEqual(state.actors.P1.location.pathGates, ["G1", "G2"], "P1 crosses the opened G1 and G2 in order");
+  assert.equal(state.actors.P1.currentRoomId, "corridor_3");
+  assert.deepEqual(state.actors.P1.location.pathGates, ["G1", "G2", "G3"], "P1 crosses the opened G1, G2, and G3 in order");
   assert.ok(p2DestructionTick !== null && p2DestructionTick <= state.tick, "P2 is destroyed during the ordinary match");
   assert.ok(g2CrossingTick !== null && p2DestructionTick < g2CrossingTick, "P2 opens G2 before P1 crosses it");
   assert.ok(p3SupportLaunchTick !== null && g2CrossingTick < p3SupportLaunchTick,
@@ -416,8 +435,14 @@ test("標準配分の通常ルートでG2を越え、支援射撃がP3へ届く"
   assert.ok(p3SupportImpactDamage > 0, "a damaging post-G2 support projectile lowers P3 health on impact");
   assert.ok(state.castles.enemy.exterior.P3.health < initialP3Health,
     `P3 loses health during the ordinary route (${initialP3Health} -> ${state.castles.enemy.exterior.P3.health})`);
-  assert.deepEqual(state.castles.enemy.destroyedPartIds, ["P1", "P2"]);
-  assert.deepEqual(state.castles.enemy.openGateIds, ["G1", "G2"]);
+  assert.ok(p3DestructionTick !== null && p3SupportImpactTick < p3DestructionTick,
+    "P3 is destroyed after support fire has dealt real damage");
+  assert.ok(g3OpenTick !== null && p3DestructionTick <= g3OpenTick,
+    "destroying P3 opens G3 without requiring a fixed P3-to-G3 mapping");
+  assert.ok(g3CrossingTick !== null && g3OpenTick < g3CrossingTick,
+    "P1 crosses G3 after it has opened");
+  assert.deepEqual(state.castles.enemy.destroyedPartIds, ["P1", "P2", "P3"]);
+  assert.deepEqual(state.castles.enemy.openGateIds, ["G1", "G2", "G3"]);
   assert.equal(state.rules.enemyRespawnTicks, 1_200, "enemy generations keep their required 20-second respawn");
   assert.equal(state.outcome, "ongoing", "crossing G1 does not end the battle");
 });
