@@ -335,7 +335,7 @@ export function bridgeActorFirstContact(
       matchId: evidence.matchId,
       actorId: target.id,
       generation: target.generation,
-      amount: state.rules.dashActorDamage,
+      amount: evidence.attackType === "normal_contact" ? state.rules.normalContactDamage : state.rules.dashActorDamage,
       ...(evidence.targetCargoId === undefined ? {} : { dropObjectId: evidence.targetCargoId }),
     },
   };

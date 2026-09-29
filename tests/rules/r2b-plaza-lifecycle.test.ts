@@ -140,7 +140,7 @@ test("a respawned guard generation invalidates the older crossing right", () => 
   if (!current.ok) assert.equal(current.reason, "guards_remaining");
 });
 
-test("a common-world guard respawn registers only its new generation", () => {
+test("a common-world guard respawn does not automatically redeploy to the plaza", () => {
   let world = createWorld({ matchId: "plaza-respawn-registration", seed: 1108 });
   placeInPlaza(world, "P1");
   registerPlazaGuardDispatch(world, "enemy", "E25");
@@ -154,9 +154,8 @@ test("a common-world guard respawn registers only its new generation", () => {
 
   assert.equal(world.actors.E25.alive, true);
   assert.equal(world.actors.E25.generation, 1);
-  assert.equal(world.plaza.guardDeployments.enemy?.guardGenerations.E25, 1);
+  assert.equal(world.plaza.guardDeployments.enemy?.guardGenerations.E25, 0);
   assert.deepEqual(plazaGuardGenerations(world, "enemy", "P1"), {
-    E25: 1,
     E26: 0,
     E27: 0,
   });

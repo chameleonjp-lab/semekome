@@ -87,7 +87,6 @@ test("P2は同室でない敵を見て別室へ移動せず、敵が消えると
     pathGates: [],
   };
   placeInPlayerRoom(state, "P2", 94_500, 34_500);
-  const p2Start = { ...state.fixedActors.P2.position };
   state.actors.E29.location = {
     area: "castle",
     castleTeam: "player",
@@ -104,7 +103,8 @@ test("P2は同室でない敵を見て別室へ移動せず、敵が消えると
 
   state = stepBattle(state, p1Intent(state));
   assert.equal(state.dashes.P2, undefined, "a different room is not a hidden support target");
-  assert.deepEqual(state.fixedActors.P2.position, p2Start, "P2 does not leave its room for an unseen enemy");
+  assert.equal(state.actors.P2.currentRoomId, "central_corridor", "P2 does not leave its room for an unseen enemy");
+  assert.notEqual(state.crew.assignments.P2.targetActorId, "E29", "P2 has no cross-room defense target");
   assert.notEqual(state.crew.assignments.P2.task, "defend");
 
   state.actors.E29.location = {

@@ -7,10 +7,9 @@ function isOwnCastleOrPlaza(actor: ActorState, team: TeamId): boolean {
 
 /**
  * Start or extend the generation-bound deployment for one side's plaza
- * guards.  The first dispatch captures every currently living guard that is
- * already on its own side or in the plaza.  A later, newly respawned guard is
- * registered as soon as its new generation is available for the assignment;
- * a respawn therefore cannot silently restore an old crossing right.
+ * guards. The first dispatch captures every currently living guard already on
+ * its own side or in the plaza. Respawn alone does not redeploy a guard; a
+ * later generation joins only when an explicit dispatch calls this function.
  */
 export function registerPlazaGuardDispatch(
   world: WorldState,

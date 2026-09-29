@@ -39,7 +39,7 @@ import type {
 } from "../domain/types.ts";
 import { GATE_IDS, PART_IDS } from "../domain/types.ts";
 import { applyClockCommand, type ClockCommand } from "./clock.ts";
-import { plazaGuardCandidates, registerPlazaGuardDispatch } from "./plaza-guards.ts";
+import { plazaGuardCandidates } from "./plaza-guards.ts";
 
 const PLAYER_TEAM: TeamId = "player";
 const ENEMY_TEAM: TeamId = "enemy";
@@ -459,10 +459,8 @@ function finishRespawns(world: WorldState, currentTick: number, events: WorldEve
     actor.cargoIds = [];
     actor.reservationIds = [];
     actor.turretControlIds = actor.turretId ? [actor.turretId] : [];
-    // A respawn creates a new generation.  It does not revive an older
-    // crossing token; the new guard generation is registered for its next
-    // plaza assignment before another entry can be prepared.
-    if (actor.canGuardPlaza === true) registerPlazaGuardDispatch(world, actor.team, actor.id);
+    // Respawn restores this actor at its assigned home pad. It does not
+    // automatically redeploy the new generation to the plaza.
     events.push({ type: "actor_respawned", actorId, generation: actor.generation, tick: currentTick });
   }
 }

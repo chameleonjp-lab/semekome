@@ -462,6 +462,7 @@ export interface RulesConfig {
   dashDistanceSubunits: number;
   dashDurationTicks: number;
   dashCooldownTicks: number;
+  normalContactDamage: number;
   dashActorDamage: number;
   dashEquipmentDamage: number;
   dashKnockbackSubunits: number;

@@ -21,6 +21,7 @@
     "dash_distance_units": 1.2,
     "dash_duration_ticks": 12,
     "dash_cooldown_ticks": 54,
+    "normal_contact_damage": 2,
     "dash_actor_damage": 1,
     "dash_equipment_damage": 10,
     "dash_knockback_units": 0.6,

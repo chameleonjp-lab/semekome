@@ -685,13 +685,7 @@ function meleeTargetAtActor(state: BattleState, actor: ActorState, includeInvuln
     .at(0)?.candidate;
 }
 
-/**
- * Support actors defend only the physical room they currently share with an
- * enemy.  They do not receive hidden information about another room or the
- * enemy's future supply, and they never cross a gate as a side effect of
- * defending.  This keeps automatic support behaviour local until the separate
- * ally-command unit defines explicit orders.
- */
+/** Support actors use ordinary local visibility for same-room threats. */
 function supportThreatAtActor(state: BattleState, actor: ActorState): ActorState | undefined {
   if (!actor.alive || actor.role !== "support" || actorIsProtected(state, actor)) return undefined;
   const from = actorFixed(state, actor.id);
@@ -1505,7 +1499,23 @@ function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyO
   const turret = turretDefinition
     ? state.artillery.turrets[turretKey(actor.team, turretDefinition.id)]
     : undefined;
-  const assaultGoalRoomId = actor.canAssaultOtherVehicle === true
+  // The two assault-capable soldiers hold their offensive route while an
+  // opposing player is visibly in the plaza or their home castle. This keeps
+  // a live invasion from being ignored in favour of an immediate core rush;
+  // once the incursion ends, the usual assault decision resumes. After a
+  // successful plaza crossing, respawned guards do not automatically restore
+  // the old blockade; their new generation stays at home unless redeployed.
+  const homeUnderPlayerPressure = Object.values(state.actors).some((candidate) => candidate.team === PLAYER_TEAM && candidate.alive &&
+    (candidate.location.area === "plaza" || candidate.location.area === "castle" && candidate.location.castleTeam === ENEMY_TEAM));
+  const opposingCrossings = actor.team === ENEMY_TEAM ? state.plaza.playerCrossings : state.plaza.enemyCrossings;
+  const opposingSideHasBreached = Object.values(opposingCrossings).some((crossing) => crossing.allowed);
+  const canAssault = actor.canAssaultOtherVehicle === true && !homeUnderPlayerPressure;
+  const dispatchedGuardGeneration = state.plaza.guardDeployments[actor.team]?.guardGenerations[String(actor.id)];
+  const canGuardPlaza = actor.canGuardPlaza === true &&
+    (dispatchedGuardGeneration === undefined
+      ? !opposingSideHasBreached
+      : actor.generation <= dispatchedGuardGeneration || !(homeUnderPlayerPressure || opposingSideHasBreached));
+  const assaultGoalRoomId = canAssault
     ? physicalAssaultGoalRoom(state, actor)
     : undefined;
   const nearbyCases = Object.values(state.battleCases)
@@ -1532,9 +1542,9 @@ function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyO
         hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), turret.position),
       hasCapacity: turret.queueIds.length < QUEUE_CAPACITY_PER_TURRET && turret.handoffIds.length < STAGING_SLOTS_PER_TURRET,
     } : undefined,
-    canAssault: actor.canAssaultOtherVehicle === true,
+    canAssault,
     ...(assaultGoalRoomId ? { assaultGoalRoomId } : {}),
-    canGuardPlaza: actor.canGuardPlaza === true,
+    canGuardPlaza,
   };
 }
 
@@ -3527,6 +3537,57 @@ function processShooterAI(state: BattleState, actor: ActorState): void {
   state.crew.assignments[actor.id] = assignment;
 }
 
+function playerTurretForSupport(state: BattleState, actor: ActorState): BattleTurretState | undefined {
+  if (actor.team !== PLAYER_TEAM || actorIsProtected(state, actor) || actor.cargoIds.length > 0 || actor.location.area !== "castle" ||
+      actor.location.castleTeam !== PLAYER_TEAM) return undefined;
+  const turrets = Object.values(state.artillery.turrets)
+    .filter((turret) => turret.team === PLAYER_TEAM && (turret.queueIds.length > 0 || turret.handoffIds.length > 0))
+    .sort((left, right) => right.queueIds.length - left.queueIds.length ||
+      right.handoffIds.length - left.handoffIds.length || left.id.localeCompare(right.id));
+
+  for (const turret of turrets) {
+    const anotherOperatorIsReady = turret.operatorActorIds.some((operatorId) => {
+      if (operatorId === actor.id) return false;
+      const operator = state.actors[operatorId];
+      return !!operator && operator.alive && !actorIsProtected(state, operator) &&
+        operator.location.area === "castle" && operator.location.castleTeam === PLAYER_TEAM &&
+        withinActionRange(actorFixed(state, operator.id), turret.position) &&
+        hasFloorLineOfSight(state, PLAYER_TEAM, actorFixed(state, operator.id), turret.position);
+    });
+    if (anotherOperatorIsReady) continue;
+
+    const anotherSupportIsAlreadyResponding = (turret.operatorActorIds as string[])
+      .filter((operatorId) => operatorId !== actor.id && (operatorId === "P2" || operatorId === "P3"))
+      .some((operatorId) => {
+        const operator = state.actors[operatorId];
+        const assignment = state.crew.assignments[operatorId];
+        return !!operator && operator.alive && assignment?.task === "operate" && assignment.targetTurretId === turret.id;
+      });
+    if (!anotherSupportIsAlreadyResponding) return turret;
+  }
+  return undefined;
+}
+
+function processSupportTurretAI(state: BattleState, actor: ActorState): boolean {
+  const turret = playerTurretForSupport(state, actor);
+  if (!turret) return false;
+  const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "operate" as CrewTask, path: [], pathIndex: 0 };
+  assignment.task = "operate";
+  assignment.targetCaseId = undefined;
+  assignment.targetActorId = undefined;
+  assignment.targetRoomId = undefined;
+  assignment.targetPosition = undefined;
+  if (assignment.targetTurretId !== turret.id || assignment.path.length === 0) {
+    assignment.targetTurretId = turret.id;
+    assignment.path = actorTargetPath(state, actor, turret.operatorPosition);
+    assignment.pathIndex = 0;
+    assignment.stuckTicks = 0;
+  }
+  moveAIAlongPath(state, actor, assignment, turret.operatorPosition);
+  state.crew.assignments[actor.id] = assignment;
+  return true;
+}
+
 function processSupportDefense(state: BattleState, actor: ActorState): boolean {
   if (state.dashes[actor.id]) return true;
   const threat = supportThreatAtActor(state, actor);
@@ -3543,6 +3604,7 @@ function processSupportDefense(state: BattleState, actor: ActorState): boolean {
   assignment.targetCaseId = undefined;
   assignment.targetTurretId = undefined;
   assignment.targetRoomId = undefined;
+  assignment.targetPosition = undefined;
   assignment.path = [];
   assignment.pathIndex = 0;
   assignment.stuckTicks = 0;
@@ -3555,12 +3617,95 @@ function processSupportDefense(state: BattleState, actor: ActorState): boolean {
     return true;
   }
 
-  // The support unit may approach an intruder in its current space, but the
-  // local defence task never creates an authored cross-room or cross-castle
-  // route.  The normal carrier loop resumes once the threat leaves or dies.
+  // Support defense remains local to the actor's visible physical room.
   moveDirectlyToward(state, actor, target);
   state.crew.assignments[actor.id] = assignment;
   return true;
+}
+
+function processSupportEscortP1(state: BattleState, actor: ActorState): boolean {
+  const player = state.actors.P1;
+  const playerInEnemyCastle = player?.location.area === "castle" && player.location.castleTeam === ENEMY_TEAM &&
+    state.castles.enemy.gates.G1.open;
+  if (actor.team !== PLAYER_TEAM || actor.role !== "support" || !actor.alive || actorIsProtected(state, actor) ||
+      !player?.alive || player.location.area !== "plaza" && !playerInEnemyCastle) return false;
+  const assignment = state.crew.assignments[actor.id] ?? {
+    actorId: actor.id,
+    task: "patrol" as CrewTask,
+    path: [],
+    pathIndex: 0,
+  };
+  assignment.task = "patrol";
+  assignment.targetActorId = player.id;
+  assignment.targetCaseId = undefined;
+  assignment.targetTurretId = undefined;
+  assignment.targetRoomId = "plaza";
+
+  if (actor.location.area === "castle" && actor.location.castleTeam === PLAYER_TEAM) {
+    const entry = frontEntryCenter(state, PLAYER_TEAM);
+    const outward = { x: teamLayout(state, PLAYER_TEAM).frontDirection, y: 0 } as BattleDirection;
+    if (atFrontExit(state, actor, outward)) {
+      tryEnterPlaza(state, actor, outward);
+      state.crew.assignments[actor.id] = assignment;
+      return true;
+    }
+    if (assignment.path.length === 0 || assignment.targetPosition?.x !== entry.x || assignment.targetPosition?.y !== entry.y) {
+      assignment.targetPosition = copyPoint(entry);
+      assignment.path = actorTargetPath(state, actor, entry);
+      assignment.pathIndex = 0;
+      assignment.stuckTicks = 0;
+    }
+    moveAIAlongPath(state, actor, assignment, entry);
+    state.crew.assignments[actor.id] = assignment;
+    return true;
+  }
+
+  if (actor.location.area === "plaza") {
+    if (playerInEnemyCastle) {
+      const bounds = plazaBounds(state);
+      const enemyEntry = { x: bounds.x1 - ACTOR_RADIUS_SUBUNITS, y: actorFixed(state, player.id).y };
+      assignment.targetPosition = enemyEntry;
+      assignment.path = [];
+      assignment.pathIndex = 0;
+      assignment.stuckTicks = 0;
+      if (actorFixed(state, actor.id).x >= bounds.x1 - PLAZA_ENTRY_TRIGGER_SUBUNITS) {
+        tryEnterCastleFromPlaza(state, actor, { x: 1, y: 0 });
+      } else {
+        moveDirectlyToward(state, actor, enemyEntry);
+      }
+    } else {
+      assignment.targetPosition = copyPoint(actorFixed(state, player.id));
+      assignment.path = [];
+      assignment.pathIndex = 0;
+      assignment.stuckTicks = 0;
+      moveDirectlyToward(state, actor, assignment.targetPosition);
+    }
+    state.crew.assignments[actor.id] = assignment;
+    return true;
+  }
+
+  if (actor.location.area === "castle" && actor.location.castleTeam === ENEMY_TEAM && playerInEnemyCastle) {
+    const target = actorFixed(state, player.id);
+    const targetChanged = assignment.targetRoomId !== player.currentRoomId || !assignment.targetPosition ||
+      distanceSquared(assignment.targetPosition, target) > FLOOR_SUBUNITS ** 2;
+    assignment.targetPosition = copyPoint(target);
+    assignment.targetRoomId = player.currentRoomId;
+    if (targetChanged) {
+      assignment.path = actorTargetPath(state, actor, target);
+      assignment.pathIndex = 0;
+      assignment.stuckTicks = 0;
+    }
+    if (sharesPhysicalCombatSpace(actor, player)) {
+      assignment.path = [];
+      assignment.pathIndex = 0;
+      moveDirectlyToward(state, actor, target);
+    } else if (assignment.path.length > 0) {
+      moveAIAlongPath(state, actor, assignment, target);
+    }
+    state.crew.assignments[actor.id] = assignment;
+    return true;
+  }
+  return false;
 }
 
 function holdSupportPosition(state: BattleState, actor: ActorState): void {
@@ -3618,16 +3763,17 @@ function normalContactBridge(state: BattleState, actor: ActorState): R2bBridgeRe
 }
 
 function processCrewAI(state: BattleState, events: WorldEvent[], suppressNpcMovement = false): void {
-  // Keep the contact snapshot stable for a player melee attack. The attack is
-  // resolved after this phase against the positions that were actually used
-  // for the tick, so a carrier/shooter cannot move the target away first.
-  if (suppressNpcMovement) return;
+  // Keep enemy positions stable for a player melee attack so its contact
+  // target cannot move before validation. Player supports still run their
+  // defense/escort decisions during that attack.
   for (const actor of Object.values(state.actors).sort((left, right) => left.id.localeCompare(right.id))) {
+    if (suppressNpcMovement && actor.team !== PLAYER_TEAM) continue;
     const decision = state.enemyDecisions[actor.id];
     if (decision && enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
     if (actor.role === "support") {
       if (processExplicitSupportOrder(state, actor)) continue;
-      if (!processSupportDefense(state, actor)) processCarrierAI(state, actor, events);
+      if (!processSupportDefense(state, actor) && !processSupportEscortP1(state, actor) &&
+          !processSupportTurretAI(state, actor)) processCarrierAI(state, actor, events);
     } else if (actor.role === "ammo_carrier") processCarrierAI(state, actor, events);
     else if (actor.role === "shooter") processShooterAI(state, actor);
   }
@@ -3676,7 +3822,8 @@ function finishRespawns(state: BattleState, events: WorldEvent[]): void {
     state.cargoSlots[actor.id] = [null, null];
     actor.reservationIds = [];
     actor.turretControlIds = actor.turretId ? [actor.turretId] : [];
-    if (actor.canGuardPlaza === true) registerPlazaGuardDispatch(state, actor.team, actor.id);
+    // A respawned plaza guard remains at its assigned home room; it is not
+    // automatically dispatched as a replacement wave.
     setActorFixed(state, actor, { x: cellCenter(pad.cell.x), y: cellCenter(pad.cell.y) });
     state.fixedActors[actor.id].remainder = { x: 0, y: 0 };
     resetAssignment(state, actor.id);

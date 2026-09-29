@@ -50,7 +50,9 @@ test("R2b normal contact attack damages the nearest opposing actor without dashi
   assert.equal(interaction.attackTargetId, "E29");
   const next = stepBattle(state, p1Intent(state, { attack: true }));
 
-  assert.equal(next.actors.E29.health, startHealth - next.rules.dashActorDamage);
+  assert.equal(next.actors.E29.health, startHealth - next.rules.normalContactDamage);
+  assert.equal(next.rules.normalContactDamage, 2, "normal contact uses its own supplemental damage value");
+  assert.equal(next.rules.dashActorDamage, 1, "dash damage remains unchanged");
   assert.deepEqual(next.fixedActors.P1.position, startPosition);
   assert.equal(next.dashes.P1, undefined);
   assert.equal(next.lastStep.acceptedInputKinds.includes("bridge:actor_contact"), true);

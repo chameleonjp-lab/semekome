@@ -9,6 +9,7 @@ type InitialRulesShape = {
     dash_distance_units?: number;
     dash_duration_ticks?: number;
     dash_cooldown_ticks?: number;
+    normal_contact_damage?: number;
     dash_actor_damage?: number;
     dash_equipment_damage?: number;
     dash_knockback_units?: number;
@@ -54,6 +55,7 @@ export const DEFAULT_RULES: RulesConfig = {
   dashDistanceSubunits: Math.round(positiveNumber(source.actor?.dash_distance_units, 1.2) * 1_000),
   dashDurationTicks: positiveInteger(source.actor?.dash_duration_ticks, 12),
   dashCooldownTicks: positiveInteger(source.actor?.dash_cooldown_ticks, 54),
+  normalContactDamage: positiveNumber(source.actor?.normal_contact_damage, 2),
   dashActorDamage: positiveNumber(source.actor?.dash_actor_damage, 1),
   dashEquipmentDamage: positiveNumber(source.actor?.dash_equipment_damage, 10),
   dashKnockbackSubunits: Math.round(positiveNumber(source.actor?.dash_knockback_units, 0.6) * 1_000),
