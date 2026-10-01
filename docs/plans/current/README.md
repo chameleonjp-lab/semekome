@@ -1,4 +1,9 @@
 # 現行計画書 / 第5版
+
+## 公開までの作業工程（2026年10月2日）
+
+[公開までの実装計画書](RELEASE_IMPLEMENTATION_PLAN.md)を最新の作業順序と提出単位にする。PR #72後の残件を5工程へまとめ、各工程内の実装・修正・検査・記録を完了してから原則1本のDraft PRにする。第5版の製品条件は維持し、旧引き継ぎの小単位案は履歴として読む。計画書の追加だけでゲーム機能・検査設定・外部登録・公開は変更しない。
+
 [計画書全文](PRODUCT_REQUIREMENTS.md) → [採用図と配置](MAP_ADOPTION.md) → [画面・広場・復活](SCREEN_FLOW_AND_BATTLEFIELD.md) → [結果・ランキング](RESULTS_SCORE_RANKING.md) → [実装担当へ](AI_HANDOFF.md)
 
 ## 図面
