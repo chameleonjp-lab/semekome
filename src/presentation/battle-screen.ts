@@ -1,4 +1,4 @@
-import { createBattle, getInteraction, getPlayerSupplyPreview, pauseBattle, resumeBattle, setBattleVisibility, stepBattle } from '../simulation/physical-battle.ts';
+import { getInteraction, getPlayerSupplyPreview, pauseBattle, resumeBattle, setBattleVisibility } from '../simulation/physical-battle.ts';
 import type { AllyActorId, BattleDirection, BattleEquipmentKind, BattleHandle, BattleIntent, BattleRoute } from '../simulation/physical-battle.ts';
 import { CASE_TYPES, SUPPLY_BAG, type CaseType } from '../content/cases.ts';
 import { PART_IDS } from '../domain/types.ts';
@@ -13,6 +13,8 @@ import { caseLabels, createBattleRenderer } from './battle-renderer.ts';
 import { createBattleSessionRecord, createBattleSessionStore, type BattleOutcome, type BattleResultReason } from './battle-session-record.ts';
 import { projectBattleResultMetrics } from './battle-result-metrics.ts';
 import { createAllyCommandQueue } from './ally-command-queue.ts';
+import { createBattleRecorder } from '../replay/battle-replay.ts';
+import { SUPPORT_TYPES, SUPPORT_LABELS, validateSupportTypes, type SupportType } from '../content/support-types.ts';
 import './battle.css';
 
 const actionLabels: Record<BattleHandle, string> = {
@@ -68,6 +70,7 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
       <form novalidate><label for="player-name">あなたの名前</label><input id="player-name" name="playerName" autocomplete="nickname" aria-describedby="name-hint name-error" placeholder="1〜20文字" required>
       <p id="name-hint">前後の空白は取り除きます。名前の外部送信は行いません。</p><p id="name-error" role="alert"></p>
       <section class="supply-setup" aria-labelledby="supply-setup-title"><h2 id="supply-setup-title">補給の編成</h2><p>使う種類を4つ選び、合計8個にします。標準配分をそのまま使うこともできます。</p><div class="supply-allocation">${supplyAllocationRows()}</div><p id="supply-summary" aria-live="polite"></p><p id="supply-error" aria-live="polite"></p></section>
+      <section class="supply-setup"><h2>補助員の編成</h2>${['P2', 'P3'].map(id => `<label>${id}<select data-support-type>${SUPPORT_TYPES.map(type => `<option value="${type}">${SUPPORT_LABELS[type]}</option>`).join('')}</select></label>`).join('')}<p>同じ型を2人選べます。</p></section>
       <button type="submit" class="primary">確認を開始する</button><button type="button" id="cancel-setup">ホームへ戻る</button></form>
       <p class="scope-note">通常戦は、名前入力・補給編成・カウントダウン・実戦・結果画面まで進みます。承認済みスコア・ランキング接続は未完了です。</p></section>`;
     bindArtImageFallbacks(app);
@@ -97,7 +100,7 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
         const validatedAllocation = validateSupplyAllocation(allocation);
         supplyError.textContent = '';
         started = true;
-        disposeActive = mountBattle(app, validation.name, validatedAllocation, leaveToHome, renderSetup);
+        disposeActive = mountBattle(app, validation.name, validatedAllocation, leaveToHome, renderSetup, validateSupportTypes([...app.querySelectorAll<HTMLSelectElement>('[data-support-type]')].map(control => control.value)));
       } catch (error) {
         supplyError.textContent = allocationErrorMessage(error);
         app.querySelector<HTMLSelectElement>('[data-supply-type]')?.focus();
@@ -113,9 +116,10 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
   };
 }
 
-function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: readonly CaseType[], goHome: () => void, onReplay: () => void): () => void {
+function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: readonly CaseType[], goHome: () => void, onReplay: () => void, supportTypes: readonly SupportType[]): () => void {
   const random = new Uint32Array(1); crypto.getRandomValues(random);
-  let state = createBattle({ matchId: crypto.randomUUID(), seed: random[0], playerSupplyAllocation });
+  const recorder = createBattleRecorder({ matchId: crypto.randomUUID(), seed: random[0], playerSupplyAllocation, supportTypes });
+  let state = recorder.state;
   const sessionStore = createBattleSessionStore();
   const sessionRecord = sessionStore.begin(createBattleSessionRecord({
     matchId: state.matchId,
@@ -145,7 +149,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     <p class="battle-hint" aria-live="polite">上の弾薬庫Aへ。弾の近くで「弾を拾う」。</p>
     <div class="cargo-controls" aria-label="所持する弾"><button data-slot="0" aria-pressed="true"><img class="cargo-icon" alt="" hidden><span class="cargo-label">左：空</span></button><button data-slot="1" aria-pressed="false"><img class="cargo-icon" alt="" hidden><span class="cargo-label">右：空</span></button></div>
     <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled><img class="action-icon" alt="" hidden><span class="action-label">弾に近づく</span></button><div class="action-row"><button id="battle-drop" disabled><span class="drop-icon" aria-hidden="true">↓</span><span>選択中の弾を置く</span></button><button id="battle-attack" type="button" aria-label="近接攻撃。近くに攻撃対象なし" disabled><span class="attack-label">敵に近づく</span></button></div></div><button id="battle-dash" class="dash-control" type="button" aria-label="突進" aria-describedby="dash-status" disabled><span class="dash-label">突進</span><span id="dash-status" class="dash-status">操作開始後に使用できます</span><span class="dash-progress" aria-hidden="true"><i></i></span></button></div>
-    <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵 ${partDisplayName(id)}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><details class="ally-orders"><summary aria-label="味方命令">味方</summary><div class="ally-order-buttons"><button id="ally-p2-command" type="button" data-ally-id="P2">P2：守備を指示</button><button id="ally-p3-command" type="button" data-ally-id="P3">P3：守備を指示</button></div><p id="ally-order-hint">守備中は現在位置を保ち、同室の敵だけを防衛します。</p></details><button id="battle-help" aria-label="操作説明">?</button></div>
+    <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵 ${partDisplayName(id)}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><details class="ally-orders"><summary aria-label="味方命令">味方</summary><div class="ally-order-panel"><div class="ally-order-buttons"><button id="ally-p2-command" type="button" data-ally-id="P2">P2：守備を指示</button><button id="ally-p3-command" type="button" data-ally-id="P3">P3：守備を指示</button></div>${['P2', 'P3'].map(id => `<div><label>${id}の命令<select data-ally-kind="${id}"><option value="artillery">砲撃</option><option value="defense">防衛</option><option value="invasion">侵入</option><option value="supply">取消し・通常業務</option></select></label><label>目標室<select data-ally-room="${id}">${state.layout.home.rooms.map(room => `<option value="${room.id}">${room.label}</option>`).join('')}</select></label><button data-ally-submit="${id}" type="button">${id}へ指示</button></div>`).join('')}<p id="ally-order-status"></p><p id="ally-order-hint">守備中は現在位置を保ち、同室の敵だけを防衛します。</p></div></details><button id="battle-help" aria-label="操作説明">?</button></div>
     <div class="battle-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div><p id="overlay-title" class="overlay-title" role="status">開始まで</p><strong class="countdown-number">3</strong><p class="terminal-result" aria-live="polite" hidden></p><p class="overlay-description">左のパッドで移動・右のボタンで弾を扱う。敵と接触したら近接攻撃</p><button id="resume-battle" class="primary" hidden>再開する</button><button id="leave-battle">準備を中止する</button></div></div>
     <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">通常戦の操作</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>弾薬庫で、床の弾に近づいて拾います。敵陣や広場の床弾も拾えます。</li><li>弾を砲台へ運び、受け渡し枠へ渡すか砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>自陣の修理室で所持中の弾を1個使い、外装は90更新、設備は120更新で修理できます。途中で移動・被弾すると弾は戻ります。</li><li>敵と接触した状態で「近接攻撃」を押すと、敵に1回の接触ダメージを与えます。キーボードではXキー、コアへの勝利攻撃は突進です。</li><li>突進はボタンまたはSpaceを押し始めたとき1回だけ発動します。移動中は現在方向、停止中は最後の移動方向（初期は右）へ進み、再使用待ちの間は使えません。</li><li>「味方」からP2/P3へ守備を指示すると、その位置を保ちながら同室の敵だけを防衛します。もう一度押すと補給へ戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動と敵AIの戦闘は同じ通常戦の中で進みます。終局時は勝敗と理由を結果画面に表示し、実戦の記録も残します。承認済みスコア・ランキング・共有は未接続です。外装7部位を壊しただけでは勝敗は決まりません。</p></div></dialog></section>`;
   const screen = app.querySelector<HTMLElement>('.battle')!;
@@ -182,6 +186,17 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     P2: app.querySelector<HTMLButtonElement>('#ally-p2-command')!,
     P3: app.querySelector<HTMLButtonElement>('#ally-p3-command')!,
   } satisfies Record<AllyActorId, HTMLButtonElement>;
+  for (const button of app.querySelectorAll<HTMLButtonElement>('[data-ally-submit]')) {
+    const allyId = button.dataset.allySubmit as AllyActorId;
+    button.addEventListener('click', () => {
+      if (!canInteract()) return;
+      const kind = app.querySelector<HTMLSelectElement>(`[data-ally-kind="${allyId}"]`)!.value as 'artillery' | 'defense' | 'invasion' | 'supply';
+      const targetRoomId = app.querySelector<HTMLSelectElement>(`[data-ally-room="${allyId}"]`)!.value;
+      allyCommandQueue.submit(state, { allyId, kind, ...(kind === 'defense' || kind === 'invasion' ? { targetRoomId } : {}),
+        ...(kind === 'artillery' ? { route, part } : {}) });
+      updateAllyOrderControls();
+    });
+  }
   const supplyPreviewItems = app.querySelector<HTMLElement>('.supply-preview-items')!;
   const actionIcon = action.querySelector<HTMLImageElement>('.action-icon')!;
   const actionLabel = action.querySelector<HTMLElement>('.action-label')!;
@@ -234,6 +249,11 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
       button.dataset.order = currentKind;
       button.dataset.pendingOrder = queuedKind ?? '';
     }
+    for (const button of app.querySelectorAll<HTMLButtonElement>('[data-ally-submit]')) button.disabled = !canInteract() || !state.actors[button.dataset.allySubmit!]?.alive;
+    const commandNames = { hold: '現在位置の守備', supply: '通常業務', artillery: '砲撃', defense: '防衛', invasion: '侵入' };
+    app.querySelector('#ally-order-status')!.textContent = (['P2', 'P3'] as const).map(id => {
+      const order = state.allyOrders[id]; return `${id} ${SUPPORT_LABELS[state.supportTypes[id]].split('：')[0]}：${commandNames[order?.kind ?? 'supply']}${order?.targetRoomId ? ` (${state.layout.home.rooms.find(room => room.id === order.targetRoomId)?.label ?? order.targetRoomId})` : ''}`;
+    }).join(' / ');
     const queued = allyCommandQueue.snapshot(state);
     const heldAllies = (['P2', 'P3'] as const).filter(allyId => state.allyOrders[allyId]?.generation === state.actors[allyId].generation);
     allyOrderHint.textContent = queued.length > 0
@@ -515,9 +535,16 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
       <section class="result-section" aria-labelledby="result-ranking-title"><h2 id="result-ranking-title">ランキング・共有</h2><p data-result-ranking-status="unavailable">共有側のゲーム登録値（game_id / game_slug / URL）確認待ちです。外部送信は行いません。開始・結果のローカル記録は同じ試合IDに保持します。</p></section>
       <p class="result-note">次の試合は新しい試合状態として開始され、今回の入力・物体・復活状態を持ち越しません。</p>
       </div>
-      <div class="result-actions"><button id="restart-battle" class="primary">再戦の準備へ</button><button id="result-home">ホームへ戻る</button></div>
+      <div class="result-actions"><button id="restart-battle" class="primary">再戦の準備へ</button><button id="result-home">ホームへ戻る</button><button id="download-replay" type="button">戦闘記録を保存</button></div>
     </section>`;
     app.querySelector<HTMLElement>('[data-result-player-name]')!.textContent = name;
+    const replayData = JSON.stringify(recorder.snapshot());
+    try { localStorage.setItem('semekome-last-replay', replayData); } catch { /* Download remains available when storage is full. */ }
+    app.querySelector('#download-replay')!.addEventListener('click', () => {
+      const url = URL.createObjectURL(new Blob([replayData], { type: 'application/json' }));
+      const link = document.createElement('a'); link.href = url; link.download = `semekome-replay-${state.matchId}.json`; link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    });
     app.querySelector<HTMLButtonElement>('#restart-battle')!.addEventListener('click', onReplay, { once: true });
     app.querySelector<HTMLButtonElement>('#result-home')!.addEventListener('click', goHome, { once: true });
   };
@@ -532,7 +559,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
           const wasAlive = state.actors.P1.alive;
           if (!wasAlive) {
             releaseInput(); movement.setEnabled(false); dashInput.setEnabled(false); attackInput.setEnabled(false);
-            state = stepBattle(state, undefined);
+            state = recorder.step(state, undefined);
             if (state.actors.P1.alive) { clearInput(false); lastHud = ''; }
           } else {
             const allyCommand = allyCommandQueue.take(state);
@@ -552,7 +579,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
             pending = undefined;
             pendingDash = undefined;
             pendingAttack = false;
-            state = stepBattle(state, intent);
+            state = recorder.step(state, intent);
             if (state.lastStep.acceptedInputKinds.includes('dash')) playerDashStarts++;
           }
           render.observeStep(state);
