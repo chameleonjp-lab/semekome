@@ -1,3 +1,5 @@
+import type { BattleResultMetrics } from './battle-result-metrics.ts';
+
 export const BATTLE_RULESET_ID = 'semekome-prototype-0.4-facing-castles';
 export const SESSION_RECORD_STORAGE_PREFIX = 'semekome:battle-session:';
 
@@ -23,6 +25,8 @@ export interface BattleSessionResultPayload {
   readonly enemyGatesOpened: number;
   readonly playerOperatedLaunches: number;
   readonly playerDashStarts: number;
+  /** Records made before R2ai have no combat detail; absence is not zero. */
+  readonly combatMetrics?: BattleResultMetrics;
 }
 
 export interface BattleSessionRecord {
@@ -56,6 +60,30 @@ function sameJson(left: unknown, right: unknown): boolean {
   return JSON.stringify(left) === JSON.stringify(right);
 }
 
+function immutableRecord(record: BattleSessionRecord): BattleSessionRecord {
+  return Object.freeze({
+    ...record,
+    start: Object.freeze({
+      ...record.start,
+      payload: Object.freeze({
+        ...record.start.payload,
+        playerSupplyAllocation: Object.freeze([...record.start.payload.playerSupplyAllocation]),
+      }),
+    }),
+    ...(record.result ? {
+      result: Object.freeze({
+        ...record.result,
+        payload: Object.freeze({
+          ...record.result.payload,
+          ...(record.result.payload.combatMetrics ? {
+            combatMetrics: Object.freeze({ ...record.result.payload.combatMetrics }),
+          } : {}),
+        }),
+      }),
+    } : {}),
+  });
+}
+
 export function sessionRecordStorageKey(matchId: string): string {
   return `${SESSION_RECORD_STORAGE_PREFIX}${matchId}`;
 }
@@ -67,7 +95,7 @@ export function createBattleSessionRecord(options: {
   idFactory?: SessionRecordIdFactory;
 }): BattleSessionRecord {
   const idFactory = options.idFactory ?? defaultId;
-  return {
+  return immutableRecord({
     matchId: options.matchId,
     connection: 'unconnected',
     start: {
@@ -81,7 +109,7 @@ export function createBattleSessionRecord(options: {
       },
       status: 'idle',
     },
-  };
+  });
 }
 
 export function completeBattleSessionRecord(
@@ -94,14 +122,17 @@ export function completeBattleSessionRecord(
     if (!sameJson(record.result.payload, payload)) throw new Error('result record is immutable after completion');
     return record;
   }
-  return {
+  return immutableRecord({
     ...record,
     result: {
       submissionId: idFactory('result'),
-      payload: { ...payload },
+      payload: {
+        ...payload,
+        ...(payload.combatMetrics ? { combatMetrics: { ...payload.combatMetrics } } : {}),
+      },
       status: 'idle',
     },
-  };
+  });
 }
 
 function defaultStorage(): BattleSessionStorage | undefined {
@@ -133,8 +164,9 @@ export function createBattleSessionStore(storage: BattleSessionStorage | undefin
       if (!raw) return undefined;
       const parsed = JSON.parse(raw) as BattleSessionRecord;
       if (parsed.matchId !== matchId || parsed.connection !== 'unconnected' || !parsed.start) return undefined;
-      memory.set(matchId, parsed);
-      return parsed;
+      const restored = immutableRecord(parsed);
+      memory.set(matchId, restored);
+      return restored;
     } catch {
       persistent = false;
       return undefined;
@@ -158,8 +190,9 @@ export function createBattleSessionStore(storage: BattleSessionStorage | undefin
     begin(record) {
       const existing = read(record.matchId);
       if (!existing) {
-        write(record);
-        return record;
+        const started = immutableRecord(record);
+        write(started);
+        return started;
       }
       if (!sameJson(existing.start, record.start)) throw new Error('a different start record already exists for this match');
       return existing;
