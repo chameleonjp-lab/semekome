@@ -59,3 +59,23 @@ test('mechanic transports an actual supply case to repair and consumes it once',
   assert.ok(!state.actors.P2.cargoIds.includes(repairCaseId!));
   assert.ok(!Object.values(state.artillery.flights).some(flight => flight.objectId === repairCaseId));
 });
+
+test('repair preset E28 transports real supply and never gets two movement steps in one tick', () => {
+  let state = createBattle({ matchId: 'enemy-repair-preset', seed: 20260913, preset: 'repair' });
+  state.castles.enemy.exterior.P7.health = 30;
+  let repairCaseId: string | undefined, completed = false;
+  for (let tick = 0; tick < 3500 && !completed; tick++) {
+    const before = { ...state.fixedActors.E28.position };
+    state = stepBattle(state);
+    const after = state.fixedActors.E28.position;
+    assert.ok(Math.hypot(after.x - before.x, after.y - before.y) <= 51, 'patrol and repair cannot both move E28 in one tick');
+    for (const event of state.lastStep.events) {
+      if (event.type === 'repair_started' && event.actorId === 'E28') repairCaseId = event.objectId;
+      if (event.type === 'repair_completed' && event.actorId === 'E28') completed = true;
+    }
+  }
+  assert.ok(repairCaseId); assert.equal(completed, true);
+  assert.ok(state.repairs.budgetUsed.enemy > 0);
+  assert.ok(!state.actors.E28.cargoIds.includes(repairCaseId!));
+  assert.ok(!Object.values(state.artillery.flights).some(flight => flight.objectId === repairCaseId));
+});

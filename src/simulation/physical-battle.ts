@@ -1803,6 +1803,7 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
   for (const actor of Object.values(state.actors)
     .filter((candidate) => candidate.team === ENEMY_TEAM && candidate.role !== "player" && candidate.role !== "support" && candidate.alive)
     .sort((left, right) => String(left.id).localeCompare(String(right.id)))) {
+    if (enemyRepairHasPriority(state, actor)) continue;
     const decision = state.enemyDecisions[actor.id];
     if (!decision || decision.generation !== actor.generation || state.dashes[actor.id] || !enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
     const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "idle" as CrewTask, path: [], pathIndex: 0 };
@@ -3667,11 +3668,12 @@ function supportMayEscortP1(state: BattleState, actor: ActorState): boolean {
     // abandon the only route that can make those gates passable.
     return false;
   }
-  // Keep one ordinary carrier operating artillery until the first gate opens.
-  // A supply shuffle can otherwise leave both helpers escorting forever with
-  // no remaining actor to break the first exterior part.
+  // Once the live plaza guard set is cleared, keep one ordinary carrier on
+  // artillery until all gates open. Death and another plaza crossing must not
+  // repeatedly abandon the supply needed for the remaining exterior parts.
   const livePlazaGuard = ["E25", "E26", "E27"].some(id => state.actors[id]?.alive && state.actors[id].location.area === "plaza");
-  if (!livePlazaGuard && state.actors.P1?.location.area === "plaza" && state.castles.enemy.destroyedPartIds.length === 0 && actor.id === "P3") return false;
+  if (!livePlazaGuard && state.actors.P1?.location.area === "plaza" && state.castles.enemy.destroyedPartIds.length < state.layout.enemy.coreRouteGates.length &&
+      (actor.id === "P3" || state.actors.P1.deathCount > 0)) return false;
   // Both supports may help the public plaza fight.  The supply-preservation
   // boundary above applies only after P1 has entered the enemy castle, where
   // escorting no longer takes priority over opening the remaining gates.
@@ -3878,6 +3880,16 @@ function moveSupportToRoom(state: BattleState, actor: ActorState, team: TeamId, 
   }
 }
 
+function enemyRepairHasPriority(state: BattleState, actor: ActorState): boolean {
+  if (actor.team !== ENEMY_TEAM || actor.id !== "E28" || MATCH_PRESETS[state.matchPreset].priority !== "repair" ||
+      !actor.alive || actorIsProtected(state, actor) || actor.location.area !== "castle" || actor.location.castleTeam !== actor.team ||
+      physicalEnemyObservation(state, actor).threats.length > 0) return false;
+  return Boolean(activeAnyRepair(state, actor.id)) ||
+    state.repairs.budgetUsed.enemy < state.rules.repairBudget && Boolean(chooseRepairPart(state, ENEMY_TEAM)) ||
+    Object.values(state.artillery.turrets).some(item => item.team === ENEMY_TEAM && (item.health < state.rules.equipmentRepairHealth || item.disabledUntilTick !== null)) ||
+    Object.values(state.logistics.ports).some(item => item.team === ENEMY_TEAM && (item.health < state.rules.equipmentRepairHealth || item.disabledUntilTick !== null));
+}
+
 function processSupportRepair(state: BattleState, actor: ActorState, events: WorldEvent[]): boolean {
   if (!actor.alive || actorIsProtected(state, actor) || actor.location.area !== "castle" || actor.location.castleTeam !== actor.team) return false;
   if (activeAnyRepair(state, actor.id)) return true;
@@ -3945,7 +3957,7 @@ function processCrewAI(state: BattleState, events: WorldEvent[], suppressNpcMove
   // defense/escort decisions during that attack.
   for (const actor of Object.values(state.actors).sort((left, right) => left.id.localeCompare(right.id))) {
     if (suppressNpcMovement && actor.team !== PLAYER_TEAM) continue;
-    if (actor.team === ENEMY_TEAM && actor.id === "E28" && MATCH_PRESETS[state.matchPreset].priority === "repair" && processSupportRepair(state, actor, events)) continue;
+    if (enemyRepairHasPriority(state, actor) && processSupportRepair(state, actor, events)) continue;
     const decision = state.enemyDecisions[actor.id];
     if (decision && enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
     if (actor.role === "support") {

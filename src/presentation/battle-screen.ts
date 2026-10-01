@@ -1,3 +1,6 @@
+import { loadRankingRuntime, type RankingRuntime } from '../ranking/runtime-ranking.ts';
+import { calculateProposedScore } from '../ranking/score-proposal.ts';
+import { createRankingView, resultShareText } from '../ranking/ranking-view.ts';
 import { MATCH_PRESETS, DIFFICULTIES, type MatchPreset, type Difficulty } from '../content/match-presets.ts';
 import { loadPreferences, savePreferences } from './game-preferences.ts';
 import { createBattleAudio } from './battle-audio.ts';
@@ -71,15 +74,16 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
     disposeActive = () => {};
     let started = false;
     const preferences = loadPreferences();
+    const ranking = loadRankingRuntime();
     app.innerHTML = `<section class="battle-setup" aria-label="通常戦の名前と補給の編成"><p class="eyebrow">通常戦の準備</p>
       <h1>出撃の準備</h1><p>名前と補給の編成を決めると、3秒のカウントダウン後に通常戦が始まります。<br>弾薬庫で弾を拾い、砲台へ運びます。補助員と敵も同じ戦場で動きます。</p>
       <form novalidate><label for="player-name">あなたの名前</label><input id="player-name" name="playerName" autocomplete="nickname" aria-describedby="name-hint name-error" placeholder="1〜20文字" required>
-      <p id="name-hint">前後の空白は取り除きます。名前の外部送信は行いません。</p><p id="name-error" role="alert"></p>
+      <p id="name-hint">前後の空白は取り除きます。${ranking ? '通常戦では、開始と結果の受付へ名前を送信します。練習は送信しません。' : '名前の外部送信は行いません。'}</p><p id="name-error" role="alert"></p>
       <section class="supply-setup" aria-labelledby="supply-setup-title"><h2 id="supply-setup-title">補給の編成</h2><p>使う種類を4つ選び、合計8個にします。標準配分をそのまま使うこともできます。</p><div class="supply-allocation">${supplyAllocationRows(preferences.allocation)}</div><p id="supply-summary" aria-live="polite"></p><p id="supply-error" aria-live="polite"></p></section>
       <section class="supply-setup"><h2>補助員の編成</h2>${['P2', 'P3'].map(id => `<label>${id}<select data-support-type>${SUPPORT_TYPES.map(type => `<option value="${type}">${SUPPORT_LABELS[type]}</option>`).join('')}</select></label>`).join('')}<p>同じ型を2人選べます。</p></section>
       <section class="supply-setup"><h2>対戦設定</h2><label>敵の作戦<select id="match-preset">${Object.entries(MATCH_PRESETS).map(([key, value]) => `<option value="${key}">${value.label}</option>`).join('')}</select></label><label>難易度<select id="match-difficulty">${Object.entries(DIFFICULTIES).map(([key, value]) => `<option value="${key}">${value.label}</option>`).join('')}</select></label><p id="preset-description"></p><label><input id="sound-enabled" type="checkbox">効果音を使う</label><label>遊び方<select id="practice"><option value="">通常戦</option>${Object.entries(PRACTICES).map(([key,value]) => `<option value="${key}">練習：${value.label}</option>`).join('')}</select></label><p>練習は通常戦の記録・ランキングに含めません。保存は名前・編成・設定・練習の達成まで。途中戦の再開は行いません。</p><p id="save-notice" role="status"></p></section>
       <button type="submit" class="primary">確認を開始する</button><button type="button" id="cancel-setup">ホームへ戻る</button></form>
-      <p class="scope-note">通常戦は、名前入力・補給編成・カウントダウン・実戦・結果画面まで進みます。承認済みスコア・ランキング接続は未完了です。</p></section>`;
+      <p class="scope-note">通常戦は、名前入力・補給編成・カウントダウン・実戦・結果画面まで進みます。${ranking ? '標準作戦・標準難易度・標準補給・運搬型2人がランキング対象です。' : '承認済みスコア・ランキング接続は未完了です。'}</p></section>`;
     bindArtImageFallbacks(app);
     const input = app.querySelector<HTMLInputElement>('#player-name')!;
     input.value = preferences.name;
@@ -120,7 +124,7 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
         const preset = presetControl.value as MatchPreset, difficulty = difficultyControl.value as Difficulty;
         const saved = savePreferences({ ...preferences, name: validation.name, allocation: validatedAllocation, supports, preset, difficulty, sound: soundControl.checked });
         const practice = app.querySelector<HTMLSelectElement>('#practice')!.value as Practice | '';
-        disposeActive = mountBattle(app, validation.name, validatedAllocation, leaveToHome, () => renderSetup(practice || undefined), supports, preset, difficulty, soundControl.checked, practice || undefined, saved);
+        disposeActive = mountBattle(app, validation.name, validatedAllocation, leaveToHome, () => renderSetup(practice || undefined), supports, preset, difficulty, soundControl.checked, practice || undefined, saved, ranking);
       } catch (error) {
         supplyError.textContent = allocationErrorMessage(error);
         app.querySelector<HTMLSelectElement>('[data-supply-type]')?.focus();
@@ -136,10 +140,15 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
   };
 }
 
-function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: readonly CaseType[], goHome: () => void, onReplay: () => void, supportTypes: readonly SupportType[], preset: MatchPreset, difficulty: Difficulty, sound: boolean, practice?: Practice, preferencesSaved = true): () => void {
+function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: readonly CaseType[], goHome: () => void, onReplay: () => void, supportTypes: readonly SupportType[], preset: MatchPreset, difficulty: Difficulty, sound: boolean, practice?: Practice, preferencesSaved = true, ranking?: RankingRuntime): () => void {
   const random = new Uint32Array(1); crypto.getRandomValues(random);
-  const recorder = createBattleRecorder({ matchId: crypto.randomUUID(), seed: random[0], playerSupplyAllocation, supportTypes, preset, difficulty });
+  const recorder = createBattleRecorder({ matchId: crypto.randomUUID(), seed: practice ? 20260913 : random[0], playerSupplyAllocation, supportTypes, preset, difficulty });
   let state = recorder.state;
+  const eligible = Boolean(ranking && !practice && preset === 'standard' && difficulty === 'standard' && supportTypes.every(type => type === 'carrier') && [...playerSupplyAllocation].sort().join(',') === [...SUPPLY_BAG].sort().join(','));
+  const recordable = Boolean(ranking && !practice);
+  let counted = recordable;
+  let ranked = eligible, rankingWaiting = false, rankingFailed = false, rankingStarted = !recordable;
+  let disposeRanking = () => {};
   const audio = createBattleAudio(sound); audio.activate();
   const practiceProgress = practice ? createPracticeProgress(practice) : undefined;
   let practiceComplete = false;
@@ -172,9 +181,9 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     <p class="battle-hint" aria-live="polite">上の弾薬庫Aへ。弾の近くで「弾を拾う」。</p>
     <div class="cargo-controls" aria-label="所持する弾"><button data-slot="0" aria-pressed="true"><img class="cargo-icon" alt="" hidden><span class="cargo-label">左：空</span></button><button data-slot="1" aria-pressed="false"><img class="cargo-icon" alt="" hidden><span class="cargo-label">右：空</span></button></div>
     <div class="battle-controls"><div class="movement-pad" role="group" aria-label="移動パッド。中心から動きたい方向へ指をずらす"><span class="pad-up">↑</span><span class="pad-left">←</span><i></i><span class="pad-right">→</span><span class="pad-down">↓</span></div><div class="action-controls"><button id="battle-action" class="primary" disabled><img class="action-icon" alt="" hidden><span class="action-label">弾に近づく</span></button><div class="action-row"><button id="battle-drop" disabled><span class="drop-icon" aria-hidden="true">↓</span><span>選択中の弾を置く</span></button><button id="battle-attack" type="button" aria-label="近接攻撃。近くに攻撃対象なし" disabled><span class="attack-label">敵に近づく</span></button></div></div><button id="battle-dash" class="dash-control" type="button" aria-label="突進" aria-describedby="dash-status" disabled><span class="dash-label">突進</span><span id="dash-status" class="dash-status">操作開始後に使用できます</span><span class="dash-progress" aria-hidden="true"><i></i></span></button></div>
-    <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵 ${partDisplayName(id)}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><details class="ally-orders"><summary aria-label="味方命令">味方</summary><div class="ally-order-panel"><div class="ally-order-buttons"><button id="ally-p2-command" type="button" data-ally-id="P2">P2：守備を指示</button><button id="ally-p3-command" type="button" data-ally-id="P3">P3：守備を指示</button></div>${['P2', 'P3'].map(id => `<div><label>${id}の命令<select data-ally-kind="${id}"><option value="artillery">砲撃</option><option value="defense">防衛</option><option value="invasion">侵入</option><option value="supply">取消し・通常業務</option></select></label><label>目標室<select data-ally-room="${id}">${state.layout.home.rooms.map(room => `<option value="${room.id}">${room.label}</option>`).join('')}</select></label><button data-ally-submit="${id}" type="button">${id}へ指示</button></div>`).join('')}<p id="ally-order-status"></p><p id="ally-order-hint">守備中は現在位置を保ち、同室の敵だけを防衛します。</p></div></details><button id="battle-help" aria-label="操作説明">?</button></div>
+    <div class="battle-settings"><button id="route-toggle">経路：直通</button><label class="target-control">狙う部位<select id="target-part">${PART_IDS.map(id => `<option value="${id}">敵 ${partDisplayName(id)}</option>`).join('')}</select></label><label id="equipment-target-control" class="target-control" hidden>修理対象設備<select id="equipment-target"><option value="">選択してください</option></select></label><details class="ally-orders"><summary aria-label="味方命令">味方</summary><div class="ally-order-panel"><div class="ally-order-buttons"><button id="ally-p2-command" type="button" data-ally-id="P2">P2：守備を指示</button><button id="ally-p3-command" type="button" data-ally-id="P3">P3：守備を指示</button></div>${['P2', 'P3'].map(id => `<div><label>${id}の命令<select data-ally-kind="${id}"><option value="artillery">砲撃</option><option value="defense">防衛</option><option value="invasion">侵入</option><option value="supply">取消し・通常業務</option></select></label><label>目標室<select data-ally-room="${id}">${state.layout.home.rooms.map(room => `<option value="${room.id}">${room.label}</option>`).join('')}</select></label><button data-ally-submit="${id}" type="button">${id}へ指示</button></div>`).join('')}<p id="ally-order-status"></p><p id="ally-order-hint">守備は現在位置を保持。正式な防衛・侵入は選んだ室へ歩き、閉門前で待ちます。砲撃は現在の経路と部位を使います。取消しで通常業務へ戻ります。</p></div></details><button id="battle-help" aria-label="操作説明">?</button></div>
     <div class="battle-overlay" role="dialog" aria-modal="true" aria-labelledby="overlay-title"><div><p id="overlay-title" class="overlay-title" role="status">開始まで</p><strong class="countdown-number">3</strong><p class="terminal-result" aria-live="polite" hidden></p><p class="overlay-description">左のパッドで移動・右のボタンで弾を扱う。敵と接触したら近接攻撃</p><button id="resume-battle" class="primary" hidden>再開する</button><button id="leave-battle">準備を中止する</button></div></div>
-    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">通常戦の操作</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>弾薬庫で、床の弾に近づいて拾います。敵陣や広場の床弾も拾えます。</li><li>弾を砲台へ運び、受け渡し枠へ渡すか砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>自陣の修理室で所持中の弾を1個使い、外装は1.5秒、設備は2秒で修理できます。途中で移動・被弾すると弾は戻ります。</li><li>敵と接触した状態で「近接攻撃」を押すと、敵に1回の接触ダメージを与えます。キーボードではXキー、コアへの勝利攻撃は突進です。</li><li>突進はボタンまたはSpaceを押し始めたとき1回だけ発動します。移動中は現在方向、停止中は最後の移動方向（初期は右）へ進み、再使用待ちの間は使えません。</li><li>「味方」からP2/P3へ守備を指示すると、その位置を保ちながら同室の敵だけを防衛します。もう一度押すと補給へ戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動と敵AIの戦闘は同じ通常戦の中で進みます。終局時は勝敗と理由を結果画面に表示し、実戦の記録も残します。承認済みスコア・ランキング・共有は未接続です。外装7部位を壊しただけでは勝敗は決まりません。</p></div></dialog></section>`;
+    <dialog class="battle-help-dialog" aria-labelledby="battle-help-title"><div class="dialog-head"><h2 id="battle-help-title">通常戦の操作</h2><button id="close-battle-help">閉じる</button></div><div class="rules-body"><ol><li>弾薬庫で、床の弾に近づいて拾います。敵陣や広場の床弾も拾えます。</li><li>弾を砲台へ運び、受け渡し枠へ渡すか砲台の近くで装填します。</li><li>装填後も砲台の操作位置に立つと自動で発射します。離れると止まります。</li><li>同じ経路の敵弾とぶつかると迎撃。直通・迂回や狙う部位は、次に装填する弾へ反映します。</li><li>自陣の修理室で所持中の弾を1個使い、外装は1.5秒、設備は2秒で修理できます。途中で移動・被弾すると弾は戻ります。</li><li>敵と接触した状態で「近接攻撃」を押すと、敵に1回の接触ダメージを与えます。キーボードではXキー、コアへの勝利攻撃は突進です。</li><li>突進はボタンまたはSpaceを押し始めたとき1回だけ発動します。移動中は現在方向、停止中は最後の移動方向（初期は右）へ進み、再使用待ちの間は使えません。</li><li>「味方」からP2/P3へ守備を指示すると、その位置を保ちながら同室の敵だけを防衛します。もう一度押すと補給へ戻ります。</li></ol><p>所持枠は2つ、合計重量は3まで。標準弾・防護板・高速杭は重量1、重量弾は2です。</p><p>広場への移動と敵AIの戦闘は同じ通常戦の中で進みます。終局時は勝敗と理由を結果画面に表示し、実戦の記録も残します。${ranking ? '標準条件の競技戦は結果を自動送信し、同じ結果を再送できます。' : '承認済みスコア・ランキング・共有は未接続です。'}外装7部位を壊しただけでは勝敗は決まりません。</p></div></dialog></section>`;
   const screen = app.querySelector<HTMLElement>('.battle')!;
   screen.dataset.matchId = state.matchId;
   screen.dataset.flow = practice ? 'practice' : 'normal';
@@ -278,7 +287,10 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     for (const button of app.querySelectorAll<HTMLButtonElement>('[data-ally-submit]')) button.disabled = !canInteract() || !state.actors[button.dataset.allySubmit!]?.alive;
     const commandNames = { hold: '現在位置の守備', supply: '通常業務', artillery: '砲撃', defense: '防衛', invasion: '侵入' };
     app.querySelector('#ally-order-status')!.textContent = (['P2', 'P3'] as const).map(id => {
-      const order = state.allyOrders[id]; return `${id} ${SUPPORT_LABELS[state.supportTypes[id]].split('：')[0]}：${commandNames[order?.kind ?? 'supply']}${order?.targetRoomId ? ` (${state.layout.home.rooms.find(room => room.id === order.targetRoomId)?.label ?? order.targetRoomId})` : ''}`;
+      const order = state.allyOrders[id];
+      const actor = state.actors[id], assignment = state.crew.assignments[id];
+      const waiting = order?.kind === 'invasion' && assignment.task !== 'defend' && actor.location.castleTeam === 'enemy' && actor.currentRoomId !== order.targetRoomId && !assignment.path.length ? '・通路が開くまで待機' : '';
+      return `${id} ${SUPPORT_LABELS[state.supportTypes[id]].split('：')[0]}：${commandNames[order?.kind ?? 'supply']}${order?.targetRoomId ? ` (${state.layout.home.rooms.find(room => room.id === order.targetRoomId)?.label ?? order.targetRoomId})` : ''}${waiting}`;
     }).join(' / ');
     const queued = allyCommandQueue.snapshot(state);
     const heldAllies = (['P2', 'P3'] as const).filter(allyId => state.allyOrders[allyId]?.generation === state.actors[allyId].generation);
@@ -300,8 +312,8 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     overlay.setAttribute('aria-hidden', String(help.open || overlay.hidden));
     number.hidden = paused || countdown === 0 || ended;
     number.textContent = String(Math.ceil(countdown / 60));
-    title.textContent = ended ? '戦闘を終了しました' : paused ? '一時停止中' : '開始まで';
-    description.textContent = ended ? '勝敗が確定しました。結果詳細・スコア・ランキングは次の段階です。' : paused ? '再開ボタンを押すまで、戦場も時計も止まります。' : practice ? PRACTICES[practice].description : '左のパッドで移動。敵と接触したら近接攻撃、突進はボタンまたはSpace';
+    title.textContent = rankingWaiting ? '開始を確認しています' : rankingFailed ? '開始の通信を確認できませんでした' : ended ? '戦闘を終了しました' : paused ? '一時停止中' : '開始まで';
+    description.textContent = rankingWaiting ? '記録の受付を待っています。戦場は止まっています。' : rankingFailed ? '通信なしのランキング対象外で続けられます。保留記録は残します。' : ended ? '勝敗が確定しました。結果詳細・スコア・ランキングは次の段階です。' : paused ? '再開ボタンを押すまで、戦場も時計も止まります。' : practice ? PRACTICES[practice].description : '左のパッドで移動。敵と接触したら近接攻撃、突進はボタンまたはSpace';
     terminalResult.hidden = !ended;
     if (ended) {
       const bothCoresHit = state.castles.player.core.hit && state.castles.enemy.core.hit;
@@ -311,6 +323,8 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
           : bothCoresHit ? '引き分け — 同一更新内の同時コア命中'
             : neitherCoreHit ? '引き分け — 時間切れ' : '引き分け';
     } else terminalResult.textContent = '';
+    resume.disabled = rankingWaiting;
+    resume.textContent = rankingFailed ? 'ランキング対象外で続ける' : '再開する';
     resume.hidden = !paused || ended;
     leave.textContent = countdown > 0 && !ended ? '準備を中止する' : 'ホームへ戻る';
     for (const child of screen.children) {
@@ -382,6 +396,8 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   }, options);
   app.querySelector('#pause-battle')!.addEventListener('click', stop, options);
   resume.addEventListener('click', () => {
+    if (rankingWaiting) return;
+    if (rankingFailed) { counted = false; ranked = false; rankingFailed = false; rankingStarted = true; try { const pending = ranking?.client.pending(); if (pending && !pending.result) void ranking!.client.finish({ resultType:'retire', reached:0, score:0, ranked:false }).catch(() => {}); } catch {} }
     audio.activate();
     if (document.hidden || help.open || state.phase === 'ended') return;
     state = setBattleVisibility(state, true); state = resumeBattle(state); paused = state.phase === 'paused'; clearInput(); updateOverlay();
@@ -391,6 +407,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     // A second tap on Start may land on this newly mounted button. Do not
     // interpret the same double-tap gesture as a request to abandon the match.
     if (performance.now() - mountedAt < 350) return;
+    try { if (recordable && rankingStarted && ranking?.client.pending() && !ranking.client.pending()?.result) void ranking.client.finish({ resultType:'retire', reached:0, score:0, ranked:false }).catch(() => {}); } catch {}
     goHome();
   }, options);
   app.querySelector('#battle-help')!.addEventListener('click', () => { stop(); help.showModal(); updateOverlay(); }, options);
@@ -543,6 +560,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
       playerDashStarts,
       combatMetrics: projectBattleResultMetrics(state),
     });
+    const finalScore = ranking ? calculateProposedScore(state) : undefined;
     const savedResult = resultRecord.result!.payload;
     const combatMetrics = savedResult.combatMetrics!;
     app.innerHTML = `<section class="battle-result ${outcomeClass}" aria-label="通常戦の結果" data-flow="normal-result" data-outcome="${terminalOutcome}" data-match-id="${state.matchId}" data-tick="${state.tick}" data-player-dash-starts="${playerDashStarts}" data-start-record-id="${resultRecord.start.id}" data-result-submission-id="${resultRecord.result?.submissionId ?? ''}" data-record-connection="${resultRecord.connection}" data-record-persistence="${sessionStore.persistent ? 'session' : 'memory'}" data-start-record-status="${resultRecord.start.status}" data-result-record-status="${resultRecord.result?.status ?? 'idle'}">
@@ -560,12 +578,41 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
       </dl>
       <p class="result-detail-note">敵を倒した記録は味方全体の合計です。同じ敵を復活後に倒した分は、延べ回数だけに加えます。</p>
       <section class="result-section" aria-labelledby="result-score-title"><h2 id="result-score-title">スコア</h2><p data-result-score-status="pending">得点式の承認待ちです。現在は表示しません。</p></section>
-      <section class="result-section" aria-labelledby="result-ranking-title"><h2 id="result-ranking-title">ランキング・共有</h2><p data-result-ranking-status="unavailable">共有側のゲーム登録値（game_id / game_slug / URL）確認待ちです。外部送信は行いません。開始・結果のローカル記録は同じ試合IDに保持します。</p></section>
+      <section class="result-section" aria-labelledby="result-ranking-title"><h2 id="result-ranking-title">ランキング・共有</h2><p data-result-ranking-status="unavailable">ランキングは準備中です。外部送信は行いません。この試合の開始と結果はこの端末に保存します。</p></section>
       <p class="result-note">次の試合は新しい試合状態として開始され、今回の入力・物体・復活状態を持ち越しません。</p>
       </div>
       <div class="result-actions"><button id="restart-battle" class="primary">再戦の準備へ</button><button id="result-home">ホームへ戻る</button><button id="download-replay" type="button">戦闘記録を保存</button></div>
     </section>`;
     app.querySelector<HTMLElement>('[data-result-player-name]')!.textContent = name;
+    if (ranking && finalScore !== undefined) {
+      app.querySelector('[data-result-ranking-status]')!.textContent = ranked ? '確定結果を自動送信します。通信に失敗しても結果と共有は残ります。' : 'この試合はランキング対象外です。';
+      const region = document.createElement('section'); region.setAttribute('aria-label','得点とランキング');
+      const scoreLine = document.createElement('p'); scoreLine.textContent = `${finalScore}点${ranked ? '' : '（ランキング対象外）'}`;
+      const submission = document.createElement('p'); submission.setAttribute('role','status');
+      const retry = document.createElement('button'); retry.textContent = '同じ結果を再送する'; retry.style.minHeight = '48px';
+      const rankings = document.createElement('div');
+      const share = document.createElement('button'); share.textContent = '結果を共有する'; share.style.minHeight = '48px';
+      const copy = document.createElement('button'); copy.textContent = '結果をコピーする'; copy.style.minHeight = '48px';
+      const shareValue = resultShareText(name, title, finalScore, ranking.canonicalUrl);
+      const selectable = document.createElement('p'); selectable.textContent = shareValue; selectable.style.userSelect = 'text';
+      region.append(scoreLine,submission,retry,rankings,share,copy,selectable);
+      if (ranking.labUrl) { const link = document.createElement('a'); link.href = ranking.labUrl; link.textContent = '実験場の詳細ランキング'; link.target = '_blank'; link.rel = 'noopener'; region.append(link); }
+      app.querySelector('.result-scroll')!.append(region);
+      const view = createRankingView(rankings, () => ranking.client.topTen()); disposeRanking = view.dispose;
+      const refresh = () => {
+        const status = ranking.client.status;
+        submission.textContent = !counted ? 'この試合は外部へ送信しません' : status === 'submitted' ? ranked ? 'ランキングへ登録しました' : '開始と結果を記録しました（ランキング対象外）' : status === 'submitting' ? '確定結果を送信中です' : status === 'permanent_failed' ? '受付条件を確認できませんでした。確定結果は保存しています' : '送信できませんでした。同じ結果を再送できます';
+        retry.hidden = !counted || status !== 'retryable_failed'; retry.disabled = status === 'submitting';
+      };
+      const send = async () => {
+        retry.disabled = true; submission.textContent = '確定結果を送信中です';
+        try { await ranking.client.finish({ resultType:terminalOutcome === 'player_win' ? 'clear' : 'game_over', reached:state.castles.enemy.openGateIds.length, score:finalScore, ranked }); await view.refresh(); }
+        catch {} finally { refresh(); }
+      };
+      retry.addEventListener('click', send); if (counted) void send(); else refresh();
+      share.addEventListener('click', async () => { try { if (navigator.share) await navigator.share({text:shareValue}); else await navigator.clipboard.writeText(shareValue); } catch {} });
+      copy.addEventListener('click', async () => { try { await navigator.clipboard.writeText(shareValue); submission.textContent = '結果をコピーしました'; } catch { submission.textContent = '表示した結果の文字を選択してコピーできます'; } });
+    }
     const replayData = JSON.stringify(recorder.snapshot());
     try { localStorage.setItem('semekome-last-replay', replayData); } catch { /* Download remains available when storage is full. */ }
     app.querySelector('#download-replay')!.addEventListener('click', () => {
@@ -582,7 +629,29 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
       const step = clock.advance(now);
       if (step.interrupted) stop();
       else for (let index = 0; index < step.ticks; index++) {
-        if (countdown > 0) { countdown--; if (countdown === 0) clearInput(); }
+        if (countdown > 0) {
+          countdown--;
+          if (countdown === 0) {
+            clearInput();
+            if (recordable && ranking && !rankingStarted) {
+              rankingWaiting = true; paused = true; state = pauseBattle(state); audio.suspend();
+              void (async () => {
+                const pending = ranking.client.pending();
+                if (pending && !pending.submitted) {
+                  if (!pending.result) await ranking.client.finish({ resultType:'retire', reached:0, score:0, ranked:false });
+                  else await ranking.client.sync();
+                }
+                await ranking.client.begin(name);
+              })().then(() => {
+                rankingStarted = true; rankingWaiting = false;
+                if (disposed) { void ranking.client.finish({ resultType:'retire', reached:0, score:0, ranked:false }).catch(() => {}); return; }
+                if (!document.hidden) { paused = false; state = resumeBattle(state); audio.activate(); }
+                clock.reset(); updateOverlay();
+              }).catch(() => { rankingWaiting = false; rankingFailed = true; if (!disposed) updateOverlay(); });
+              break;
+            }
+          }
+        }
         else {
           const wasAlive = state.actors.P1.alive;
           if (!wasAlive) {
@@ -624,17 +693,17 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     } else clock.reset();
     updateOverlay(); updateHud(); render(state, part, slot);
     if (practice && (practiceComplete || state.phase === 'ended')) {
-      audio.dispose(); movement.dispose(); dashInput.dispose(); attackInput.dispose(); events.abort();
+      audio.finish(); movement.dispose(); dashInput.dispose(); attackInput.dispose(); events.abort();
       if (practiceComplete) { const saved = loadPreferences(); savePreferences({ ...saved, practiceCompleted: [...new Set([...saved.practiceCompleted, practice])] }); }
       app.innerHTML = `<section class="battle-result"><h1>${practiceComplete ? '練習達成' : '練習終了'}</h1><p>${PRACTICES[practice].description}</p><p>${practiceComplete ? '実際の操作で達成しました。' : '今回の目標は未達成です。もう一度試せます。'}</p><div class="result-actions"><button id="practice-retry">やり直す</button><button id="practice-home">ホームへ戻る</button></div></section>`;
       app.querySelector('#practice-retry')!.addEventListener('click', onReplay); app.querySelector('#practice-home')!.addEventListener('click', goHome);
       frame = 0; return;
     }
-    if (state.phase === 'ended') { showResult(); audio.dispose(); frame = 0; return; }
+    if (state.phase === 'ended') { showResult(); audio.finish(); frame = 0; return; }
     frame = requestAnimationFrame(loop);
   };
   if (document.hidden) { state = setBattleVisibility(state, false); stop(); }
   updateOverlay(); updateHud(); render(state, part, slot);
   frame = requestAnimationFrame(loop);
-  return () => { audio.dispose(); disposed = true; cancelAnimationFrame(frame); movement.dispose(); dashInput.dispose(); attackInput.dispose(); events.abort(); pending = undefined; pendingDash = undefined; pendingAttack = false; allyCommandQueue.clear(); };
+  return () => { disposeRanking(); audio.dispose(); disposed = true; cancelAnimationFrame(frame); movement.dispose(); dashInput.dispose(); attackInput.dispose(); events.abort(); pending = undefined; pendingDash = undefined; pendingAttack = false; allyCommandQueue.clear(); };
 }
