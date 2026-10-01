@@ -39,7 +39,8 @@ test('通常戦はホームから名前・カウントダウンを経て結果�
     start: { id: string; status: string };
     result?: unknown;
   } | null, `semekome:battle-session:${startedMatchId}`);
-  expect(startedRecord).toMatchObject({ matchId: startedMatchId, start: { id: startRecordId, status: 'idle' }, result: undefined });
+  expect(startedRecord).toMatchObject({ matchId: startedMatchId, start: { id: startRecordId, status: 'idle' } });
+  expect(startedRecord?.result).toBeUndefined();
 
   await page.clock.runFor(3_100);
   await expect(battle).toHaveAttribute('data-phase', 'running');
