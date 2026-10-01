@@ -12,12 +12,14 @@ PR #70（R2ah）取り込み後のmainを基準に、終局時の人物集計を
 |検査|結果|
 |---|---|
 |人物集計・保存の対象Node|16/16通過（独立レビュー修正を含む）|
-|全Node回帰|実装途中の316/316通過。最終差分はQualityで再確認する|
-|資料・型・製品ビルド・差分空白|資料57/57、`npm run build`、`git diff --check` 通過|
-|Chromium/WebKit|結果レイアウト変更のためrun-browserでQuality実行する。ローカルはブラウザー取得失敗で未実施|
+|全Node回帰|318/318通過（Quality #452、約233秒）|
+|資料・型・製品ビルド・差分空白|Quality #452で資料57/57、型・製品ビルド通過。ローカル`git diff --check`通過|
+|Chromium/WebKit|58/58通過（各29件、Quality #452、約4.7分）。ローカルはブラウザー取得失敗で未実施|
 |iPhone実機・試遊|未確認|
 
-得点式・共有側の登録値・外部送信は採用していない。独立レビューの保存値書換えとSpace阻止の指摘を修正した。詳細は [R2aiレビュー](R2AI_RESULT_COMBAT_METRICS_REVIEW.md) を参照する。
+検査したコードは `406c11f21ecf09deaf4a2717de75de9f3634a4d0`。[Quality #452](https://github.com/chameleonjp-lab/semekome/actions/runs/36835325866) はbrowserステップをSkippedにせず実行し、通常初期配置の終局・保存照合と、新規の結果詳細検査を両ブラウザーで通過した。検査記録の反映だけの後続コミットでは通常のQuality方針へ戻す。
+
+得点式・共有側の登録値・外部送信は採用していない。独立レビューの保存値書換えとSpace阻止の指摘を修正し、再レビューで追加の重大・中程度の問題がないことを確認した。詳細は [R2aiレビュー](R2AI_RESULT_COMBAT_METRICS_REVIEW.md) を参照する。
 
 ## R2ah：ローカル試合記録と終局結果の冪等境界
 
