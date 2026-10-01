@@ -3666,7 +3666,8 @@ function supportMayEscortP1(state: BattleState, actor: ActorState): boolean {
   // Keep one ordinary carrier operating artillery until the first gate opens.
   // A supply shuffle can otherwise leave both helpers escorting forever with
   // no remaining actor to break the first exterior part.
-  if (state.actors.P1?.location.area === "plaza" && state.castles.enemy.destroyedPartIds.length === 0 && actor.id === "P3") return false;
+  const livePlazaGuard = ["E25", "E26", "E27"].some(id => state.actors[id]?.alive && state.actors[id].location.area === "plaza");
+  if (!livePlazaGuard && state.actors.P1?.location.area === "plaza" && state.castles.enemy.destroyedPartIds.length === 0 && actor.id === "P3") return false;
   // Both supports may help the public plaza fight.  The supply-preservation
   // boundary above applies only after P1 has entered the enemy castle, where
   // escorting no longer takes priority over opening the remaining gates.
