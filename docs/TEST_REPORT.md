@@ -11,14 +11,14 @@ PR #71（R2ai）取り込み後のmainを基準に、画面側の待機中の味
 |検査|結果|
 |---|---|
 |新規待機列Node|20/20通過（約14秒）|
-|全Node回帰|338/338通過（ローカル`npm test`、約247秒）|
-|資料・差分空白|ローカル資料57/57（既定の読取専用検査）、`git diff --check`通過|
-|型検査・製品ビルド|ローカル`npm run build`通過|
+|全Node回帰|338/338通過（ローカル約247秒、Quality #459約259秒）|
+|資料・差分空白|ローカル/Quality #459で資料57/57（既定の読取専用検査）。ローカル`git diff --check`通過|
+|型検査・製品ビルド|ローカル/Quality #459で`npm run build`通過|
 |Playwright列挙|全66件（Chromium/WebKit各33件、8ファイル）を認識。列挙は実行合格ではない|
-|Chromium/WebKit実行|CIで確認予定。ローカルは検査ブラウザー未取得のため未実施|
+|Chromium/WebKit実行|66/66通過（各33件、Quality #459、約5.3分）。ローカルは検査ブラウザー未取得で未実施|
 |iPhone実機・試遊|未確認|
 
-独立レビューの中程度の入力合成指摘と接触fixtureの不安定さを修正し、再レビューで未解決の重大・中程度の問題がないことを確認した。レビュー担当は両順序の実`stepBattle`でP2→P3の受理を確認し、死亡・復活2/2を実行した。実browserの合格はCI結果から別途判断する。詳細は [R2ajレビュー](R2AJ_ALLY_COMMAND_QUEUE_REVIEW.md) を参照する。
+独立レビューの中程度の入力合成指摘と接触fixtureの不安定さを修正し、再レビューで未解決の重大・中程度の問題がないことを確認した。レビュー担当は両順序の実`stepBattle`でP2→P3の受理を確認し、死亡・復活2/2を実行した。[Quality #459](https://github.com/chameleonjp-lab/semekome/actions/runs/36848461246) でbrowserをSkippedにせず実行し、通常初期配置2件・接触fixture2件の計8実行を含む全66件の合格を確認した。検査したコードは `291ed40d393b40f3cdce0a631d499323fe925713`。実行記録だけの後続コミットではrun-browserラベルを外し、通常のQuality方針へ戻す。製品コードとbrowser検査ケースは検査済みの同一内容を維持する。詳細は [R2ajレビュー](R2AJ_ALLY_COMMAND_QUEUE_REVIEW.md) を参照する。
 
 ## R2ai：終局の人物集計と結果詳細の操作
 
