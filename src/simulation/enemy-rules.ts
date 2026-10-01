@@ -45,7 +45,7 @@ export function observeEnemy(battle: BattleState, actor: ActorState): EnemyObser
       actor.location.area === "castle" && o.location.team === actor.location.castleTeam && o.location.roomId === actor.location.roomId && near(actor.position, o.location.position))
       .map(o => o.id).sort(ordered),
     turret: turret ? { id: turret.id, roomId: turret.roomId, atPosition: atTurret(actor, turret), hasCapacity: queueFor(battle, actor.team, turret.id).length < turret.queueCapacity } : undefined,
-    canAssault: actor.canAssaultOtherVehicle === true && !opposingSideHasBreached,
+    canAssault: actor.canAssaultOtherVehicle === true && (!opposingSideHasBreached || !playerUnderPressure),
     canGuardPlaza: actor.canGuardPlaza === true &&
       (dispatchedGuardGeneration === undefined
         ? !opposingSideHasBreached

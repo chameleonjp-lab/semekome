@@ -35,7 +35,7 @@ test("R2b internal soldiers choose authored plaza/assault goals and move without
   assert.equal(next.fixedActors.E29.position.y, state.fixedActors.E29.position.y);
 });
 
-test("R2b assault soldiers yield after a cleared opposing crossing", () => {
+test("R2b assault soldiers defend a current breach and resume after the invader leaves", () => {
   const crossed = createBattle({ matchId: "r2b-assault-defense-crossing", seed: 323 });
   crossed.plaza.enemyCrossings["P1:1"] = {
     actorIds: ["P1"],
@@ -43,9 +43,19 @@ test("R2b assault soldiers yield after a cleared opposing crossing", () => {
     guardGenerations: {},
     allowed: true,
   };
-  const crossedNext = stepBattle(crossed, p1Intent(crossed));
+  const home = structuredClone(crossed.actors.P1);
+  const homePosition = structuredClone(crossed.fixedActors.P1);
+  placeP1InEnemyRoom(crossed, "repair", { x: 21500, y: 61500 });
+  let crossedNext = stepBattle(crossed, p1Intent(crossed));
   assert.notEqual(crossedNext.enemyDecisions.E29.intent.kind === "move_goal" && crossedNext.enemyDecisions.E29.intent.purpose, "assault");
   assert.notEqual(crossedNext.enemyDecisions.E30.intent.kind === "move_goal" && crossedNext.enemyDecisions.E30.intent.purpose, "assault");
+  crossedNext.actors.P1 = home;
+  crossedNext.fixedActors.P1 = homePosition;
+  for (let tick = 0; tick < 40; tick++) crossedNext = stepBattle(crossedNext, p1Intent(crossedNext));
+  for (const id of ["E29", "E30"]) {
+    assert.equal(crossedNext.enemyDecisions[id].intent.kind, "move_goal");
+    assert.equal(crossedNext.enemyDecisions[id].intent.kind === "move_goal" && crossedNext.enemyDecisions[id].intent.purpose, "assault", "historic crossing permission must not suppress counterattack forever");
+  }
 });
 
 test("R2b internal soldier defense starts an AI dash and bridges damage with the public tick", () => {

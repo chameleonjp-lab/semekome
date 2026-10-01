@@ -1,3 +1,5 @@
+import { MATCH_PRESETS, DIFFICULTIES, validateMatchOptions, type MatchPreset, type Difficulty } from "../content/match-presets.ts";
+import { validateSupportTypes, type SupportType } from '../content/support-types.ts';
 import { createWorld, stepWorld } from "./world.ts";
 import { caseDefinition, CASE_TYPES, SUPPLY_BAG, type CaseType } from "../content/cases.ts";
 import layoutSource from "../../docs/plans/current/INTERIOR_LAYOUTS.json" with { type: "json" };
@@ -77,7 +79,7 @@ const ACTION_RANGE_SUBUNITS = GEOMETRY_ACTION_RANGE_SUBUNITS;
 const EVENT_LOG_LIMIT = 512;
 const ROUTE_COLLISION_EPSILON = 0.012;
 const AI_REPLAN_TICKS = 120;
-const ENEMY_DECISION_INTERVAL_TICKS = 36;
+
 const PLAZA_EDGE_OFFSET_SUBUNITS = 500;
 const PLAZA_ENTRY_TRIGGER_SUBUNITS = 750;
 const PLAZA_ENTRY_HALF_HEIGHT_SUBUNITS = 9_500;
@@ -119,17 +121,25 @@ export type BattleDirection = { x: -1 | 0 | 1; y: -1 | 0 | 1 };
 export type BattleRoute = ArtilleryRoute;
 export type BattleHandle = "pickup" | "drop" | "deliver" | "load" | "repair" | "launch" | "intercept";
 export type AllyActorId = "P2" | "P3";
-export type AllyCommandKind = "hold" | "supply";
+export type AllyCommandKind = "hold" | "supply" | "artillery" | "defense" | "invasion";
 
 /** A player-facing order is intentionally limited to the two support actors. */
 export interface AllyCommand {
   allyId: AllyActorId;
   kind: AllyCommandKind;
+  targetRoomId?: string;
+  route?: BattleRoute;
+  part?: PartId;
+  allyGeneration?: number;
 }
 
 /** A hold order is bound to the ally's current life generation. */
 export interface AllyOrder {
-  kind: "hold";
+  kind: Exclude<AllyCommandKind, "supply">;
+  targetRoomId?: string;
+  route?: BattleRoute;
+  part?: PartId;
+  playerGeneration?: number;
   generation: number;
   issuedAtTick: number;
 }
@@ -416,6 +426,9 @@ export interface BattleState extends WorldState {
   enemyDecisions: Record<string, PhysicalEnemyDecision>;
   /** Explicit P1 orders for the two player support actors. */
   allyOrders: Record<AllyActorId, AllyOrder | null>;
+  supportTypes: Record<AllyActorId, SupportType>;
+  matchPreset: MatchPreset;
+  difficulty: Difficulty;
   /** Latest UI route/part selection; read at the actual enqueue tick. */
   launchSelections: Record<string, { route?: BattleRoute; part?: PartId }>;
   nextLaunchTick: Record<TeamId, number>;
@@ -1518,7 +1531,7 @@ function physicalEnemyObservation(state: BattleState, actor: ActorState): EnemyO
   // A player inside the enemy castle is not a global stop signal.  Keep the
   // plaza itself contested, but once the player has crossed, an assault unit
   // continues its own gate-aware route toward the player's vehicle.
-  const canAssault = actor.canAssaultOtherVehicle === true && !playerInPlaza && !opposingSideHasBreached;
+  const canAssault = actor.canAssaultOtherVehicle === true && (MATCH_PRESETS[state.matchPreset].priority === "invasion" || !playerInPlaza && (!opposingSideHasBreached || !homeUnderPlayerPressure));
   const dispatchedGuardGeneration = state.plaza.guardDeployments[actor.team]?.guardGenerations[String(actor.id)];
   const canGuardPlaza = actor.canGuardPlaza === true &&
     (dispatchedGuardGeneration === undefined
@@ -1683,7 +1696,7 @@ function updatePhysicalEnemyDecisions(state: BattleState): void {
     const intent = physicalEnemyIntent(state, actor);
     state.enemyDecisions[actor.id] = {
       generation: actor.generation,
-      nextDecisionTick: state.tick + ENEMY_DECISION_INTERVAL_TICKS,
+      nextDecisionTick: state.tick + DIFFICULTIES[state.difficulty].decisionTicks,
       intent,
     };
     const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "idle", path: [], pathIndex: 0 };
@@ -2560,7 +2573,7 @@ function spawnSupply(state: BattleState, events: WorldEvent[]): void {
         state.seed,
         port.team,
         state.logistics.bagCycles[port.team],
-        port.team === PLAYER_TEAM ? state.logistics.playerAllocation : SUPPLY_BAG,
+        port.team === PLAYER_TEAM ? state.logistics.playerAllocation : MATCH_PRESETS[state.matchPreset].allocation,
       );
       state.logistics.bagIndices[port.team] = 0;
     }
@@ -3445,7 +3458,9 @@ function chooseCarrierCase(state: BattleState, actor: ActorState): BattleCaseSta
     const port = state.logistics.ports[portKey(actor.team, item.sourcePortId)];
     return port?.roomId === actor.homeRoomId;
   });
-  return candidates.sort((left, right) => distanceSquared(actorFixed(state, actor.id), left.position ?? actorFixed(state, actor.id)) - distanceSquared(actorFixed(state, actor.id), right.position ?? actorFixed(state, actor.id)) || left.id.localeCompare(right.id))[0];
+  return candidates.sort((left, right) =>
+    ((isAllyActorId(actor.id) && state.supportTypes[actor.id] === "interceptor" || actor.team === ENEMY_TEAM && MATCH_PRESETS[state.matchPreset].priority === "interception")
+      ? (caseDefinition(right.type)?.interceptHits ?? 0) - (caseDefinition(left.type)?.interceptHits ?? 0) : actor.team === ENEMY_TEAM && MATCH_PRESETS[state.matchPreset].priority === "artillery" ? (caseDefinition(right.type)?.partDamage ?? 0) - (caseDefinition(left.type)?.partDamage ?? 0) : 0) || distanceSquared(actorFixed(state, actor.id), left.position ?? actorFixed(state, actor.id)) - distanceSquared(actorFixed(state, actor.id), right.position ?? actorFixed(state, actor.id)) || left.id.localeCompare(right.id))[0];
 }
 
 function processCarrierAI(state: BattleState, actor: ActorState, events: WorldEvent[]): void {
@@ -3516,12 +3531,17 @@ function processCarrierAI(state: BattleState, actor: ActorState, events: WorldEv
     // keep support fire on the detour route so opposing shots do not cancel
     // the supply needed to open the next gate.
     const playerIsAdvancingThroughEnemyCastle = actor.team === PLAYER_TEAM && actor.role === "support" &&
-      state.castles.enemy.destroyedPartIds.length > 0 &&
+      (state.castles.enemy.destroyedPartIds.length > 0 || state.actors.P1.location.area === "plaza") &&
       state.castles.enemy.destroyedPartIds.length < state.layout.enemy.coreRouteGates.length;
-    const route: BattleRoute | undefined = playerIsAdvancingThroughEnemyCastle ? "detour" : undefined;
+    const explicit = isAllyActorId(actor.id) ? state.allyOrders[actor.id] : null;
+    const incoming = Object.values(state.artillery.flights).find(flight => flight.targetTeam === PLAYER_TEAM);
+    const enemyRoute = actor.team === ENEMY_TEAM ? (MATCH_PRESETS[state.matchPreset].priority === "interception" ? Object.values(state.artillery.flights).find(flight => flight.targetTeam === ENEMY_TEAM)?.route ?? MATCH_PRESETS[state.matchPreset].route : MATCH_PRESETS[state.matchPreset].route) : undefined;
+    const route: BattleRoute | undefined = explicit?.route ?? enemyRoute ??
+      ((isAllyActorId(actor.id) && state.supportTypes[actor.id] === "interceptor" || actor.team === ENEMY_TEAM && MATCH_PRESETS[state.matchPreset].priority === "interception") && incoming ? incoming.route :
+        playerIsAdvancingThroughEnemyCastle ? "detour" : undefined);
     for (const item of [...carried]) {
       if (turret.handoffIds.length >= STAGING_SLOTS_PER_TURRET) break;
-      delivered = deliverCase(state, actor, item, route, undefined, events, turret) || delivered;
+      delivered = deliverCase(state, actor, item, route, explicit?.part, events, turret) || delivered;
     }
     if (delivered && actor.cargoIds.length === 0) {
       assignment.task = "idle";
@@ -3647,6 +3667,11 @@ function supportMayEscortP1(state: BattleState, actor: ActorState): boolean {
     // abandon the only route that can make those gates passable.
     return false;
   }
+  // Keep one ordinary carrier operating artillery until the first gate opens.
+  // A supply shuffle can otherwise leave both helpers escorting forever with
+  // no remaining actor to break the first exterior part.
+  const livePlazaGuard = ["E25", "E26", "E27"].some(id => state.actors[id]?.alive && state.actors[id].location.area === "plaza");
+  if (!livePlazaGuard && state.actors.P1?.location.area === "plaza" && state.castles.enemy.destroyedPartIds.length === 0 && actor.id === "P3") return false;
   // Both supports may help the public plaza fight.  The supply-preservation
   // boundary above applies only after P1 has entered the enemy castle, where
   // escorting no longer takes priority over opening the remaining gates.
@@ -3816,17 +3841,80 @@ function holdSupportPosition(state: BattleState, actor: ActorState): void {
   state.crew.assignments[actor.id] = assignment;
 }
 
-function processExplicitSupportOrder(state: BattleState, actor: ActorState): boolean {
+function moveSupportToRoom(state: BattleState, actor: ActorState, team: TeamId, roomId: string): void {
+  const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "patrol" as CrewTask, path: [], pathIndex: 0 };
+  const goalTask = team === PLAYER_TEAM ? "defend" : "patrol";
+  const needsNewPath = assignment.task !== goalTask || assignment.targetTurretId !== undefined;
+  assignment.task = goalTask;
+  assignment.targetTurretId = undefined;
+  if (actor.location.area === "plaza") {
+    const target = plazaEntryPoint(state, team, actorFixed(state, actor.id).y);
+    const direction = { x: team === PLAYER_TEAM ? -1 : 1, y: 0 } as BattleDirection;
+    if (!tryEnterCastleFromPlaza(state, actor, direction)) moveDirectlyToward(state, actor, target);
+    return;
+  }
+  const currentTeam = actor.location.castleTeam;
+  if (!currentTeam) return;
+  const outward = { x: teamLayout(state, currentTeam).frontDirection, y: 0 } as BattleDirection;
+  if (currentTeam !== team && atFrontExit(state, actor, outward)) {
+    tryEnterPlaza(state, actor, outward); return;
+  }
+  const target = currentTeam !== team ? frontEntryCenter(state, currentTeam) : roomTargetPoint(state, team, roomId);
+  if (!target) { holdSupportPosition(state, actor); return; }
+  if (needsNewPath || !assignment.targetPosition || distanceSquared(assignment.targetPosition, target) > 50 ** 2 || !assignment.path.length && state.tick % 120 === 0) {
+    assignment.targetPosition = copyPoint(target);
+    assignment.targetRoomId = roomId;
+    assignment.path = actorTargetPath(state, actor, target);
+    assignment.pathIndex = 0;
+    assignment.stuckTicks = 0;
+  }
+  // No route means wait at the closed gate; physical walls are always authority.
+  if (assignment.path.length) moveAIAlongPath(state, actor, assignment, target);
+  state.crew.assignments[actor.id] = assignment;
+  if (team === ENEMY_TEAM && roomId === "core" && actor.currentRoomId === "core" &&
+      state.castles.enemy.openGateIds.length === 7 && withinActionRange(actorFixed(state, actor.id), target)) {
+    const room = teamLayout(state, ENEMY_TEAM).rooms.find(candidate => candidate.id === "core")!;
+    startActorDash(state, actor, { x: Math.round((room.rect.x0 + room.rect.x1) * 500), y: Math.round((room.rect.y0 + room.rect.y1) * 500) });
+  }
+}
+
+function processSupportRepair(state: BattleState, actor: ActorState, events: WorldEvent[]): boolean {
+  if (!actor.alive || actorIsProtected(state, actor) || actor.location.area !== "castle" || actor.location.castleTeam !== actor.team) return false;
+  if (activeAnyRepair(state, actor.id)) return true;
+  const damagedEquipment = [
+    ...Object.values(state.artillery.turrets).filter(item => item.team === actor.team).map(item => ({ kind: "turret" as const, item })),
+    ...Object.values(state.logistics.ports).filter(item => item.team === actor.team).map(item => ({ kind: "supply_port" as const, item })),
+  ].filter(({ item }) => item.health < state.rules.equipmentRepairHealth || item.disabledUntilTick !== null)
+    .sort((a, b) => a.item.id.localeCompare(b.item.id))[0];
+  const part = chooseRepairPart(state, actor.team);
+  if (!damagedEquipment && (!part || state.repairs.budgetUsed[actor.team] >= state.rules.repairBudget)) return false;
+  const carried = actor.cargoIds.map(id => state.battleCases[id]).find(item => item?.location === "carried" && !reservationForCase(state, item.id));
+  if (!carried) { processCarrierAI(state, actor, events); return true; }
+  if (actor.currentRoomId !== "repair") { moveSupportToRoom(state, actor, actor.team, "repair"); return true; }
+  if (damagedEquipment) startEquipmentRepair(state, actor, carried, damagedEquipment.kind, damagedEquipment.item.id, events);
+  else startRepair(state, actor, carried, part, events);
+  return true;
+}
+
+function processExplicitSupportOrder(state: BattleState, actor: ActorState, events: WorldEvent[]): boolean {
   if (actor.team !== PLAYER_TEAM || !isAllyActorId(actor.id)) return false;
   const order = state.allyOrders[actor.id];
   if (!order) return false;
-  if (order.generation !== actor.generation) {
+  if (order.generation !== actor.generation || !state.actors.P1.alive ||
+      order.playerGeneration !== undefined && order.playerGeneration !== state.actors.P1.generation) {
     // A hold order never follows an ally into a new life generation.  This
     // prevents a stale command from silently overriding the fresh respawn AI.
     state.allyOrders[actor.id] = null;
     return false;
   }
-  if (!processSupportDefense(state, actor)) holdSupportPosition(state, actor);
+  if (!actor.alive || actorIsProtected(state, actor)) return true;
+  if (processSupportDefense(state, actor)) return true;
+  if (order.kind === "artillery") {
+    if (!processSupportReturnHome(state, actor) && !processSupportTurretAI(state, actor)) processCarrierAI(state, actor, events);
+  } else if (order.kind === "defense" || order.kind === "invasion") {
+    moveSupportToRoom(state, actor, order.kind === "invasion" ? ENEMY_TEAM : PLAYER_TEAM,
+      order.targetRoomId ?? (order.kind === "invasion" ? "central_corridor" : "repair"));
+  } else holdSupportPosition(state, actor);
   return true;
 }
 
@@ -3857,10 +3945,13 @@ function processCrewAI(state: BattleState, events: WorldEvent[], suppressNpcMove
   // defense/escort decisions during that attack.
   for (const actor of Object.values(state.actors).sort((left, right) => left.id.localeCompare(right.id))) {
     if (suppressNpcMovement && actor.team !== PLAYER_TEAM) continue;
+    if (actor.team === ENEMY_TEAM && actor.id === "E28" && MATCH_PRESETS[state.matchPreset].priority === "repair" && processSupportRepair(state, actor, events)) continue;
     const decision = state.enemyDecisions[actor.id];
     if (decision && enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
     if (actor.role === "support") {
-      if (processExplicitSupportOrder(state, actor)) continue;
+      if (processExplicitSupportOrder(state, actor, events)) continue;
+      if (state.supportTypes[actor.id as AllyActorId] === "mechanic" &&
+          (processSupportDefense(state, actor) || processSupportRepair(state, actor, events))) continue;
       if (!processSupportDefense(state, actor) && !processSupportEscortP1(state, actor) &&
           !processSupportReturnHome(state, actor) &&
           !processSupportTurretAI(state, actor)) processCarrierAI(state, actor, events);
@@ -3986,9 +4077,14 @@ export interface CreateBattleOptions {
   seed: number;
   /** Player-only eight-case allocation; enemy supply stays on the standard bag. */
   playerSupplyAllocation?: readonly CaseType[];
+  supportTypes?: readonly SupportType[];
+  preset?: MatchPreset;
+  difficulty?: Difficulty;
 }
 
 export function createBattle(options: CreateBattleOptions): BattleState {
+  const config = validateMatchOptions(options.preset ?? "standard", options.difficulty ?? "standard");
+  const supportTypes = validateSupportTypes(options.supportTypes ?? ["carrier", "carrier"]);
   const playerAllocation = validateSupplyAllocation(options.playerSupplyAllocation ?? SUPPLY_BAG);
   const world = createWorld({ matchId: options.matchId, seed: options.seed });
   const state = {
@@ -4003,7 +4099,7 @@ export function createBattle(options: CreateBattleOptions): BattleState {
       groups: {},
       bags: {
         player: seededSupplyBag(world.seed, PLAYER_TEAM, 0, playerAllocation),
-        enemy: seededSupplyBag(world.seed, ENEMY_TEAM, 0, SUPPLY_BAG),
+        enemy: seededSupplyBag(world.seed, ENEMY_TEAM, 0, MATCH_PRESETS[config.preset].allocation),
       },
       bagIndices: { player: 0, enemy: 0 },
       bagCycles: { player: 0, enemy: 0 },
@@ -4019,6 +4115,9 @@ export function createBattle(options: CreateBattleOptions): BattleState {
     repairs: { tasks: {}, equipmentTasks: {}, budgetUsed: { player: 0, enemy: 0 } },
     enemyDecisions: {},
     allyOrders: { P2: null, P3: null },
+    supportTypes: { P2: supportTypes[0], P3: supportTypes[1] },
+    matchPreset: config.preset,
+    difficulty: config.difficulty,
     launchSelections: {},
     nextLaunchTick: { player: 0, enemy: 0 },
     eventLogLimit: EVENT_LOG_LIMIT,
@@ -4060,10 +4159,10 @@ function isAllyActorId(value: unknown): value is AllyActorId {
 }
 
 function isAllyCommandKind(value: unknown): value is AllyCommandKind {
-  return value === "hold" || value === "supply";
+  return value === "hold" || value === "supply" || value === "artillery" || value === "defense" || value === "invasion";
 }
 
-function applyAllyCommand(state: BattleState, command: unknown, report: StepReport): boolean {
+function applyAllyCommand(state: BattleState, command: unknown, report: StepReport, events: WorldEvent[]): boolean {
   if (!command || typeof command !== "object") {
     addRejection(report, 0, "invalid_transition", "ally command must be an object");
     return false;
@@ -4087,9 +4186,30 @@ function applyAllyCommand(state: BattleState, command: unknown, report: StepRepo
     return false;
   }
 
-  if (candidate.kind === "hold") {
+  if (candidate.allyGeneration !== undefined && candidate.allyGeneration !== ally.generation) {
+    addRejection(report, 0, "stale_generation", "stale ally generation"); return false;
+  }
+  const targetTeam = candidate.kind === "invasion" ? ENEMY_TEAM : PLAYER_TEAM;
+  if (candidate.targetRoomId !== undefined && (typeof candidate.targetRoomId !== "string" ||
+      !teamLayout(state, targetTeam).rooms.some(room => room.id === candidate.targetRoomId))) {
+    addRejection(report, 0, "invalid_transition", "unknown target room"); return false;
+  }
+  if (candidate.route !== undefined && candidate.route !== "direct" && candidate.route !== "detour" ||
+      candidate.part !== undefined && !isPartId(candidate.part)) {
+    addRejection(report, 0, "invalid_transition", "invalid artillery target"); return false;
+  }
+  const repair = activeAnyRepair(state, ally.id);
+  if (repair) {
+    if ("partId" in repair) cancelRepair(state, repair, "interrupted", events);
+    else cancelEquipmentRepair(state, repair, "interrupted", events);
+  }
+  if (candidate.kind !== "supply") {
     state.allyOrders[candidate.allyId] = {
-      kind: "hold",
+      kind: candidate.kind,
+      targetRoomId: candidate.targetRoomId as string | undefined,
+      route: candidate.route as BattleRoute | undefined,
+      part: candidate.part as PartId | undefined,
+      playerGeneration: state.actors.P1.generation,
       generation: ally.generation,
       issuedAtTick: state.tick,
     };
@@ -4123,7 +4243,7 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
     addRejection(report, 0, "invalid_transition", "attack and dash cannot be combined");
     return;
   }
-  if (intent.allyCommand !== undefined && !applyAllyCommand(state, intent.allyCommand, report)) return;
+  if (intent.allyCommand !== undefined && !applyAllyCommand(state, intent.allyCommand, report, events)) return;
   const repair = activeAnyRepair(state, actor.id);
   const movementRequested = (intent.direction !== undefined && isFiniteDirection(intent.direction) && (intent.direction.x !== 0 || intent.direction.y !== 0)) ||
     intent.dash !== undefined || intent.attack === true;
@@ -4402,6 +4522,7 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
   if (finalOutcome !== "ongoing") {
     next.outcome = finalOutcome;
     next.phase = "ended";
+    next.allyOrders = { P2: null, P3: null };
     for (const actor of Object.values(next.actors)) if (!actor.alive) actor.respawnAtTick = null;
     if (!events.some((candidate) => candidate.type === "outcome")) {
       events.push(event("outcome", { outcome: finalOutcome, tick: currentTick }));

@@ -166,3 +166,29 @@ for (const first of ['attack', 'dash'] as const) {
     expect(errors).toEqual([]);
   });
 }
+
+test('同型の補助員を選び、正式な防衛・砲撃命令を別々に送れる', async ({ page }) => {
+  await freezeBrowserClock(page);
+  await page.getByRole('button', { name: '通常戦を始める' }).click();
+  await page.getByLabel('あなたの名前').fill('編成と正式命令');
+  await page.locator('[data-support-type]').nth(0).selectOption('mechanic');
+  await page.locator('[data-support-type]').nth(1).selectOption('mechanic');
+  await page.getByRole('button', { name: '確認を開始する' }).click();
+  const battle = page.locator('.battle');
+  for (let attempt = 0; attempt < 40 && await battle.getAttribute('data-phase') !== 'running'; attempt++) await page.clock.runFor(100);
+  await page.locator('.ally-orders summary').click();
+  await page.locator('[data-ally-kind="P2"]').selectOption('defense');
+  await page.locator('[data-ally-room="P2"]').selectOption('repair');
+  await page.locator('[data-ally-submit="P2"]').click();
+  await page.locator('[data-ally-kind="P3"]').selectOption('artillery');
+  await page.locator('[data-ally-submit="P3"]').click();
+  await page.clock.runFor(100);
+  await expect(page.locator('#ally-order-status')).toContainText('P2 整備型：防衛');
+  await expect(page.locator('#ally-order-status')).toContainText('P3 整備型：砲撃');
+  await expect(page.locator('#battle-dash')).toBeInViewport();
+  await page.locator('[data-ally-kind="P2"]').selectOption('supply');
+  await page.locator('[data-ally-submit="P2"]').click();
+  await page.clock.runFor(100);
+  await expect(page.locator('#ally-order-status')).toContainText('P2 整備型：通常業務');
+  await expect(page.locator('#ally-order-status')).toContainText('P3 整備型：砲撃');
+});

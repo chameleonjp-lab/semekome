@@ -135,3 +135,10 @@
   #battle-action { height: 48px; min-height: 48px; overflow: hidden; }
   #battle-action .action-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 }
+
+.ally-order-panel { position: absolute; right: 0; bottom: calc(100% + 6px); width: min(300px, calc(100vw - 24px)); max-height: min(55dvh, 440px); overflow-y: auto; overscroll-behavior: contain; padding: 10px; border: 1px solid #67838b; border-radius: 10px; background: #172d38; box-shadow: 0 8px 22px #06131bbb; }
+.ally-order-panel .ally-order-buttons, .ally-order-panel #ally-order-hint { position: static; width: 100%; padding: 0; box-shadow: none; border: 0; }
+.ally-order-panel > div { display: grid; gap: 6px; margin-bottom: 10px; }
+.ally-order-panel label { display: grid; gap: 4px; }
+.ally-order-panel select, .ally-order-panel button { width: 100%; min-height: 48px; }
+.ally-orders:not([open]) .ally-order-panel { display: none; }

@@ -1,3 +1,4 @@
+import { createPracticeProgress } from "../../src/presentation/practice-progress.ts";
 import assert from "node:assert/strict";
 import test from "node:test";
 import { caseDefinition } from "../../src/content/cases.ts";
@@ -165,8 +166,10 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
-test("標準配分の通常ルートでP1が7門を越え、有効なコア突進で勝利する", { timeout: 300_000 }, () => {
-  let state = createBattle({ matchId: "r2af-standard-player-core-victory", seed: 20260913 });
+for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準配分通常ルートでP1が7門を越え、有効なコア突進で勝利する`, { timeout: 300_000 }, () => {
+  const practiceProgress = createPracticeProgress("core");
+  let practiceAchieved = false;
+  let state = createBattle({ matchId: "r2af-standard-player-core-victory", seed });
   assert.deepEqual(state.logistics.playerAllocation, STANDARD_ALLOCATION);
   const initialP3Health = state.castles.enemy.exterior.P3.health;
   const coreRoom = state.layout.enemy.rooms.find((room) => room.id === "core");
@@ -386,6 +389,7 @@ test("標準配分の通常ルートでP1が7門を越え、有効なコア突�
 
     if (nextState.lastStep.acceptedInputKinds.includes("bridge:core_contact")) coreContactCount += 1;
     state = nextState;
+    practiceAchieved = practiceProgress.observe(state);
     let trackedP3ProjectileImpactedThisTick = false;
     let p3PartDamageThisTick = 0;
     let trackedP4ProjectileImpactedThisTick = false;
@@ -704,6 +708,7 @@ test("標準配分の通常ルートでP1が7門を越え、有効なコア突�
   assert.equal(state.rules.enemyRespawnTicks, 1_200, "enemy generations keep their required 20-second respawn");
   assert.equal(state.outcome, "player_win", "the valid core hit ends the standard battle in a player victory");
   assert.equal(state.phase, "ended");
+  assert.equal(practiceAchieved, true, "core practice requires this actual public seven-gate P1 victory");
   assert.equal(state.lastStep.acceptedInputKinds.includes("bridge:core_contact"), true);
   assert.equal(state.lastStep.events.filter((event) => event.type === "outcome").length, 1,
     "the terminal player victory is emitted once");

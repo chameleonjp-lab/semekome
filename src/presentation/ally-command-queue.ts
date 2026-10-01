@@ -9,6 +9,7 @@ const ALLY_IDS: readonly AllyActorId[] = ["P2", "P3"];
 
 interface PendingAllyCommand {
   kind: AllyCommandKind;
+  command?: AllyCommand;
   matchId: string;
   playerGeneration: number;
   allyGeneration: number;
@@ -40,6 +41,13 @@ export function createAllyCommandQueue() {
   }
 
   return {
+    submit(state: BattleState, command: AllyCommand): void {
+      prune(state);
+      const ally = state.actors[command.allyId];
+      if (state.phase !== "running" || state.visibility !== "visible" || !state.actors.P1.alive || !ally?.alive) return;
+      pending[command.allyId] = { kind: command.kind, command: structuredClone({ ...command, allyGeneration: ally.generation }),
+        matchId: state.matchId, playerGeneration: state.actors.P1.generation, allyGeneration: ally.generation };
+    },
     toggle(state: BattleState, allyId: AllyActorId): void {
       prune(state);
       const player = state.actors.P1;
@@ -77,7 +85,7 @@ export function createAllyCommandQueue() {
         const command = pending[allyId];
         if (!command) continue;
         delete pending[allyId];
-        return { allyId, kind: command.kind };
+        return command.command ? structuredClone(command.command) : { allyId, kind: command.kind };
       }
       return undefined;
     },
@@ -86,7 +94,7 @@ export function createAllyCommandQueue() {
       prune(state);
       return ALLY_IDS.flatMap((allyId) => {
         const command = pending[allyId];
-        return command ? [{ allyId, kind: command.kind }] : [];
+        return command ? [command.command ? structuredClone(command.command) : { allyId, kind: command.kind }] : [];
       });
     },
 
