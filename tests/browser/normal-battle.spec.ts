@@ -90,6 +90,9 @@ test('通常戦はホームから名前・カウントダウンを経て結果�
   await expect(result.locator('[data-result-score-status="pending"]')).toContainText('得点式の承認待ち');
   await expect(result.locator('[data-result-ranking-status="unavailable"]')).toContainText('game_id / game_slug / URL');
   await expect(result.locator('[data-result-player-name]')).toHaveText('通常戦の開始検査');
+  await expect(result.locator('[data-result-enemy-defeats-total]')).toHaveText(/\d+ 回/);
+  await expect(result.locator('[data-result-enemy-unique-defeats]')).toHaveText(/\d+\/30 人/);
+  await expect(result.locator('[data-result-player-deaths]')).toHaveText(/\d+ 回/);
 
   const endedMatchId = await result.getAttribute('data-match-id');
   await expect(result).toHaveAttribute('data-start-record-id', startRecordId!);
@@ -101,13 +104,17 @@ test('通常戦はホームから名前・カウントダウンを経て結果�
   const finishedRecord = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) ?? 'null') as {
     matchId: string;
     start: { id: string };
-    result?: { submissionId: string; payload: { matchId: string } };
+    result?: { submissionId: string; payload: { matchId: string; combatMetrics: { enemyDefeatsTotal: number; enemyUniqueDefeats: number; playerDeaths: number } } };
   } | null, `semekome:battle-session:${endedMatchId}`);
   expect(finishedRecord).toMatchObject({
     matchId: endedMatchId,
     start: { id: startRecordId },
     result: { submissionId: resultSubmissionId, payload: { matchId: endedMatchId } },
   });
+  const metrics = finishedRecord!.result!.payload.combatMetrics;
+  await expect(result.locator('[data-result-enemy-defeats-total]')).toHaveText(`${metrics.enemyDefeatsTotal} 回`);
+  await expect(result.locator('[data-result-enemy-unique-defeats]')).toHaveText(`${metrics.enemyUniqueDefeats}/30 人`);
+  await expect(result.locator('[data-result-player-deaths]')).toHaveText(`${metrics.playerDeaths} 回`);
   await page.getByRole('button', { name: '再戦の準備へ' }).click();
   await expect(page.locator('.battle-setup')).toBeVisible();
   await page.getByLabel('あなたの名前').fill('再戦の状態検査');

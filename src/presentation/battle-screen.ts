@@ -11,6 +11,7 @@ import { bindArtImageFallbacks, setArtImageSource, setArtImageVisible } from './
 import { actorStatusName, battleHint, battleMapLabel, partDisplayName } from './battle-hud.ts';
 import { caseLabels, createBattleRenderer } from './battle-renderer.ts';
 import { createBattleSessionRecord, createBattleSessionStore, type BattleOutcome, type BattleResultReason } from './battle-session-record.ts';
+import { projectBattleResultMetrics } from './battle-result-metrics.ts';
 import './battle.css';
 
 const actionLabels: Record<BattleHandle, string> = {
@@ -459,6 +460,8 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     const outcome = state.outcome;
     if (outcome === 'ongoing') return;
     resultShown = true;
+    // Release battle listeners before the result region owns keyboard scrolling.
+    movement.dispose(); dashInput.dispose(); attackInput.dispose(); events.abort();
     const terminalOutcome: BattleOutcome = outcome;
     const title = terminalOutcome === 'player_win' ? '勝利'
       : terminalOutcome === 'enemy_win' ? '敗北' : '引き分け';
@@ -480,20 +483,29 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
       enemyGatesOpened: state.castles.enemy.openGateIds.length,
       playerOperatedLaunches,
       playerDashStarts,
+      combatMetrics: projectBattleResultMetrics(state),
     });
+    const savedResult = resultRecord.result!.payload;
+    const combatMetrics = savedResult.combatMetrics!;
     app.innerHTML = `<section class="battle-result ${outcomeClass}" aria-label="通常戦の結果" data-flow="normal-result" data-outcome="${terminalOutcome}" data-match-id="${state.matchId}" data-tick="${state.tick}" data-player-dash-starts="${playerDashStarts}" data-start-record-id="${resultRecord.start.id}" data-result-submission-id="${resultRecord.result?.submissionId ?? ''}" data-record-connection="${resultRecord.connection}" data-record-persistence="${sessionStore.persistent ? 'session' : 'memory'}" data-start-record-status="${resultRecord.start.status}" data-result-record-status="${resultRecord.result?.status ?? 'idle'}">
+      <div class="result-scroll" tabindex="0" role="region" aria-label="結果の詳細">
       <p class="eyebrow">通常戦の結果</p><h1>${title}</h1><p class="result-reason" data-result-reason>${reason}</p>
       <p class="result-player">プレイヤー：<strong data-result-player-name></strong></p>
       <dl class="result-metrics" aria-label="実戦の記録">
         <div><dt>経過時間</dt><dd>${elapsed}</dd></div>
-        <div><dt>敵外装</dt><dd>${state.castles.enemy.destroyedPartIds.length}/7 破壊</dd></div>
-        <div><dt>敵の門</dt><dd>${state.castles.enemy.openGateIds.length}/7 開放</dd></div>
-        <div><dt>主人公の砲撃</dt><dd>${playerOperatedLaunches} 発</dd></div>
+        <div><dt>敵外装</dt><dd>${savedResult.enemyExteriorDestroyed}/7 破壊</dd></div>
+        <div><dt>敵の門</dt><dd>${savedResult.enemyGatesOpened}/7 開放</dd></div>
+        <div><dt>主人公の砲撃</dt><dd>${savedResult.playerOperatedLaunches} 発</dd></div>
+        <div><dt>倒した敵の延べ回数</dt><dd data-result-enemy-defeats-total>${combatMetrics.enemyDefeatsTotal} 回</dd></div>
+        <div><dt>一度でも倒した敵</dt><dd data-result-enemy-unique-defeats>${combatMetrics.enemyUniqueDefeats}/30 人</dd></div>
+        <div><dt>主人公が倒れた回数</dt><dd data-result-player-deaths>${combatMetrics.playerDeaths} 回</dd></div>
       </dl>
+      <p class="result-detail-note">敵を倒した記録は味方全体の合計です。同じ敵を復活後に倒した分は、延べ回数だけに加えます。</p>
       <section class="result-section" aria-labelledby="result-score-title"><h2 id="result-score-title">スコア</h2><p data-result-score-status="pending">得点式の承認待ちです。現在は表示しません。</p></section>
       <section class="result-section" aria-labelledby="result-ranking-title"><h2 id="result-ranking-title">ランキング・共有</h2><p data-result-ranking-status="unavailable">共有側のゲーム登録値（game_id / game_slug / URL）確認待ちです。外部送信は行いません。開始・結果のローカル記録は同じ試合IDに保持します。</p></section>
-      <div class="result-actions"><button id="restart-battle" class="primary">再戦の準備へ</button><button id="result-home">ホームへ戻る</button></div>
       <p class="result-note">次の試合は新しい試合状態として開始され、今回の入力・物体・復活状態を持ち越しません。</p>
+      </div>
+      <div class="result-actions"><button id="restart-battle" class="primary">再戦の準備へ</button><button id="result-home">ホームへ戻る</button></div>
     </section>`;
     app.querySelector<HTMLElement>('[data-result-player-name]')!.textContent = name;
     app.querySelector<HTMLButtonElement>('#restart-battle')!.addEventListener('click', onReplay, { once: true });
