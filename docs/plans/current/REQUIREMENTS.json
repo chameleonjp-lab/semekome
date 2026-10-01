@@ -9,7 +9,17 @@
       "phase": "R1",
       "category": "rights",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 5,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-02",
@@ -19,7 +29,18 @@
       "phase": "R1",
       "category": "scope",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 1,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-03",
@@ -29,7 +50,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_screen_state_and_scoped_proposals"
+      "design_basis": "updated_v5_screen_state_and_scoped_proposals",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-04",
@@ -39,7 +71,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-05",
@@ -49,7 +92,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-06",
@@ -59,7 +113,18 @@
       "phase": "R2",
       "category": "input",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-07",
@@ -69,7 +134,18 @@
       "phase": "R3",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-08",
@@ -79,7 +155,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_four_turrets_and_four_ports"
+      "design_basis": "updated_v5_four_turrets_and_four_ports",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-09",
@@ -89,7 +176,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-10",
@@ -99,7 +197,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_adopted_four_turrets_and_scoped_proposal"
+      "design_basis": "updated_v5_adopted_four_turrets_and_scoped_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-11",
@@ -109,7 +218,18 @@
       "phase": "R4",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-12",
@@ -119,7 +239,18 @@
       "phase": "R3",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-13",
@@ -129,7 +260,18 @@
       "phase": "R3",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-14",
@@ -139,7 +281,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-15",
@@ -149,7 +302,18 @@
       "phase": "R3",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-16",
@@ -159,7 +323,18 @@
       "phase": "R3",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-17",
@@ -169,7 +344,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "user_requirement_with_explicit_implementation_proposals"
+      "design_basis": "user_requirement_with_explicit_implementation_proposals",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-18",
@@ -180,7 +366,18 @@
       "category": "combat",
       "status": "proposed_not_implemented",
       "design_basis": "user_requirement_with_explicit_implementation_proposals",
-      "user_confirmed_core_rule": true
+      "user_confirmed_core_rule": true,
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-19",
@@ -190,7 +387,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "user_requirement_with_explicit_implementation_proposals"
+      "design_basis": "user_requirement_with_explicit_implementation_proposals",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-20",
@@ -200,7 +408,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-21",
@@ -210,7 +429,18 @@
       "phase": "R3",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v5_user_spec_and_scoped_proposals",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-22",
@@ -220,7 +450,18 @@
       "phase": "R4",
       "category": "ai",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-23",
@@ -230,7 +471,18 @@
       "phase": "R4",
       "category": "ai",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-24",
@@ -240,7 +492,18 @@
       "phase": "R4",
       "category": "ai",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-25",
@@ -250,7 +513,18 @@
       "phase": "R4",
       "category": "ai",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-26",
@@ -260,7 +534,18 @@
       "phase": "R2",
       "category": "ui",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_screen_and_result_requirements"
+      "design_basis": "updated_v5_screen_and_result_requirements",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-27",
@@ -270,7 +555,18 @@
       "phase": "R2",
       "category": "input",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-28",
@@ -280,7 +576,18 @@
       "phase": "R5",
       "category": "ui",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-29",
@@ -290,7 +597,18 @@
       "phase": "R2",
       "category": "input",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_spectator_state_and_carried_forward_proposal"
+      "design_basis": "updated_v5_spectator_state_and_carried_forward_proposal",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-30",
@@ -300,7 +618,18 @@
       "phase": "R1",
       "category": "technical",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-31",
@@ -310,7 +639,18 @@
       "phase": "R1",
       "category": "technical",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-32",
@@ -320,7 +660,18 @@
       "phase": "R1",
       "category": "technical",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-33",
@@ -330,7 +681,18 @@
       "phase": "R2",
       "category": "technical",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-34",
@@ -340,7 +702,17 @@
       "phase": "R5",
       "category": "performance",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 5,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-35",
@@ -350,7 +722,18 @@
       "phase": "R5",
       "category": "product",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_product_and_screen_flow"
+      "design_basis": "updated_v5_product_and_screen_flow",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-36",
@@ -360,7 +743,18 @@
       "phase": "R5",
       "category": "product",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-37",
@@ -370,7 +764,18 @@
       "phase": "R5",
       "category": "product",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_adopted_layout_and_release_scope"
+      "design_basis": "updated_v5_adopted_layout_and_release_scope",
+      "release_stage": 1,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-38",
@@ -380,7 +785,17 @@
       "phase": "R6",
       "category": "rights",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 5,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-39",
@@ -390,7 +805,17 @@
       "phase": "R6",
       "category": "rights",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 5,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-40",
@@ -400,7 +825,18 @@
       "phase": "R6",
       "category": "quality",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 1,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-41",
@@ -410,7 +846,18 @@
       "phase": "R1",
       "category": "workflow",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 1,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-42",
@@ -420,7 +867,18 @@
       "phase": "R6",
       "category": "scope",
       "status": "proposed_not_implemented",
-      "design_basis": "carried_forward_proposal"
+      "design_basis": "carried_forward_proposal",
+      "release_stage": 1,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-43",
@@ -430,7 +888,18 @@
       "phase": "R1",
       "category": "combat",
       "status": "specified_not_implemented",
-      "design_basis": "user_requirement"
+      "design_basis": "user_requirement",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-44",
@@ -440,7 +909,18 @@
       "phase": "R1",
       "category": "layout",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-45",
@@ -450,7 +930,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-46",
@@ -460,7 +951,18 @@
       "phase": "R3",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-47",
@@ -470,7 +972,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-48",
@@ -480,7 +993,18 @@
       "phase": "R4",
       "category": "ai",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_plaza_and_adopted_layout"
+      "design_basis": "updated_v5_plaza_and_adopted_layout",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-49",
@@ -490,7 +1014,18 @@
       "phase": "R1",
       "category": "quality",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v4_user_spec_and_scoped_proposals"
+      "design_basis": "updated_v4_user_spec_and_scoped_proposals",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-50",
@@ -500,7 +1035,18 @@
       "phase": "R1",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_adopted_layout"
+      "design_basis": "updated_v5_adopted_layout",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-51",
@@ -510,7 +1056,18 @@
       "phase": "R1",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "user_confirmed_count_implementation_accounting"
+      "design_basis": "user_confirmed_count_implementation_accounting",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-52",
@@ -520,7 +1077,18 @@
       "phase": "R2",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_adopted_distribution_and_scoped_proposal"
+      "design_basis": "updated_v5_adopted_distribution_and_scoped_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-53",
@@ -530,7 +1098,18 @@
       "phase": "R1",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "user_confirmed"
+      "design_basis": "user_confirmed",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-54",
@@ -540,7 +1119,18 @@
       "phase": "R3",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-55",
@@ -550,7 +1140,18 @@
       "phase": "R3",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_respawn_room_separation"
+      "design_basis": "updated_v5_respawn_room_separation",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-56",
@@ -560,7 +1161,18 @@
       "phase": "R2",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-57",
@@ -570,7 +1182,18 @@
       "phase": "R3",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-58",
@@ -580,7 +1203,18 @@
       "phase": "R4",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-59",
@@ -590,7 +1224,18 @@
       "phase": "R4",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_plaza_assignment"
+      "design_basis": "updated_v5_plaza_assignment",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-60",
@@ -600,7 +1245,18 @@
       "phase": "R2",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "preserve_user_confirmed_victory_conditions"
+      "design_basis": "preserve_user_confirmed_victory_conditions",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-61",
@@ -610,7 +1266,18 @@
       "phase": "R3",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "implementation_proposal"
+      "design_basis": "implementation_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-62",
@@ -620,7 +1287,18 @@
       "phase": "R2",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_screen_and_respawn_states"
+      "design_basis": "updated_v5_screen_and_respawn_states",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-63",
@@ -630,7 +1308,18 @@
       "phase": "R5",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_screen_and_result_requirements"
+      "design_basis": "updated_v5_screen_and_result_requirements",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-64",
@@ -640,7 +1329,17 @@
       "phase": "R6",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "updated_v5_adopted_layout_and_screen_scope"
+      "design_basis": "updated_v5_adopted_layout_and_screen_scope",
+      "release_stage": 5,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-65",
@@ -650,7 +1349,18 @@
       "phase": "R1",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "v5_scope_protection"
+      "design_basis": "v5_scope_protection",
+      "release_stage": 1,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-66",
@@ -660,7 +1370,18 @@
       "phase": "R1",
       "category": "layout",
       "status": "specified_not_implemented",
-      "design_basis": "user_adopted_facing_castles"
+      "design_basis": "user_adopted_facing_castles",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-67",
@@ -670,7 +1391,18 @@
       "phase": "R1",
       "category": "layout",
       "status": "proposed_not_implemented",
-      "design_basis": "user_adopted_layout_scoped_geometry"
+      "design_basis": "user_adopted_layout_scoped_geometry",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-68",
@@ -680,7 +1412,18 @@
       "phase": "R1",
       "category": "layout",
       "status": "proposed_not_implemented",
-      "design_basis": "adopted_layout_transform"
+      "design_basis": "adopted_layout_transform",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-69",
@@ -690,7 +1433,18 @@
       "phase": "R1",
       "category": "layout",
       "status": "proposed_not_implemented",
-      "design_basis": "r1_geometry_proposal"
+      "design_basis": "r1_geometry_proposal",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-70",
@@ -700,7 +1454,18 @@
       "phase": "R1",
       "category": "layout",
       "status": "proposed_not_implemented",
-      "design_basis": "user_adopted_map_and_core_preservation"
+      "design_basis": "user_adopted_map_and_core_preservation",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-71",
@@ -710,7 +1475,18 @@
       "phase": "R1",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "v5_adopted_layout_distribution"
+      "design_basis": "v5_adopted_layout_distribution",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-72",
@@ -720,7 +1496,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "specified_not_implemented",
-      "design_basis": "user_specified_plaza_breakthrough"
+      "design_basis": "user_specified_plaza_breakthrough",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-73",
@@ -730,7 +1517,18 @@
       "phase": "R1",
       "category": "enemy_rooms_respawn",
       "status": "proposed_not_implemented",
-      "design_basis": "v5_scoped_roster_assignment"
+      "design_basis": "v5_scoped_roster_assignment",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-74",
@@ -740,7 +1538,18 @@
       "phase": "R2",
       "category": "combat",
       "status": "specified_not_implemented",
-      "design_basis": "user_specified_five_second_respawn"
+      "design_basis": "user_specified_five_second_respawn",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-75",
@@ -750,7 +1559,18 @@
       "phase": "R2",
       "category": "ui",
       "status": "specified_not_implemented",
-      "design_basis": "user_specified_spectator_world"
+      "design_basis": "user_specified_spectator_world",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-76",
@@ -760,7 +1580,18 @@
       "phase": "R1",
       "category": "product",
       "status": "proposed_not_implemented",
-      "design_basis": "v5_screen_flow_proposal"
+      "design_basis": "v5_screen_flow_proposal",
+      "release_stage": 3,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-77",
@@ -770,7 +1601,18 @@
       "phase": "R1",
       "category": "input",
       "status": "proposed_not_implemented",
-      "design_basis": "v5_screen_flow_proposal"
+      "design_basis": "v5_screen_flow_proposal",
+      "release_stage": 4,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-session-record.ts",
+          "src/presentation/battle-result-metrics.ts",
+          "tests/presentation/battle-session-record.test.ts",
+          "docs/plans/current/RANKING_INTEGRATION_PLAN.json"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-78",
@@ -780,7 +1622,18 @@
       "phase": "R1",
       "category": "technical",
       "status": "proposed_not_implemented",
-      "design_basis": "v5_screen_state_scope"
+      "design_basis": "v5_screen_state_scope",
+      "release_stage": 2,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-79",
@@ -790,7 +1643,18 @@
       "phase": "R5",
       "category": "product",
       "status": "specified_not_implemented",
-      "design_basis": "user_required_initial_result_screen"
+      "design_basis": "user_required_initial_result_screen",
+      "release_stage": 4,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-session-record.ts",
+          "src/presentation/battle-result-metrics.ts",
+          "tests/presentation/battle-session-record.test.ts",
+          "docs/plans/current/RANKING_INTEGRATION_PLAN.json"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-80",
@@ -800,7 +1664,18 @@
       "phase": "R5",
       "category": "product",
       "status": "specified_not_implemented",
-      "design_basis": "user_required_initial_public_ranking"
+      "design_basis": "user_required_initial_public_ranking",
+      "release_stage": 4,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-session-record.ts",
+          "src/presentation/battle-result-metrics.ts",
+          "tests/presentation/battle-session-record.test.ts",
+          "docs/plans/current/RANKING_INTEGRATION_PLAN.json"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-81",
@@ -810,7 +1685,18 @@
       "phase": "R5",
       "category": "technical",
       "status": "proposed_not_implemented",
-      "design_basis": "ranking_idempotency_proposal"
+      "design_basis": "ranking_idempotency_proposal",
+      "release_stage": 4,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "src/presentation/battle-session-record.ts",
+          "src/presentation/battle-result-metrics.ts",
+          "tests/presentation/battle-session-record.test.ts",
+          "docs/plans/current/RANKING_INTEGRATION_PLAN.json"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     },
     {
       "id": "REQ-82",
@@ -820,7 +1706,18 @@
       "phase": "R1",
       "category": "workflow",
       "status": "proposed_not_implemented",
-      "design_basis": "v5_unconnected_ranking_plan"
+      "design_basis": "v5_unconnected_ranking_plan",
+      "release_stage": 1,
+      "evidence_review": {
+        "status": "partial_or_pending_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "note_ja": "工程の調査入口。参照実装・既存検査が要件全文の合格を意味しない。個別の受入結果はTEST_REPORT.mdへ記録する。"
+      }
     }
   ]
 }

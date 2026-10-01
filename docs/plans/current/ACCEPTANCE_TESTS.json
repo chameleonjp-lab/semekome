@@ -13,7 +13,20 @@
       "expected_ja": "旧原作候補の転記、未許諾の素材、原作画面の写し取りが見つからず、由来の不明点が解消されている。",
       "test_type": "human_rights_review",
       "phase": "R6",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        5
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "verification_method": "human_rights_review",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-002",
@@ -25,7 +38,21 @@
       "expected_ja": "船、探索、原作キャラクターの再現が混入していない。",
       "test_type": "document",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        1
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "verification_method": "document",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-003",
@@ -38,7 +65,21 @@
       "expected_ja": "自車の補給・運搬・発射・砲撃が同じ時計で進み、画面外だから停止しない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-004",
@@ -51,7 +92,21 @@
       "expected_ja": "各発射へ一つの装填元ケースがあり、そのケースは同時に床・所持・待ち列に存在しない。 敵の各射出は生存した担当射手と操作位置の記録も持つ。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-005",
@@ -63,7 +118,21 @@
       "expected_ja": "前者は取得不可、後者は取得可。合計重量3となり速度が85%になる。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-006",
@@ -75,7 +144,21 @@
       "expected_ja": "右枠のケースだけが消費され、左枠と表示順が維持される。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-007",
@@ -88,7 +171,21 @@
       "expected_ja": "移動が中断せず、指の役割が混ざらず、扱うが1回だけ実行される。",
       "test_type": "browser",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "browser",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-008",
@@ -100,7 +197,21 @@
       "expected_ja": "各巡の成功した8回の内訳が配分と一致する。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-009",
@@ -112,7 +223,21 @@
       "expected_ja": "停止中に順番を消費せず、再開してもまとめて複数個を出さない。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-010",
@@ -124,7 +249,21 @@
       "expected_ja": "投入済みは直通、新規投入は迂回になる。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-011",
@@ -136,7 +275,21 @@
       "expected_ja": "防護板2、重量弾1となり、装甲損傷値は接触計算に使わない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-012",
@@ -148,7 +301,21 @@
       "expected_ja": "接触を発生させず、表示にも交差したような誤解を生む装飾を置かない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-013",
@@ -161,7 +328,21 @@
       "expected_ja": "同じ組の接触を離れるまで再適用しない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-014",
@@ -173,7 +354,21 @@
       "expected_ja": "そのケースは手元に残り、発射音・成功表示・消費を発生させない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-015",
@@ -186,7 +381,21 @@
       "expected_ja": "待ち列が保持され、復帰した更新ではまとめて発射しない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-016",
@@ -198,7 +407,21 @@
       "expected_ja": "親を消し損傷4の子弾3個を作る。子は再分割せず総損傷量は12。",
       "test_type": "rule",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-017",
@@ -211,7 +434,21 @@
       "expected_ja": "接触を先に行い、親が消えた場合は子を生成しない。",
       "test_type": "rule",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-018",
@@ -224,7 +461,25 @@
       "expected_ja": "親のまま進め、他の弾を消さない。その親は再分割しない。",
       "test_type": "rule",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2,
+        5
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-019",
@@ -236,7 +491,21 @@
       "expected_ja": "停止は延長せず、終了後4秒は再停止しない。損傷は通常通り処理する。",
       "test_type": "rule",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-020",
@@ -248,7 +517,21 @@
       "expected_ja": "他方の理由が残る限り補給は再開しない。",
       "test_type": "rule",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-021",
@@ -260,7 +543,21 @@
       "expected_ja": "両陣営へ65%の速度効果が付き、重量3は0.85×0.65になる。",
       "test_type": "rule",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-022",
@@ -273,7 +570,21 @@
       "expected_ja": "同時の発射と修理消費を拒否し、物体は一つの状態にだけ存在する。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-023",
@@ -285,7 +596,21 @@
       "expected_ja": "その部位を5だけ回復し、予算0、ケース1個消費。他部位へ回復を移さない。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-024",
@@ -298,7 +623,21 @@
       "expected_ja": "P3破壊と1門の開放を先に確定。P3の修理は不成立でケースと回復予算を消費しない。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-025",
@@ -311,7 +650,21 @@
       "expected_ja": "作業区画への往復はできるが、閉じたG1がコア室への進行を阻む。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-026",
@@ -324,7 +677,21 @@
       "expected_ja": "補給が止まり、停止解除後に残り待ち時間から再開する。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-027",
@@ -337,7 +704,21 @@
       "expected_ja": "手動完了を先に処理する。修理有効ならケース1個だけを消費し、復帰は1回。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-028",
@@ -350,7 +731,21 @@
       "expected_ja": "全7門が開き、即敗北にしない。設備が有効な限り補給・砲撃・移動・防衛を続ける。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-029",
@@ -364,7 +759,21 @@
       "expected_ja": "G7を越えずコアへ当てられない。侵入できない理由を表示し勝敗は継続する。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-030",
@@ -377,7 +786,21 @@
       "expected_ja": "有効な1回の命中で攻撃側の勝利。空手や長押しや追加攻撃を要求しない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-031",
@@ -391,7 +814,21 @@
       "expected_ja": "補助員も正しい門の通路を通り、主人公と同条件でコア攻撃により勝利できる。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-032",
@@ -403,7 +840,21 @@
       "expected_ja": "最初の守備者に当たって突進が止まる。背後のコアへ同じ突進を通さない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-033",
@@ -416,7 +867,21 @@
       "expected_ja": "いずれも勝利にならない。コアの近距離攻撃が必要である。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-034",
@@ -429,7 +894,21 @@
       "expected_ja": "攻撃側の勝利を1回だけ確定し、結果表示・報酬・音を二重に開始しない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-035",
@@ -441,7 +920,21 @@
       "expected_ja": "どちらの配列順でも引き分けになり、プレイヤー優遇をしない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-036",
@@ -453,7 +946,21 @@
       "expected_ja": "片側だけの有効命中はその攻撃側勝利。両方未命中なら時間切れ引き分け。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-037",
@@ -465,7 +972,21 @@
       "expected_ja": "仕事を中断し荷物2個を床へ落とす。自車側だけは300更新後に復帰する。敵30人は別の1200更新設定を使用する。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-038",
@@ -478,7 +999,21 @@
       "expected_ja": "どれも成立しない。移動のみ可能。保護終了後は通常行動に戻る。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-039",
@@ -490,7 +1025,21 @@
       "expected_ja": "予約を解放し、有効な別対象を選び直す。",
       "test_type": "rule",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-040",
@@ -502,7 +1051,21 @@
       "expected_ja": "7部位の耐久・門数・コア判定・体力・弾性能・補給量に隠れた差がなく、判断間隔と作戦だけ異なる。",
       "test_type": "rule",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-041",
@@ -515,7 +1078,21 @@
       "expected_ja": "重要表示と操作領域が隠れず、数値の意味が読める。横スクロールや小さすぎる7分割タップを要求しない。",
       "test_type": "browser",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "browser",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-042",
@@ -527,7 +1104,21 @@
       "expected_ja": "同じ押下のまま他の対象へ行動を変更しない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-043",
@@ -539,7 +1130,21 @@
       "expected_ja": "戦闘は停止し、入力はすべて解除され、再開操作なしには進まない。",
       "test_type": "device",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "device",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-044",
@@ -552,7 +1157,26 @@
       "expected_ja": "同じ実行条件で状態要約と勝敗が一致する。",
       "test_type": "rule",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2,
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-045",
@@ -564,7 +1188,21 @@
       "expected_ja": "一物体の重複所有、消費後の再利用、根拠のない生成が0件。",
       "test_type": "rule",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-046",
@@ -576,7 +1214,21 @@
       "expected_ja": "接触を1回検出し、すり抜けや二重命中を起こさない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-047",
@@ -588,7 +1240,20 @@
       "expected_ja": "戦闘結果が一致する。描画目標は計測結果で判断し未計測を合格にしない。",
       "test_type": "performance",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        5
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "verification_method": "performance",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-048",
@@ -601,7 +1266,26 @@
       "expected_ja": "毎戦、全7外装が初期耐久、全7門閉鎖、コア未命中へ戻る。前戦の弾、入力、予約、タイマー、音が残らない。",
       "test_type": "browser",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2,
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "browser",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-049",
@@ -613,7 +1297,21 @@
       "expected_ja": "5人中4人を初期目安に要点を説明・実行できる。外装全壊だけを勝利と誤認する場合は説明と表示を修正する。",
       "test_type": "playtest",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "playtest",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-050",
@@ -625,7 +1323,21 @@
       "expected_ja": "未実装や見た目だけの差を完成件数へ含めない。",
       "test_type": "document",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        1
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "verification_method": "document",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-051",
@@ -638,7 +1350,20 @@
       "expected_ja": "各項目の確認結果と未解決事項が記録され、未確認を問題なしとしない。",
       "test_type": "human_rights_review",
       "phase": "R6",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        5
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "verification_method": "human_rights_review",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-052",
@@ -651,7 +1376,21 @@
       "expected_ja": "未実施は未実施と表示し、通信対戦は初期版の完成範囲に含めない。",
       "test_type": "document",
       "phase": "R6",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        1
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "verification_method": "document",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-053",
@@ -663,7 +1402,21 @@
       "expected_ja": "専用の作業枝と取り込み依頼があり、main直変更・無断マージがない。",
       "test_type": "workflow",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        1
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "verification_method": "workflow",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-054",
@@ -675,7 +1428,21 @@
       "expected_ja": "両側それぞれ一意なP1〜P7・G1〜G7・コア1つを持ち、状態を共有しない。",
       "test_type": "rule",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-055",
@@ -688,7 +1455,21 @@
       "expected_ja": "最初はG1、次はG2という入口順に開く。各段階で開放門数と一意な破壊部位数が一致する。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-056",
@@ -700,7 +1481,21 @@
       "expected_ja": "P3由来の追加開門を発生させない。代替目標への損傷が起きる場合はその別部位の破壊だけ数える。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-057",
@@ -712,7 +1507,21 @@
       "expected_ja": "3部位を破壊して3門が開く。陣営や部位の処理順で個数が変わらない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-058",
@@ -724,7 +1533,21 @@
       "expected_ja": "Aは3門、Bは0門。単一耐久のしきい値による開門ではない。",
       "test_type": "rule",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-059",
@@ -736,7 +1559,21 @@
       "expected_ja": "全開なら到達でき、どの1門が閉じても迂回経路はない。通常移動・突進・押し退けも同条件。",
       "test_type": "rule",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-060",
@@ -749,7 +1586,21 @@
       "expected_ja": "受け付けずケースと予算を消費しない。別部位が残っていることを理由にP2を復元しない。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-061",
@@ -761,7 +1612,21 @@
       "expected_ja": "破壊済み外装と開門状態は変わらず、3門開放を維持する。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-062",
@@ -773,7 +1638,21 @@
       "expected_ja": "P1だけを破壊して1門を開く。余剰29はP2やコアへ与えない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-063",
@@ -786,7 +1665,21 @@
       "expected_ja": "投入済みはP4・直通のまま。新しく装填する分だけP6・迂回となる。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-064",
@@ -798,7 +1691,21 @@
       "expected_ja": "P2を代替目標とする。古いP4の再破壊として門を増やさない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-065",
@@ -810,7 +1717,21 @@
       "expected_ja": "P1へ合計28を適用して一度だけ破壊。後の弾を同更新内でP2へ転送しない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-066",
@@ -824,7 +1745,21 @@
       "expected_ja": "外装への追加損傷は0。補給妨害は定義どおり働くが、コア命中や勝利にはならない。",
       "test_type": "rule",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-067",
@@ -837,7 +1772,21 @@
       "expected_ja": "いずれも有効なコア命中にならず、状態を変更しない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-068",
@@ -850,7 +1799,21 @@
       "expected_ja": "その更新は閉門で遮断され、コア命中なし。次更新から通行できる。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-069",
@@ -864,7 +1827,26 @@
       "expected_ja": "門の論理開放は同じ更新、通行は同じ次更新から。演出の遅れが勝敗へ影響しない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2,
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-070",
@@ -877,7 +1859,21 @@
       "expected_ja": "有効なコア命中は維持し、その攻撃側が勝つ。両コア命中なら引き分けになる。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-071",
@@ -890,7 +1886,21 @@
       "expected_ja": "閉門への空振りや瞬間移動をせず、新しく通れる範囲へ経路を再計算する。全開後はコアを狙える。",
       "test_type": "rule",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-072",
@@ -904,7 +1914,21 @@
       "expected_ja": "攻撃を受けたコアの所属側が負け、どちらにも同じ7部位・7門・一撃条件が作用する。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-073",
@@ -917,7 +1941,21 @@
       "expected_ja": "旧記録は未対応と説明し暗黙変換しない。ユーザー設定は維持し新ルールの戦闘を開始できる。",
       "test_type": "rule",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-074",
@@ -929,7 +1967,21 @@
       "expected_ja": "有効設定や現在の勝敗指示にはない。撤回履歴としての記載と区別する。",
       "test_type": "document",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "document",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-075",
@@ -943,7 +1995,21 @@
       "expected_ja": "先の作業だけ12回復してケースを消費する。後の作業は予算0で消費しない。共通予算は負にならない。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-076",
@@ -956,7 +2022,21 @@
       "expected_ja": "射撃担当は装填を続け、防衛担当はコアへの通路を守る。外装全壊で戦闘や敵判断を停止しない。",
       "test_type": "scenario",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-077",
@@ -969,7 +2049,26 @@
       "expected_ja": "破壊部位は1増え、開放門数も1増える。外装の損傷だけでは破壊扱いにしない。音なしでも進捗が読める。",
       "test_type": "browser",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2,
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "browser",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-078",
@@ -982,7 +2081,21 @@
       "expected_ja": "コア室側へ不正移動しない。異常位置からの復帰先も自車作業区画とし、コア命中候補を生成しない。",
       "test_type": "scenario",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-079",
@@ -997,7 +2110,26 @@
       "expected_ja": "敵30人＝射手4＋護衛4＋運び手8＋内部兵14。両城の砲台4基・補給口4本と自車のP1〜P3は別集計。敵専任射手E01〜E04を自車側へ割り当てず、敵班長を足さない。",
       "test_type": "data",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        1,
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts",
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "data",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-080",
@@ -1011,7 +2143,21 @@
       "expected_ja": "敵12非核室に、砲撃室A〜Dと弾薬庫A〜Dは各2人、中央通路8人、修理室3人、指令室3人が配置され、合計30人。復活室と核室の割当は0人。未検査の床判定は未実施と示す。",
       "test_type": "data",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "data",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-081",
@@ -1025,7 +2171,21 @@
       "expected_ja": "どの一門が閉じても核へ到達不可。全開では到達可能。実際の床の壁・当たり判定は別途確認する。",
       "test_type": "data_and_geometry",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "data_and_geometry",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-082",
@@ -1038,7 +2198,21 @@
       "expected_ja": "外装破壊数と門数は変わらず、全滅だけでは勝利も開門も起きない。",
       "test_type": "scenario",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-083",
@@ -1051,7 +2225,21 @@
       "expected_ja": "前者は復活待ち、後者は担当室で生存。5秒で復帰せず、死亡演出の長さに左右されない。",
       "test_type": "rule",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-084",
@@ -1063,7 +2251,21 @@
       "expected_ja": "E01はd＋1200、E02はd＋1380で別々に復活し、一括20秒周期へ丸めない。",
       "test_type": "rule",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-085",
@@ -1077,7 +2279,21 @@
       "expected_ja": "本人が予定時刻に復活し、元の室を再表示した時に新しく生成しない。",
       "test_type": "scenario",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-086",
@@ -1091,7 +2307,26 @@
       "expected_ja": "停止中は復活しない。合計戦闘時間20秒で復活し、現実時間を足さない。",
       "test_type": "scenario",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2,
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-087",
@@ -1105,7 +2340,21 @@
       "expected_ja": "討伐1回、復活予定1件、荷物の落下1回。d＋1200でも同じ人物は一体だけ。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-088",
@@ -1118,7 +2367,21 @@
       "expected_ja": "人物番号と生存世代は変わらず、30人の名簿を保つ。移動先で別人を生成しない。",
       "test_type": "scenario",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-089",
@@ -1132,7 +2395,21 @@
       "expected_ja": "所持物をその場に一度落とし、予約と操作権を解除する。作業の未完了効果は発生しない。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-090",
@@ -1146,7 +2423,21 @@
       "expected_ja": "同じ人物番号・役割・担当室、体力は初期値、荷物なし、新しい生存世代。旧荷物は元の所在を保つ。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-091",
@@ -1160,7 +2451,21 @@
       "expected_ja": "当該砲台の新規発射だけ止まり、待ち列は保持。発射済みの弾と他の砲台は継続する。",
       "test_type": "scenario",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-092",
@@ -1174,7 +2479,21 @@
       "expected_ja": "砲台は勝手に修復されず、保護終了後も故障が残れば射撃できない。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-093",
@@ -1188,7 +2507,21 @@
       "expected_ja": "射手は20秒まで待ち、砲台だけ修復されても新規射撃しない。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-094",
@@ -1201,7 +2534,21 @@
       "expected_ja": "既存弾がある間は発射可能。使い切ると配送不足で止まり、補給口の現物を自動転送しない。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-095",
@@ -1215,7 +2562,21 @@
       "expected_ja": "ケースは一人だけが保持し、床の枠も重複予約しない。他方は再選択する。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-096",
@@ -1229,7 +2590,21 @@
       "expected_ja": "盗品の所在を変えず、本人に同じケースを再生成しない。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-097",
@@ -1243,7 +2618,25 @@
       "expected_ja": "30人全員が各担当室で一度復活し、29・31・60人になることも、順番待ちで時間をずらすこともない。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2,
+        5
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-098",
@@ -1256,7 +2649,21 @@
       "expected_ja": "世代違いとして無効化し、新しい本人と新しい予約を破壊しない。",
       "test_type": "rule",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-099",
@@ -1270,7 +2677,21 @@
       "expected_ja": "コア勝敗を一度確定し、予定復活を実行せず、残りの予定も終了処理で破棄する。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-100",
@@ -1284,7 +2705,31 @@
       "expected_ja": "各戦で新しい戦闘番号と敵30人。過去の復活・仕事・ケース・操作権は混入しない。",
       "test_type": "scenario",
       "phase": "R6",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        1,
+        2,
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts",
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-101",
@@ -1297,7 +2742,21 @@
       "expected_ja": "予定どおり生存へ戻る。保護中は人物を塞がず壁と門は越えない。終了時の補正は担当室の到達可能な床だけ。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-102",
@@ -1311,7 +2770,21 @@
       "expected_ja": "不正な設定を拒否し、勝手にコアへ移動させない。門を開く救済もしない。",
       "test_type": "data_and_geometry",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "data_and_geometry",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-103",
@@ -1324,7 +2797,21 @@
       "expected_ja": "担当射手を守る行動を取り、担当室外へ無制限に追わず、全30人を一斉に呼ばない。",
       "test_type": "scenario",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-104",
@@ -1338,7 +2825,21 @@
       "expected_ja": "30人内の同一人物が歩いて出撃。閉門で止まり、討伐20秒後に元の敵車担当室へ復活する。",
       "test_type": "scenario",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-105",
@@ -1352,7 +2853,21 @@
       "expected_ja": "生存人数や討伐数を追加条件にせず勝利する。敵側から自車コアへの同じ命中も有効。",
       "test_type": "scenario",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-106",
@@ -1366,7 +2881,21 @@
       "expected_ja": "外装・門・コア・修理予算・補給順・既存砲弾・設備の状態は人物復活では戻らない。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-107",
@@ -1379,7 +2908,21 @@
       "expected_ja": "共有の発射間隔は48更新以上。1枠で4発撃たず、準備できた砲台を順送りして特定番号だけ優遇しない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-108",
@@ -1393,7 +2936,21 @@
       "expected_ja": "現在室と出口、役割、復活の予告が読め、30本のバーが操作面を埋めない。",
       "test_type": "browser_and_device",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "browser_and_device",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-109",
@@ -1409,7 +2966,30 @@
       "expected_ja": "輸送・射手の状態・討伐・復活更新・門・勝敗が一致し、描画頻度で20秒が変わらない。",
       "test_type": "scenario",
       "phase": "R6",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2,
+        3,
+        5
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts",
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-110",
@@ -1423,7 +3003,25 @@
       "expected_ja": "人物の重なりから壁・閉門・コア室へ抜けず、荷物だけで永久封鎖しない。",
       "test_type": "geometry",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2,
+        5
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "verification_method": "geometry",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-111",
@@ -1437,7 +3035,26 @@
       "expected_ja": "未知の位置で全員が追跡を始めず、警報に視認・被弾・同室報告などの発生原因がある。",
       "test_type": "scenario",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2,
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-112",
@@ -1451,7 +3068,31 @@
       "expected_ja": "旧戦闘は理由付きで拒否し、30人・20秒・採用配置へ推測変換しない。設定や新規戦闘は壊さない。",
       "test_type": "data",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        1,
+        2,
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts",
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts",
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "data",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-113",
@@ -1464,7 +3105,20 @@
       "expected_ja": "描画と入力の目標値を計測記録する。未測定は未確認のまま。人数や復活時刻を変えて合格にしない。",
       "test_type": "performance_and_device",
       "phase": "R6",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        5
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "docs/ART_ASSET_REGISTER.json",
+          "docs/RELEASE_CHECKLIST.md",
+          "docs/plans/current/RIGHTS_REVIEW.md"
+        ],
+        "verification_method": "performance_and_device",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-114",
@@ -1477,7 +3131,21 @@
       "expected_ja": "正しい担当射手一人だけに操作権があり、離席中・復活保護中には射撃しない。",
       "test_type": "scenario",
       "phase": "R3",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-115",
@@ -1491,7 +3159,21 @@
       "expected_ja": "討伐・射撃停止・20秒復活は次の重い判断待ちへ繰り越さず、規定の更新で処理する。",
       "test_type": "rule",
       "phase": "R6",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-116",
@@ -1503,7 +3185,21 @@
       "expected_ja": "自陣左・正面右、敵陣右・正面左、中央広場で一致し、画面ごとの方向反転がない。",
       "test_type": "document",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "document",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-117",
@@ -1515,7 +3211,21 @@
       "expected_ja": "各城に砲台4基、弾薬庫4室、補給口4本があり、核室を復活室や設備室と兼用しない。4砲台と4補給口にはroom_id内のR1表示用cell座標があり、設備位置を図面へ置ける。自陣はP1〜P3、敵陣はE01〜E04を操作主体とする。",
       "test_type": "data",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "data",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-118",
@@ -1527,7 +3237,21 @@
       "expected_ja": "点は(125-x,y)、矩形は(126-x1,y0,126-x0,y1)、向きは(-dx,dy)となり、文字と操作は正立・非反転である。",
       "test_type": "data_and_geometry",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "data_and_geometry",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-119",
@@ -1539,7 +3263,21 @@
       "expected_ja": "126×70の範囲内で参照切れがなく、半開矩形として読める。実機衝突は未検査のまま記録する。",
       "test_type": "data_and_geometry",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "data_and_geometry",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-120",
@@ -1551,7 +3289,21 @@
       "expected_ja": "敵の担当床と主人公側P1〜P3の各player_respawn_pad_P1〜P3は復活室・核室から分離され、核室に復活床がない。",
       "test_type": "data_and_geometry",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "data_and_geometry",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-121",
@@ -1563,7 +3315,21 @@
       "expected_ja": "射手4、護衛4、運び手8、内部兵14の合計30で、役割重複による31人目がない。",
       "test_type": "data",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "data",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-122",
@@ -1575,7 +3341,21 @@
       "expected_ja": "いずれでも敵城通常室へ進めず、対象警備者を同じ更新で討伐した次更新から突破できる。",
       "test_type": "scenario",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-123",
@@ -1587,7 +3367,21 @@
       "expected_ja": "人物番号、生存世代、所属、担当床を保ち、追加NPCを生成しない。",
       "test_type": "scenario",
       "phase": "R4",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-124",
@@ -1599,7 +3393,21 @@
       "expected_ja": "d＋299は観戦中、d＋300で対象actorが対応するplayer_respawn_pad_P1〜P3へ一度だけ自陣復活。敵は同時刻に復活せず、荷物は複製されない。",
       "test_type": "rule",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "rule",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-125",
@@ -1611,7 +3419,21 @@
       "expected_ja": "世界は同じ試合として進み、主人公入力だけが拒否され、コア結果が先なら復活せず結果へ移る。",
       "test_type": "scenario",
       "phase": "R2",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-126",
@@ -1623,7 +3445,21 @@
       "expected_ja": "指定順に一つのmatch_idで遷移し、中止・失敗・二重押下で開始記録や試合を重複生成しない。",
       "test_type": "browser",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts"
+        ],
+        "verification_method": "browser",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-127",
@@ -1635,7 +3471,21 @@
       "expected_ja": "前後空白を除いた1〜20文字だけが通り、空白のみと21文字は開始しない。",
       "test_type": "browser",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        4
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-session-record.ts",
+          "src/presentation/battle-result-metrics.ts",
+          "tests/presentation/battle-session-record.test.ts",
+          "docs/plans/current/RANKING_INTEGRATION_PLAN.json"
+        ],
+        "verification_method": "browser",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-128",
@@ -1647,7 +3497,21 @@
       "expected_ja": "match_idと状態が連続し、新しい人物・弾・復活時計や開始記録を画面ごとに生成しない。",
       "test_type": "scenario",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "scenario",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-129",
@@ -1659,7 +3523,21 @@
       "expected_ja": "必須の全項目を同じ結果から表示し、内部スクロールしても再戦・ホーム・共有が利用できる。",
       "test_type": "browser",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        4
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-session-record.ts",
+          "src/presentation/battle-result-metrics.ts",
+          "tests/presentation/battle-session-record.test.ts",
+          "docs/plans/current/RANKING_INTEGRATION_PLAN.json"
+        ],
+        "verification_method": "browser",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-130",
@@ -1671,7 +3549,21 @@
       "expected_ja": "ランキング必須の設計を保ち、0件・失敗・読込中を区別し、ローカル履歴や架空行を世界順位として表示しない。",
       "test_type": "integration",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        4
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-session-record.ts",
+          "src/presentation/battle-result-metrics.ts",
+          "tests/presentation/battle-session-record.test.ts",
+          "docs/plans/current/RANKING_INTEGRATION_PLAN.json"
+        ],
+        "verification_method": "integration",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-131",
@@ -1683,7 +3575,21 @@
       "expected_ja": "開始・結果は各一件に留まり、送信状態と結果・共有・ホーム・再戦を失わない。",
       "test_type": "integration",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        4
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-session-record.ts",
+          "src/presentation/battle-result-metrics.ts",
+          "tests/presentation/battle-session-record.test.ts",
+          "docs/plans/current/RANKING_INTEGRATION_PLAN.json"
+        ],
+        "verification_method": "integration",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-132",
@@ -1695,7 +3601,21 @@
       "expected_ja": "式は未承認、game_id・game_slug・URL・エンドポイントはnull、接続や登録を実施済みと主張しない。",
       "test_type": "document",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        1
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts"
+        ],
+        "verification_method": "document",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-133",
@@ -1710,7 +3630,26 @@
       "expected_ja": "v5、semekome-prototype-0.4-facing-castles、両城4砲台・4庫・4補給口・4/4/8/14が一致し、自陣操作主体P1〜P3と敵専任射手E01〜E04を混用せず、旧値を現行入力として採らない。",
       "test_type": "document",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        1,
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts",
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "document",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-134",
@@ -1724,7 +3663,26 @@
       "expected_ja": "未実施はnot_run/未実施として残り、資料検査だけでゲーム・実機・接続を合格扱いにしない。",
       "test_type": "document",
       "phase": "R1",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        1,
+        2
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "AGENTS.md",
+          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
+          "scripts/quality-scope.mjs",
+          "tests/ci/quality-scope.test.ts",
+          "src/simulation/physical-battle.ts",
+          "src/simulation/battle.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts",
+          "tests/scenarios/r2a-flow.test.ts"
+        ],
+        "verification_method": "document",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     },
     {
       "id": "AT-135",
@@ -1739,7 +3697,26 @@
       "expected_ja": "30本のバーで操作面を埋めず、必須結果情報とランキング状態を読み取れて主要操作が画面外へ追い出されない。",
       "test_type": "browser",
       "phase": "R5",
-      "execution_status": "not_run"
+      "execution_status": "not_run",
+      "release_stages": [
+        3,
+        4
+      ],
+      "evidence_review": {
+        "status": "pending_full_acceptance",
+        "references": [
+          "src/presentation/battle-screen.ts",
+          "src/input/battle-input.ts",
+          "tests/browser/battle.spec.ts",
+          "tests/browser/normal-battle.spec.ts",
+          "src/presentation/battle-session-record.ts",
+          "src/presentation/battle-result-metrics.ts",
+          "tests/presentation/battle-session-record.test.ts",
+          "docs/plans/current/RANKING_INTEGRATION_PLAN.json"
+        ],
+        "verification_method": "browser",
+        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+      }
     }
   ]
 }

@@ -12,7 +12,7 @@
     "player_death_penalty": 100,
     "time_limit_seconds": 420,
     "remaining_seconds": "max(0, floor(time_limit_seconds - elapsed_battle_seconds))",
-    "score": "winner_base_points_if_win + exterior_part_destroyed * exterior_part_destroyed_points + first_defeated_enemy_slot_count * first_defeated_enemy_slot_points + winner_remaining_seconds * winner_remaining_second_points - player_death_count * player_death_penalty",
+    "score": "winner_base_points_if_win + max(0, exterior_part_destroyed * exterior_part_destroyed_points + first_defeated_enemy_slot_count * first_defeated_enemy_slot_points + winner_remaining_seconds * winner_remaining_second_points - player_death_count * player_death_penalty)",
     "non_winner_time_points": 0
   },
   "counting_rules": {
