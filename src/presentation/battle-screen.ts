@@ -10,6 +10,7 @@ import { GAME_ART_URLS } from './game-art.ts';
 import { bindArtImageFallbacks, setArtImageSource, setArtImageVisible } from './art-fallback.ts';
 import { actorStatusName, battleHint, battleMapLabel, partDisplayName } from './battle-hud.ts';
 import { caseLabels, createBattleRenderer } from './battle-renderer.ts';
+import { createBattleSessionRecord, createBattleSessionStore, type BattleOutcome, type BattleResultReason } from './battle-session-record.ts';
 import './battle.css';
 
 const actionLabels: Record<BattleHandle, string> = {
@@ -113,6 +114,12 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
 function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: readonly CaseType[], goHome: () => void, onReplay: () => void): () => void {
   const random = new Uint32Array(1); crypto.getRandomValues(random);
   let state = createBattle({ matchId: crypto.randomUUID(), seed: random[0], playerSupplyAllocation });
+  const sessionStore = createBattleSessionStore();
+  const sessionRecord = sessionStore.begin(createBattleSessionRecord({
+    matchId: state.matchId,
+    playerName: name,
+    playerSupplyAllocation: state.logistics.playerAllocation,
+  }));
   let countdown = 180;
   let paused = false;
   let disposed = false;
@@ -142,6 +149,10 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   const screen = app.querySelector<HTMLElement>('.battle')!;
   screen.dataset.matchId = state.matchId;
   screen.dataset.flow = 'normal';
+  screen.dataset.startRecordId = sessionRecord.start.id;
+  screen.dataset.recordConnection = sessionRecord.connection;
+  screen.dataset.startRecordStatus = sessionRecord.start.status;
+  screen.dataset.recordPersistence = sessionStore.persistent ? 'session' : 'memory';
   app.querySelector('.player-label')!.textContent = name;
   const canvas = app.querySelector('canvas')!;
   const render = createBattleRenderer(canvas, state);
@@ -445,16 +456,32 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   let resultShown = false;
   const showResult = () => {
     if (resultShown || disposed) return;
+    const outcome = state.outcome;
+    if (outcome === 'ongoing') return;
     resultShown = true;
-    const title = state.outcome === 'player_win' ? '勝利'
-      : state.outcome === 'enemy_win' ? '敗北' : '引き分け';
-    const reason = state.outcome === 'player_win' ? '敵コアへの有効命中'
-      : state.outcome === 'enemy_win' ? '自陣コアへの有効命中'
+    const terminalOutcome: BattleOutcome = outcome;
+    const title = terminalOutcome === 'player_win' ? '勝利'
+      : terminalOutcome === 'enemy_win' ? '敗北' : '引き分け';
+    const resultReason: BattleResultReason = terminalOutcome === 'player_win' ? 'enemy_core_hit'
+      : terminalOutcome === 'enemy_win' ? 'player_core_hit'
+        : state.castles.player.core.hit && state.castles.enemy.core.hit ? 'simultaneous_core_hit' : 'time_limit';
+    const reason = terminalOutcome === 'player_win' ? '敵コアへの有効命中'
+      : terminalOutcome === 'enemy_win' ? '自陣コアへの有効命中'
         : state.castles.player.core.hit && state.castles.enemy.core.hit ? '同一更新内の同時コア命中' : '時間切れ';
     const elapsedSeconds = Math.floor(state.tick / 60);
     const elapsed = `${Math.floor(elapsedSeconds / 60)}:${String(elapsedSeconds % 60).padStart(2, '0')}`;
-    const outcomeClass = state.outcome === 'player_win' ? 'is-win' : state.outcome === 'enemy_win' ? 'is-loss' : 'is-draw';
-    app.innerHTML = `<section class="battle-result ${outcomeClass}" aria-label="通常戦の結果" data-flow="normal-result" data-outcome="${state.outcome}" data-match-id="${state.matchId}" data-tick="${state.tick}" data-player-dash-starts="${playerDashStarts}">
+    const outcomeClass = terminalOutcome === 'player_win' ? 'is-win' : terminalOutcome === 'enemy_win' ? 'is-loss' : 'is-draw';
+    const resultRecord = sessionStore.finish(state.matchId, {
+      matchId: state.matchId,
+      outcome: terminalOutcome,
+      reason: resultReason,
+      endedTick: state.tick,
+      enemyExteriorDestroyed: state.castles.enemy.destroyedPartIds.length,
+      enemyGatesOpened: state.castles.enemy.openGateIds.length,
+      playerOperatedLaunches,
+      playerDashStarts,
+    });
+    app.innerHTML = `<section class="battle-result ${outcomeClass}" aria-label="通常戦の結果" data-flow="normal-result" data-outcome="${terminalOutcome}" data-match-id="${state.matchId}" data-tick="${state.tick}" data-player-dash-starts="${playerDashStarts}" data-start-record-id="${resultRecord.start.id}" data-result-submission-id="${resultRecord.result?.submissionId ?? ''}" data-record-connection="${resultRecord.connection}" data-record-persistence="${sessionStore.persistent ? 'session' : 'memory'}" data-start-record-status="${resultRecord.start.status}" data-result-record-status="${resultRecord.result?.status ?? 'idle'}">
       <p class="eyebrow">通常戦の結果</p><h1>${title}</h1><p class="result-reason" data-result-reason>${reason}</p>
       <p class="result-player">プレイヤー：<strong data-result-player-name></strong></p>
       <dl class="result-metrics" aria-label="実戦の記録">
@@ -464,7 +491,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
         <div><dt>主人公の砲撃</dt><dd>${playerOperatedLaunches} 発</dd></div>
       </dl>
       <section class="result-section" aria-labelledby="result-score-title"><h2 id="result-score-title">スコア</h2><p data-result-score-status="pending">得点式の承認待ちです。現在は表示しません。</p></section>
-      <section class="result-section" aria-labelledby="result-ranking-title"><h2 id="result-ranking-title">ランキング・共有</h2><p data-result-ranking-status="unavailable">共有側のゲーム登録値（game_id / game_slug / URL）確認待ちです。結果は保存・送信しません。</p></section>
+      <section class="result-section" aria-labelledby="result-ranking-title"><h2 id="result-ranking-title">ランキング・共有</h2><p data-result-ranking-status="unavailable">共有側のゲーム登録値（game_id / game_slug / URL）確認待ちです。外部送信は行いません。開始・結果のローカル記録は同じ試合IDに保持します。</p></section>
       <div class="result-actions"><button id="restart-battle" class="primary">再戦の準備へ</button><button id="result-home">ホームへ戻る</button></div>
       <p class="result-note">次の試合は新しい試合状態として開始され、今回の入力・物体・復活状態を持ち越しません。</p>
     </section>`;
