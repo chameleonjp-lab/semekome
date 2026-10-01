@@ -1319,24 +1319,27 @@
         "REQ-37"
       ],
       "given_ja": "初期版の内容目録がある。",
-      "when_ja": "ケース8、補助型3、配置3、通常設定6、練習3を照合する。",
+      "when_ja": "ケース8、補助型3、採用対向配置一組（両城126×70セル・敵側反転）、敵4役割30人、通常設定6、練習3、結果と初期公開ランキングを照合する。",
       "expected_ja": "未実装や見た目だけの差を完成件数へ含めない。",
       "test_type": "document",
       "phase": "R5",
       "execution_status": "not_run",
       "release_stages": [
-        1
+        2,
+        3,
+        4,
+        5
       ],
       "evidence_review": {
         "status": "pending_full_acceptance",
         "references": [
-          "AGENTS.md",
-          "docs/plans/current/RELEASE_IMPLEMENTATION_PLAN.md",
-          "scripts/quality-scope.mjs",
-          "tests/ci/quality-scope.test.ts"
+          "docs/RELEASE_STAGE_3_REVIEW.md",
+          "docs/RELEASE_STAGE_4_CONNECTION_REVIEW.md",
+          "tests/presentation/game-preferences.test.ts",
+          "tests/scenarios/r2v-standard-player-g1-infiltration.test.ts"
         ],
         "verification_method": "document",
-        "note_ja": "参照先は確認対象。元のexecution_statusを維持し、部分回帰の成功をこの手順全体の合格へ変更しない。"
+        "note_ja": "第5版REQ-37へ整合。旧3配置を初期公開条件に含めない。内容一式・実接続の受入は未完了。"
       }
     },
     {

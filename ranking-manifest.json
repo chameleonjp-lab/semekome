@@ -1,0 +1,56 @@
+{
+  "schema_version": "chameleonjp-ranking-manifest-v1",
+  "status": "pending_approval_and_registration",
+  "game_id": null,
+  "title": "セメコメ",
+  "canonical_url": null,
+  "client_version": null,
+  "submission_mode": "shared",
+  "lab": {
+    "representative_slug": null,
+    "base_url": "https://chameleonjp-lab.github.io/chameleonjp_lab/"
+  },
+  "play_count": {
+    "count_at": "start",
+    "rpc": "start_game_play_v1",
+    "idempotency": true
+  },
+  "finish": {
+    "rpc": "finish_game_play_v1"
+  },
+  "submission": {
+    "rpc": "submit_score_idempotent_v1",
+    "automatic": true,
+    "idempotency": true,
+    "timeout_ms": 8000
+  },
+  "ranking": {
+    "rpc": "get_game_ranking",
+    "limit": 10,
+    "rank_source": "rank_no"
+  },
+  "ranking_entries": [],
+  "verification": {
+    "supabase_project_ref": "mlpnjgezrnhdxsxolyzj",
+    "verified_at": "2026-10-01",
+    "rpc_signatures_and_anon_execute": true,
+    "matching_registration_found": false,
+    "query_scope": "game_slug LIKE semekome% OR game_url LIKE %/semekome/% OR title = セメコメ",
+    "production_writes_performed": false
+  },
+  "score_proposal": {
+    "version": "semekome-score-v5-proposal",
+    "approved": false,
+    "min": 0,
+    "max": 111800,
+    "non_win_max": 7600
+  },
+  "unresolved": [
+    "得点式と競技対象",
+    "正式game_id/game_slug/client_version",
+    "正式公開URLと公開先",
+    "ゲーム登録・実験場表示値",
+    "終了種別と到達値の対応",
+    "正式URLでの実機送信"
+  ]
+}

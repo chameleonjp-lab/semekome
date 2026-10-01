@@ -6,6 +6,7 @@ const tones: Record<string, number> = { object_moved: 660, projectile_launched: 
 export function createBattleAudio(enabled: boolean) {
   let context: AudioContext | undefined;
   let closed = false;
+  let closeTimer: ReturnType<typeof setTimeout> | undefined;
   return {
     activate() { if (!enabled || closed) return; try { context ??= new AudioContext(); void context.resume().catch(() => {}); } catch {} },
     suspend() { if (context && !closed) void context.suspend().catch(() => {}); },
@@ -22,6 +23,7 @@ export function createBattleAudio(enabled: boolean) {
         oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
       }
     },
-    dispose() { closed = true; if (context) void context.close().catch(() => {}); },
+    finish() { if (closed) return; closed = true; closeTimer = setTimeout(() => { if (context) void context.close().catch(() => {}); }, 150); },
+    dispose() { closed = true; clearTimeout(closeTimer); if (context) void context.close().catch(() => {}); },
   };
 }

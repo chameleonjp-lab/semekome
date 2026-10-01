@@ -3,6 +3,7 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './tests/browser',
   fullyParallel: true,
+  grepInvert: process.env.SEMEKOME_BROWSER_FULL === '1' ? undefined : /@full-playthrough/,
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   reporter: [['list'], ['html', { open: 'never' }]],

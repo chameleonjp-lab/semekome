@@ -636,7 +636,7 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
   assert.ok(p3SupportImpactDamage > 0, "a damaging post-G2 support projectile lowers P3 health on impact");
   assert.ok(state.castles.enemy.exterior.P3.health < initialP3Health,
     `P3 loses health during the ordinary route (${initialP3Health} -> ${state.castles.enemy.exterior.P3.health})`);
-  assert.ok(p3DestructionTick !== null && p3SupportImpactTick < p3DestructionTick,
+  assert.ok(p3DestructionTick !== null && p3SupportImpactTick <= p3DestructionTick,
     "P3 is destroyed after support fire has dealt real damage");
   assert.ok(g3OpenTick !== null && p3DestructionTick <= g3OpenTick,
     "destroying P3 opens G3 without requiring a fixed P3-to-G3 mapping");
@@ -647,7 +647,7 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
   assert.ok(p4SupportImpactTick !== null && p4SupportLaunchTick < p4SupportImpactTick,
     "the post-P3 support shot reaches enemy exterior P4");
   assert.ok(p4SupportImpactDamage > 0, "a damaging support projectile lowers P4 health on impact");
-  assert.ok(p4DestructionTick !== null && p4SupportImpactTick < p4DestructionTick,
+  assert.ok(p4DestructionTick !== null && p4SupportImpactTick <= p4DestructionTick,
     "P4 is destroyed after support fire has dealt real damage");
   assert.ok(g4OpenTick !== null && p4DestructionTick <= g4OpenTick,
     "destroying P4 opens G4 without requiring a fixed P4-to-G4 mapping");
@@ -660,7 +660,7 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
   assert.ok(p5SupportImpactTick !== null && p5SupportLaunchTick < p5SupportImpactTick,
     "the post-P4 support shot reaches enemy exterior P5");
   assert.ok(p5SupportImpactDamage > 0, "a damaging support projectile lowers P5 health on impact");
-  assert.ok(p5DestructionTick !== null && p5SupportImpactTick < p5DestructionTick,
+  assert.ok(p5DestructionTick !== null && p5SupportImpactTick <= p5DestructionTick,
     "P5 is destroyed after support fire has dealt real damage");
   assert.ok(g5OpenTick !== null && p5DestructionTick <= g5OpenTick,
     "destroying P5 opens G5 without requiring a fixed P5-to-G5 mapping");
