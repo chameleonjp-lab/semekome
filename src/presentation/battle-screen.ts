@@ -1,5 +1,5 @@
 import { createBattle, getInteraction, getPlayerSupplyPreview, pauseBattle, resumeBattle, setBattleVisibility, stepBattle } from '../simulation/physical-battle.ts';
-import type { AllyActorId, AllyCommand, BattleDirection, BattleEquipmentKind, BattleHandle, BattleIntent, BattleRoute } from '../simulation/physical-battle.ts';
+import type { AllyActorId, BattleDirection, BattleEquipmentKind, BattleHandle, BattleIntent, BattleRoute } from '../simulation/physical-battle.ts';
 import { CASE_TYPES, SUPPLY_BAG, type CaseType } from '../content/cases.ts';
 import { PART_IDS } from '../domain/types.ts';
 import type { PartId, TeamId } from '../domain/types.ts';
@@ -12,6 +12,7 @@ import { actorStatusName, battleHint, battleMapLabel, partDisplayName } from './
 import { caseLabels, createBattleRenderer } from './battle-renderer.ts';
 import { createBattleSessionRecord, createBattleSessionStore, type BattleOutcome, type BattleResultReason } from './battle-session-record.ts';
 import { projectBattleResultMetrics } from './battle-result-metrics.ts';
+import { createAllyCommandQueue } from './ally-command-queue.ts';
 import './battle.css';
 
 const actionLabels: Record<BattleHandle, string> = {
@@ -131,7 +132,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   let pending: BattleIntent | undefined;
   let pendingDash: BattleDirection | undefined;
   let pendingAttack = false;
-  let pendingAllyCommand: AllyCommand | undefined;
+  const allyCommandQueue = createAllyCommandQueue();
   let frame = 0;
   let playerOperatedLaunches = 0;
   let playerDashStarts = 0;
@@ -197,12 +198,12 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   const canStartDash = () => {
     const actor = state.actors.P1;
     return canInteract() && actor.alive && !playerProtected() && !state.dashes.P1 &&
-      state.tick >= (state.dashCooldownUntilTick.P1 ?? 0) && pendingDash === undefined;
+      state.tick >= (state.dashCooldownUntilTick.P1 ?? 0) && pendingDash === undefined && !pendingAttack;
   };
   const canStartAttack = () => {
     const actor = state.actors.P1;
     return canInteract() && actor.alive && !playerProtected() && !state.dashes.P1 &&
-      pending === undefined && !pendingAttack && getInteraction(state, 'P1', slot).attackTargetId !== undefined;
+      pending === undefined && pendingDash === undefined && !pendingAttack && getInteraction(state, 'P1', slot).attackTargetId !== undefined;
   };
   const dashInput = bindDashInput(dashButton, () => {
     if (!canStartDash()) return;
@@ -213,8 +214,34 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     if (canStartAttack()) pendingAttack = true;
   });
 
-  const releaseInput = () => { movement.clear(); dashInput.clear(); attackInput.clear(); pending = undefined; pendingDash = undefined; pendingAttack = false; pendingAllyCommand = undefined; };
+  const releaseInput = () => { movement.clear(); dashInput.clear(); attackInput.clear(); pending = undefined; pendingDash = undefined; pendingAttack = false; allyCommandQueue.clear(); };
   const clearInput = (resetClock = true) => { releaseInput(); if (resetClock) clock.reset(); };
+  const updateAllyOrderControls = () => {
+    const player = state.actors.P1;
+    for (const allyId of ['P2', 'P3'] as const) {
+      const ally = state.actors[allyId];
+      const order = state.allyOrders[allyId];
+      const currentKind = order?.generation === ally.generation ? 'hold' : 'supply';
+      const queuedKind = allyCommandQueue.peek(state, allyId);
+      const button = allyOrderButtons[allyId];
+      button.disabled = !canInteract() || !player.alive || !ally.alive;
+      button.textContent = !ally.alive
+        ? `${allyId}：復活待ち`
+        : queuedKind
+          ? `${allyId}：${queuedKind === 'hold' ? '守備' : '補給'}の指示を取り消す`
+          : `${allyId}：${currentKind === 'hold' ? '補給へ戻す' : '守備を指示'}`;
+      button.setAttribute('aria-label', `${allyId}への命令。${button.textContent}`);
+      button.dataset.order = currentKind;
+      button.dataset.pendingOrder = queuedKind ?? '';
+    }
+    const queued = allyCommandQueue.snapshot(state);
+    const heldAllies = (['P2', 'P3'] as const).filter(allyId => state.allyOrders[allyId]?.generation === state.actors[allyId].generation);
+    allyOrderHint.textContent = queued.length > 0
+      ? `${queued.map(command => `${command.allyId}：${command.kind === 'hold' ? '守備' : '補給'}`).join('・')}の指示を待機中。もう一度押すと、その人への指示だけ取り消せます。`
+      : heldAllies.length > 0
+        ? `${heldAllies.join('・')}は現在位置を保持中。同室の敵だけを防衛します。`
+        : '守備中は現在位置を保ち、同室の敵だけを防衛します。';
+  };
   const stop = () => {
     if (disposed || state.phase === 'ended') return;
     paused = true; state = pauseBattle(state); clearInput(); updateOverlay();
@@ -290,10 +317,9 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   for (const allyId of ['P2', 'P3'] as const) {
     allyOrderButtons[allyId].addEventListener('click', () => {
       if (!canInteract() || !state.actors.P1.alive || !state.actors[allyId].alive) return;
-      const current = state.allyOrders[allyId]?.kind === 'hold' ? 'hold' : 'supply';
-      const pending = pendingAllyCommand?.allyId === allyId ? pendingAllyCommand.kind : current;
-      pendingAllyCommand = { allyId, kind: pending === 'hold' ? 'supply' : 'hold' };
+      allyCommandQueue.toggle(state, allyId);
       lastHud = '';
+      updateAllyOrderControls();
     }, options);
   }
   routeToggle.addEventListener('click', event => {
@@ -363,24 +389,8 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
     attackLabel.textContent = attackStatusText;
     attackButton.disabled = !canStartAttack();
     attackButton.setAttribute('aria-label', attackTargetId ? `近接攻撃。対象 ${attackTargetId}` : `近接攻撃。${attackStatusText}`);
-    for (const allyId of ['P2', 'P3'] as const) {
-      const ally = state.actors[allyId];
-      const currentKind = state.allyOrders[allyId]?.kind === 'hold' ? 'hold' : 'supply';
-      const queuedKind = pendingAllyCommand?.allyId === allyId ? pendingAllyCommand.kind : undefined;
-      const nextKind = queuedKind ?? (currentKind === 'hold' ? 'supply' : 'hold');
-      const button = allyOrderButtons[allyId];
-      button.disabled = !canInteract() || !actor.alive || !ally.alive;
-      button.textContent = !ally.alive
-        ? `${allyId}：復活待ち`
-        : `${allyId}：${queuedKind ? '次の更新で' : ''}${nextKind === 'hold' ? '守備を指示' : '補給へ戻す'}`;
-      button.setAttribute('aria-label', `${allyId}への命令。${button.textContent}`);
-      button.dataset.order = currentKind;
-    }
-    const heldAllies = (['P2', 'P3'] as const).filter(allyId => state.allyOrders[allyId]?.kind === 'hold');
-    allyOrderHint.textContent = heldAllies.length > 0
-      ? `${heldAllies.join('・')}は現在位置を保持中。同室の敵だけを防衛します。`
-      : '守備中は現在位置を保ち、同室の敵だけを防衛します。';
-    const signature = JSON.stringify([Math.floor(state.tick / 60), actor.alive, actor.generation, actor.location, actor.currentRoomId, actor.respawnAtTick, canInteract(), paused, countdown > 0, state.phase, state.visibility, available, nearest?.id, attackTargetId, cargo.map(item => item?.id), slot, equipmentTargetsSignature, state.logistics.bagCycles.player, state.logistics.bagIndices.player, supplyPreview, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health]), Math.ceil(dashCooldownRemaining / 60), state.dashes.P1?.remainingTicks, pendingDash, pendingAttack, pendingAllyCommand, state.allyOrders, playerDashStarts, state.outcome, dashStatusText, attackStatusText]);
+    updateAllyOrderControls();
+    const signature = JSON.stringify([Math.floor(state.tick / 60), actor.alive, actor.generation, actor.location, actor.currentRoomId, actor.respawnAtTick, canInteract(), paused, countdown > 0, state.phase, state.visibility, available, nearest?.id, attackTargetId, cargo.map(item => item?.id), slot, equipmentTargetsSignature, state.logistics.bagCycles.player, state.logistics.bagIndices.player, supplyPreview, state.castles.player.destroyedPartIds, state.castles.enemy.destroyedPartIds, PART_IDS.map(id => [state.castles.player.exterior[id].health, state.castles.enemy.exterior[id].health]), Math.ceil(dashCooldownRemaining / 60), state.dashes.P1?.remainingTicks, pendingDash, pendingAttack, allyCommandQueue.snapshot(state), state.allyOrders, playerDashStarts, state.outcome, dashStatusText, attackStatusText]);
     screen.dataset.tick = String(state.tick); screen.dataset.phase = countdown ? 'countdown' : paused ? 'paused' : state.phase;
     screen.dataset.spectating = String(!actor.alive);
     screen.dataset.playerX = String(state.fixedActors.P1.position.x); screen.dataset.playerY = String(state.fixedActors.P1.position.y);
@@ -525,11 +535,12 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
             state = stepBattle(state, undefined);
             if (state.actors.P1.alive) { clearInput(false); lastHud = ''; }
           } else {
+            const allyCommand = allyCommandQueue.take(state);
             const intent: BattleIntent = {
               ...pending,
               ...(pendingDash ? { dash: { ...pendingDash } } : {}),
               ...(pendingAttack ? { attack: true } : {}),
-              ...(pendingAllyCommand ? { allyCommand: { ...pendingAllyCommand } } : {}),
+              ...(allyCommand ? { allyCommand } : {}),
               matchId: state.matchId,
               actorId: 'P1',
               generation: pending?.generation ?? state.actors.P1.generation,
@@ -541,7 +552,6 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
             pending = undefined;
             pendingDash = undefined;
             pendingAttack = false;
-            pendingAllyCommand = undefined;
             state = stepBattle(state, intent);
             if (state.lastStep.acceptedInputKinds.includes('dash')) playerDashStarts++;
           }
@@ -562,5 +572,5 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
   if (document.hidden) { state = setBattleVisibility(state, false); stop(); }
   updateOverlay(); updateHud(); render(state, part, slot);
   frame = requestAnimationFrame(loop);
-  return () => { disposed = true; cancelAnimationFrame(frame); movement.dispose(); dashInput.dispose(); attackInput.dispose(); events.abort(); pending = undefined; pendingDash = undefined; pendingAttack = false; pendingAllyCommand = undefined; };
+  return () => { disposed = true; cancelAnimationFrame(frame); movement.dispose(); dashInput.dispose(); attackInput.dispose(); events.abort(); pending = undefined; pendingDash = undefined; pendingAttack = false; allyCommandQueue.clear(); };
 }
