@@ -20,7 +20,7 @@
 
 |番号|対応状況と根拠|残る確認|
 |---|---|---|
-|01 CIの重複・長短分類|工程1でPR更新だけの枝検査、短長入口、変更判定を実装。`scripts/quality-scope.mjs`、`test-suites.mjs`、Quality。保護設定は変更せず|新PR/main/配備の結果を公開記録へ追記|
+|01 CIの重複・長短分類|工程1でPR更新だけの枝検査、短長入口、変更判定を実装。`scripts/quality-scope.mjs`、`test-suites.mjs`、Quality。保護設定は変更せず|PR #78/main QualityとPagesの成功を公開記録へ記載|
 |02 82要件・135手順の対応|`release_stage(s)`と`evidence_review`を資料57項目で照合。今回の22項目の表も追加|各受入の`not_run`を自動検査だけで一括変更しない|
 |03 通常画面の勝敗・走破|勝利・敗北・引分の表示/停止、通常初期戦の結果・再戦、Nodeの3シード勝利に証拠あり|標準初期戦の全7門・P1コア勝利を実DOM操作で24282 tickに確認。複数条件の画面勝利、核練習としての長時間達成は未完了|
 |04 8弾・修理・設備・所有|既存R3/物理戦回帰。実補給の補助員修理・修理設定E28を工程2で検査|人の通常戦による用途比較|
@@ -34,18 +34,18 @@
 |12 入力・画面・説明|360/390/402/430、短画面/横/200%、複数pointer、キー、停止/復帰、48pxをブラウザ検査。古い文言を修正|iPhone実機での画面端とキーボード|
 |13 音と表示|独自Web Audioと戦況/イベント表示、停止/非表示/破棄の実装・Node検査|実機の音・重複・聞きやすさ|
 |14 得点・条件|`semekome-score-v5-1`、0..111800、標準作戦/標準難度/標準補給/運搬型2人、勝敗/中止を確定。実装・保存・受付を照合|試遊による調整。shared方式の得点改変耐性は保証しない|
-|15 登録・単一定義|稼働中の実project/署名/anon権限を読取。`semekome_standard_v1`を非公開登録。manifestは公式schemaに適合|公開時の実URLと有効化後の読取照合|
-|16 開始・終了・再送|8秒timeout、server play_id、保留保持、応答消失/再読込/競合/拒否のstub検査。実DBのanon権限で開始/終了/得点・同じID再送・改変拒否をtransaction内で検査しrollback|公開URLからの実HTTP開始/中止/再送。実機の終局送信|
-|17 上位10・共有・実験場|読込/空/失敗/成功、返却rank_no、最大10件、共有キャンセル/コピー、代表slugの詳細リンク|公開トップ/詳細/ゲーム内の照合|
+|15 登録・単一定義|稼働中の実project/署名/anon権限を読取。`semekome_standard_v1`を非公開登録後、初回配備の確認を経て有効化。manifestは公式schemaに適合|実URL・有効状態・得点範囲の公開後照合は通過。実機確認は未実施|
+|16 開始・終了・再送|8秒timeout、server play_id、保留保持、応答消失/再読込/競合/拒否のstub検査。実DBのanon権限で開始/終了/得点・同じID再送・改変拒否をtransaction内で検査しrollback|公開URLで通常初期戦を終了し、実HTTP受付と同じIDの再送を確認。実機の終局送信は未実施|
+|17 上位10・共有・実験場|読込/空/失敗/成功、返却rank_no、最大10件、共有キャンセル/コピー、代表slugの詳細リンク|公開トップのカード・リンクと詳細ランキングを確認。ゲーム内表示は自動回帰検査、実機での照合は未実施|
 |18 セキュリティ・契約|公開キーのみ。名前textContent、保存検証、8秒・応答上限・版/ID/得点照合、受付上限と重複検査を確認|sharedのクライアント得点を再生検証で保証する機構は対象外|
 |19 調整・負荷・試遊|多弾/所有/復活/長時間のNode回帰。候補ソースで20戦を再測定、勝利0/敗北5/引分15を記録。旧操縦法と成功したDOM操縦法の差を明記し、難度合格にはしない|候補版の人の戦略比較、20画面再戦、描画/入力P95、初心者5人程度の試遊|
 |20 素材・依存物|22画像の台帳と由来、独自発振音、既存依存のライセンスを公開ファイルへ収録。新しい外部素材/依存は追加しない|独立した人による名称/全体表現/権利の最終確認|
 |21 iPhone/PC|Chromium/WebKitのモバイルviewportとPCキー/マウス/拡大を自動検査|iPhone 17 Pro Safari実機は未実施|
-|22 配備・版・復旧|正式URL/manifest/client_version/commit.txt/Quality連動Pages/復旧手順を実装|配備と公開後結果を本書末尾へ記録|
+|22 配備・版・復旧|正式URL/manifest/client_version/commit.txt/Quality連動Pages/復旧手順を実装|初回配備と公開後結果を本書末尾へ記録済み。実機・試遊・独立レビューは未実施|
 
 ## この候補で実施した検査
 
-- 資料: 57/57。82要件・135手順を検査。実行用manifestを共有側の公式JSON Schemaに照合し通過。
+- 資料: 57/57。82要件・135手順の対応表と検査証拠の整合性を検査（135手順を全件実行したという意味ではない）。実行用manifestを共有側の公式JSON Schemaに照合し通過。
 - Node全件: 62テストファイル通過、失敗0、約265秒。Node24のfile summaryを旧Nodeの個別件数と混同しない。
 - 型・製品ビルド: 通過。表示・共有・文書の最終修正後も資料57/57、型・製品ビルド、差分空白が通過。
 - ブラウザ: Chromiumの初回38/39、ホーム案内変更に伴う旧期待値1件を修正。WebKitは不足ライブラリを作業用ディレクトリへ用意し39/39通過（3.5分）。Chromiumの修正対象と結果/ランキング8/8を再検査して通過（12.3秒）。CIでは両方を全件実行する。
@@ -57,4 +57,16 @@
 
 ## 公開記録
 
-クライアント版: `semekome-web-20261002-01`。正式URL: https://chameleonjp-lab.github.io/semekome/ 。PR、コミット、Quality、Pages、公開後検査は実行後に追記する。今回のページ公開の指示を、実機・試遊・独立レビューの合格へ読み替えない。
+2026-10-02 UTCに初回公開を完了した。正式URL: https://chameleonjp-lab.github.io/semekome/ 。クライアント版: `semekome-web-20261002-01`、得点版: `semekome-score-v5-1`。
+
+- 修正PR: [#78](https://github.com/chameleonjp-lab/semekome/pull/78)。初回公開ソースはmain `c900f758a12c2fb5edee2ef043df93efe9e3f3b1`。
+- [PR Quality](https://github.com/chameleonjp-lab/semekome/actions/runs/36955536218): 成功。資料57/57、Node短328件・長31件（計359件）、Chromium/WebKit計78件、型・製品ビルドが通過。[main Quality](https://github.com/chameleonjp-lab/semekome/actions/runs/36956667516)も成功した。
+- [初回Pages配備](https://github.com/chameleonjp-lab/semekome/actions/runs/36957153630): 成功。公開HTMLはHTTP200、正式URL・配布manifest・クライアント版・`commit.txt`の初回公開SHAを照合した。`npm run verify:publication`は終了コード0で、ビルド済みJS/CSS、22画像、ライセンス、登録内容・有効状態・0..111800の範囲、実ランキングRPCを検査した。
+- 自ゲームの`public.games`だけを`is_active=true`にし、代表slug `semekome_standard_v1`、正式URL、shared、降順・点・最高スコア、得点範囲を再読取した。既存の他ゲーム、共通RPC、権限は変更していない。工程4資料の`database_registration=registered_inactive`は公開前の登録段階を示す履歴であり、現在の稼働状態はこの公開記録と実サービスの`is_active=true`を参照する。
+- 公開ページの通常初期戦を「公開動作確認20261002」で実行し、終了受付は`game_over / reached_wave=1 / score=0`、得点履歴1件、初回0点・最高0点・プレイ回数1回で記録された。ゲーム状態や得点を差し替えた高得点の登録はしていない。事前transactionの7000点はrollback済みである。
+- [公開ページのブラウザ検査](https://github.com/chameleonjp-lab/semekome/actions/runs/36959360782): 成功。公開URLのネイティブfetchで既存の実プレイIDを用いた開始/終了/得点の再送がすべてHTTP200となり、同じID、0点、重複応答、プレイ回数1回を確認した。新しい開始や得点は作っていない。上位10件RPC、ホームの版、準備画面の名前送信説明、実験場のセメコメカードを開いた際のゲームリンク、詳細ランキングの最高スコアタブの検証名表示を確認し、pageerrorは0だった。DB再読取でも検証名の得点履歴は1件、プレイ回数は1回のままである。
+- 同検査の[ホーム・準備・実験場・ランキングの画像とJSON](https://github.com/chameleonjp-lab/semekome/actions/runs/36959360782/artifacts/11207511623)を保存した（Actions artifactの保持期限は2026-10-16 UTC、SHA256 `3153a98144e6d0251a815beaaefefaab3c32fe6f4723a9f77e86d6e32902bd24`）。検査用の一時workflow/スクリプトは公開記録PRで元に戻し、mainへ残さない。
+- 作業用実行環境の通信障害で、最初の公開ブラウザ検査の失敗ログは回収できなかった。その実行全体を合格とは記録しない。実際の受付はDBで確認し、残る公開画面と再送の検査を上記Actionsで完了した。最初のActions検査で隠れたカード/ランキングタブを選んだ箇所は、カードを開く・最高スコアタブを選ぶ通常の操作へ修正して再検査した。
+- 公開記録のMarkdownだけを追記する後続配備では`commit.txt`がそのmain SHAへ進む。ゲームコード・manifest・クライアント版は初回公開と同一である。復旧は[公開手順](PUBLISHING.md)のQuality済みSHA指定で実行する。初回公開以前の配備は存在しない。
+
+今回のページ公開の指示を、実機・試遊・独立レビューの合格へ読み替えない。iPhone 17 Pro Safari実機、初心者5人程度の試遊、独立した公開前レビュー、複数条件/シードの画面勝利、核練習の通常画面完走、20連続画面再戦、描画/入力P95、長期の難度・戦略比較は未実施のままである。受入資料の`not_run`を一括で合格へ変更していない。

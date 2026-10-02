@@ -1,29 +1,84 @@
-name: Public page verification
+name: Quality
 
 on:
   pull_request:
-    types: [opened, synchronize]
+    types: [opened, synchronize, reopened, labeled, unlabeled]
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      run_browser:
+        description: Run Chromium/WebKit browser tests
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
+concurrency:
+  group: quality-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  public_page:
+  verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
+    env:
+      RUN_BROWSER: ${{ (github.event_name == 'workflow_dispatch' && inputs.run_browser) || contains(github.event.pull_request.labels.*.name, 'run-browser') }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Determine verification scope
+        id: scope
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+        run: node scripts/quality-scope.mjs "$BASE_SHA" "$HEAD_SHA"
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: npm
-      - run: npm ci
-      - run: npx playwright install --with-deps chromium
-      - name: Verify the existing public page and real receipt
-        run: node scripts/check-published-ui.mjs
-      - uses: actions/upload-artifact@v4
-        if: always()
+      - uses: actions/setup-python@v5
         with:
-          name: published-page-verification
-          path: public-verification/
+          python-version: '3.12'
+      - run: npm ci
+        if: steps.scope.outputs.run_game == 'true' || env.RUN_BROWSER == 'true'
+      - run: npm run check:docs
+      - name: Short Node tests
+        if: steps.scope.outputs.run_game == 'true'
+        run: npm run test:short
+      - name: Full battle and endurance tests
+        if: steps.scope.outputs.run_long == 'true'
+        run: npm run test:long
+      - run: npm run build
+        if: steps.scope.outputs.run_game == 'true' || env.RUN_BROWSER == 'true'
+      - name: Report browser test mode
+        run: |
+          if [ "${RUN_BROWSER}" = "true" ]; then
+            echo "Browser tests enabled (workflow_dispatch input or run-browser label)."
+          else
+            echo "Browser tests skipped by default; use workflow_dispatch with run_browser=true or the run-browser label when needed."
+          fi
+      - name: Install browser dependencies
+        if: env.RUN_BROWSER == 'true'
+        run: npx playwright install --with-deps chromium webkit
+      - name: Install browser fonts
+        if: env.RUN_BROWSER == 'true'
+        run: sudo apt-get install -y fonts-noto-cjk
+      - name: Run browser tests
+        if: env.RUN_BROWSER == 'true'
+        run: npm run test:browser
+      - uses: actions/upload-artifact@v4
+        if: always() && env.RUN_BROWSER == 'true'
+        with:
+          name: browser-report
+          path: playwright-report/
+          retention-days: 7
+      - uses: actions/upload-artifact@v4
+        if: steps.scope.outputs.run_game == 'true' || env.RUN_BROWSER == 'true'
+        with:
+          name: semekome-r2a-preview
+          path: dist/
           retention-days: 14
