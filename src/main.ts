@@ -5,6 +5,7 @@ import { GAME_ART_URLS } from './presentation/game-art.ts';
 import { bindArtImageFallbacks } from './presentation/art-fallback.ts';
 import { createWorld } from './simulation/world.ts';
 import { openBattleSetup } from './presentation/battle-screen.ts';
+import manifest from '../ranking-manifest.json' with { type: 'json' };
 
 type Area = 'player' | 'plaza' | 'enemy';
 type Rect = readonly number[];
@@ -66,7 +67,8 @@ function home(): void {
       <p class="home-copy">弾を運んで撃ち合い、<br>7つの門を開いて、敵の核へ。</p></div>
       <figure class="home-stage" role="img" aria-label="自陣と敵陣が広場を挟んで向かい合う戦場"><img class="home-art" src="${GAME_ART_URLS.stage}" alt="" aria-hidden="true" /><figcaption class="home-stage-labels"><span>自陣</span><span>広場</span><span>敵陣</span></figcaption></figure>
       <div class="home-actions"><button class="primary" id="open-battle" aria-label="通常戦を始める">通常戦を始める</button><button id="open-preview">配置を確認する</button><button id="open-atlas">素材図鑑</button><button id="open-rules">ルール説明</button></div>
-      <p class="home-notice">通常戦は、名前入力・補給編成・カウントダウンを経て実戦を開始します。<br>結果画面まで接続済みです。承認済みスコア・ランキングは未接続です。</p>
+      <p class="home-notice">名前と編成を決めて出撃。3つの練習から操作を学べます。<br>標準作戦・標準難易度・標準補給・運搬型2人の結果で、上位10位を競います。</p>
+      <p class="release-info"><a href="https://chameleonjp-lab.github.io/chameleonjp_lab/">カメレオンJPの実験場</a> · <a href="./THIRD_PARTY_LICENSES.txt">使用ライブラリ</a><br><small>版：${manifest.client_version}</small></p>
     </section>
     <dialog aria-labelledby="rules-title"><div class="dialog-head"><h2 id="rules-title">セメコメのルール</h2><button id="close-rules">閉じる</button></div>
       <div class="rules-body"><ol>

@@ -16,7 +16,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "test:short": "node scripts/test-suites.mjs short",
     "test:long": "node scripts/test-suites.mjs long",
-    "test:browser:full": "node scripts/browser-full.mjs"
+    "test:browser:full": "node scripts/browser-full.mjs",
+    "verify:publication": "node scripts/verify-publication.mjs"
   },
   "devDependencies": {
     "@playwright/test": "1.62.1",

@@ -25,8 +25,8 @@ export function createRankingView(host: HTMLElement, load: () => Promise<Ranking
   retry.addEventListener('click', refresh); void refresh();
   return { refresh, dispose() { disposed = true; generation++; retry.removeEventListener('click', refresh); } };
 }
-export function resultShareText(name: string, outcome: string, score: number, canonicalUrl: string): string {
+export function resultShareText(name: string, outcome: string, score: number, canonicalUrl: string, ranked = true): string {
   const url = new URL(canonicalUrl);
   if (url.protocol !== 'https:' || url.username || url.password || !Number.isSafeInteger(score) || score < 0) throw new Error('Invalid confirmed share result');
-  return `セメコメ ${name}：${outcome} ${score}点\n${url.href}`;
+  return `セメコメ ${name}：${outcome} ${score}点（${ranked ? '標準条件' : 'ランキング対象外'}）\n${url.href}`;
 }

@@ -25,6 +25,9 @@ export interface BattleSessionResultPayload {
   readonly enemyGatesOpened: number;
   readonly playerOperatedLaunches: number;
   readonly playerDashStarts: number;
+  /** Older local records may lack a release score. */
+  readonly score?: number;
+  readonly scoreVersion?: string;
   /** Records made before R2ai have no combat detail; absence is not zero. */
   readonly combatMetrics?: BattleResultMetrics;
 }

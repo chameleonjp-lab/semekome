@@ -1,0 +1,60 @@
+name: Publish Pages
+
+on:
+  workflow_run:
+    workflows: [Quality]
+    branches: [main]
+    types: [completed]
+  workflow_dispatch:
+    inputs:
+      deploy_ref:
+        description: Previously verified commit or branch to publish (also used for rollback)
+        default: main
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  actions: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: semekome-pages
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    if: github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.deploy_ref || github.event.workflow_run.head_sha }}
+      - name: Require successful Quality for the exact candidate
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          CANDIDATE_SHA=$(git rev-parse HEAD)
+          export CANDIDATE_SHA
+          gh api "repos/${GITHUB_REPOSITORY}/actions/workflows/quality.yml/runs?head_sha=${CANDIDATE_SHA}&per_page=50" > /tmp/semekome-quality.json
+          node --input-type=module -e "import {readFileSync} from 'node:fs'; const runs=JSON.parse(readFileSync('/tmp/semekome-quality.json')).workflow_runs; if (!runs.some(run => run.head_sha === process.env.CANDIDATE_SHA && run.conclusion === 'success')) throw new Error('Candidate has no successful Quality run');"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Record deployed commit
+        run: |
+          git rev-parse HEAD > dist/commit.txt
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+      - uses: actions/deploy-pages@v4
+        id: deployment

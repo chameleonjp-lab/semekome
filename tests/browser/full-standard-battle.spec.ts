@@ -21,7 +21,7 @@ test('通常の初期配置から画面入力だけで7門を越え、P1のコ�
   await page.evaluate(async () => {
     const modulePath = '/tests/scenarios/standard-player-driver.ts';
     const { createStandardPlayerDriver } = await import(modulePath);
-    const driver = createStandardPlayerDriver(4, true);
+    const driver = createStandardPlayerDriver(4, false, true);
     const held = new Set<string>();
     let lastTick = -1;
     const keyboard = (key: string, down: boolean) => window.dispatchEvent(new KeyboardEvent(down ? 'keydown' : 'keyup', { key, code: key === 'Space' ? 'Space' : key, bubbles: true, cancelable: true }));
@@ -47,6 +47,14 @@ test('通常の初期配置から画面入力だけで7門を越え、P1のコ�
           if (toggle.textContent?.includes('直通') && intent.route === 'detour') toggle.click();
         }
         if (intent?.part) { const select = document.querySelector<HTMLSelectElement>('#target-part')!; if (select.value !== intent.part) { select.value = intent.part; select.dispatchEvent(new Event('change',{bubbles:true})); } }
+        if (intent?.allyCommand) {
+          const command = intent.allyCommand;
+          const kind = document.querySelector<HTMLSelectElement>(`[data-ally-kind="${command.allyId}"]`)!;
+          kind.value = command.kind; kind.dispatchEvent(new Event('change',{bubbles:true}));
+          const room = document.querySelector<HTMLSelectElement>(`[data-ally-room="${command.allyId}"]`)!;
+          room.value = command.targetRoomId!; room.dispatchEvent(new Event('change',{bubbles:true}));
+          document.querySelector<HTMLButtonElement>(`[data-ally-submit="${command.allyId}"]`)!.click();
+        }
         if (intent?.handle) document.querySelector<HTMLButtonElement>('#battle-action')!.click();
         if (intent?.attack) { keyboard('x',true); keyboard('x',false); }
         if (intent?.dash) { keyboard('Space',true); keyboard('Space',false); setDirection(0,0); }
