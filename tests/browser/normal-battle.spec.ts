@@ -88,8 +88,8 @@ test('通常戦はホームから名前・カウントダウンを経て結果�
   await expect(result).toHaveAttribute('data-outcome', 'enemy_win');
   await expect(result).toContainText('敗北');
   await expect(result).toContainText('自陣コアへの有効命中');
-  await expect(result.locator('[data-result-score-status="pending"]')).toContainText('得点式の承認待ち');
-  await expect(result.locator('[data-result-ranking-status="unavailable"]')).toContainText('ランキングは準備中です');
+  await expect(result.locator('[data-result-score-status="confirmed"]')).toContainText('点');
+  await expect(result.locator('[data-result-ranking-status="unavailable"]')).toContainText('ランキング対象外');
   await expect(result.locator('[data-result-player-name]')).toHaveText('通常戦の開始検査');
   await expect(result.locator('[data-result-enemy-defeats-total]')).toHaveText(/\d+ 回/);
   await expect(result.locator('[data-result-enemy-unique-defeats]')).toHaveText(/\d+\/30 人/);

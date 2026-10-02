@@ -33,7 +33,9 @@ export function createRankingClient(config: RankingConfig, storage: Storage, fet
   async function rpc(name: string, args: Record<string, unknown>): Promise<any> {
     const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), 8000);
     try {
-      const response = await fetchImpl.call(globalThis, `${config.endpoint.replace(/\/$/, '')}/rpc/${name}`, { method: 'POST', headers: { apikey: config.publishableKey, Authorization: `Bearer ${config.publishableKey}`, 'Content-Type': 'application/json' }, body: JSON.stringify(args), signal: controller.signal });
+      const headers: Record<string, string> = { apikey: config.publishableKey, 'Content-Type': 'application/json' };
+      if (!config.publishableKey.startsWith('sb_publishable_')) headers.Authorization = `Bearer ${config.publishableKey}`;
+      const response = await fetchImpl.call(globalThis, `${config.endpoint.replace(/\/$/, '')}/rpc/${name}`, { method: 'POST', headers, body: JSON.stringify(args), signal: controller.signal });
       const raw = await response.text(); if (raw.length > 100_000) throw new RankingError('Oversized response', false);
       let data: any; try { data = JSON.parse(raw); } catch { throw new RankingError('Invalid response', true); }
       if (!response.ok) throw new RankingError(typeof data.code === 'string' ? data.code : 'RPC rejected', [408,425,429].includes(response.status) || response.status >= 500 || typeof data.message === 'string' && /rate limit/i.test(data.message));
@@ -56,8 +58,10 @@ export function createRankingClient(config: RankingConfig, storage: Storage, fet
         }
         if (!play.result) { status = 'idle'; return; }
         if (!play.finished) {
-          const result = await rpc('finish_game_play_v1', { ...common, p_play_id: play.playId, p_result_type: play.result.resultType, p_reached_wave: play.result.reached, p_score: play.result.score, p_ranking_score: null });
-          if (result.accepted !== true || result.play_id !== play.playId || result.game_slug !== play.gameSlug || result.result_type !== play.result.resultType || result.reached_wave !== play.result.reached || result.score !== play.result.score) throw new RankingError('Finish response mismatch', false);
+          // The shared service accepts waves 1..30; our 0..7 opened gates map to 1..8.
+          const reachedWave = play.result.reached + 1;
+          const result = await rpc('finish_game_play_v1', { ...common, p_play_id: play.playId, p_result_type: play.result.resultType, p_reached_wave: reachedWave, p_score: play.result.score, p_ranking_score: null });
+          if (result.accepted !== true || result.play_id !== play.playId || result.game_slug !== play.gameSlug || result.result_type !== play.result.resultType || result.reached_wave !== reachedWave || result.score !== play.result.score) throw new RankingError('Finish response mismatch', false);
           play.finished = true; save(play);
         }
         if (play.result.ranked) {

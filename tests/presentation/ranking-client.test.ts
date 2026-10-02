@@ -45,6 +45,22 @@ test('pending start persists before network; same start retries; unranked retire
   await client.sync(); assert.equal(rpc.calls[0].args.p_start_id, startId);
   await client.finish({ resultType: 'retire', reached: 0, score: 0, ranked: false });
   assert.equal(client.status, 'submitted'); assert.equal(rpc.calls.some(call => call.name === 'submit_score_idempotent_v1'), false);
+  assert.equal(rpc.calls.find(call => call.name === 'finish_game_play_v1')!.args.p_reached_wave, 1, 'zero gates map to shared-service wave 1');
+});
+
+test('all seven gates map to shared-service wave 8 and publishable keys are not used as JWTs', async () => {
+  const rpc = server();
+  const client = createRankingClient(config, storage(), async (url, request) => {
+    const headers = new Headers(request?.headers);
+    assert.equal(headers.get('apikey'), config.publishableKey);
+    assert.equal(headers.has('authorization'), false);
+    const args = JSON.parse(request!.body as string);
+    if (String(url).endsWith('finish_game_play_v1')) assert.equal(args.p_reached_wave, 8);
+    return rpc.fetchImpl(url, request);
+  });
+  await client.begin('七門検査');
+  await client.finish({ resultType: 'clear', reached: 7, score: 100000, ranked: true });
+  assert.equal(client.status, 'submitted');
 });
 
 test('malformed acknowledgment and permanent rejection cannot look successful; pending records are retained', async () => {
@@ -60,17 +76,17 @@ test('malformed acknowledgment and permanent rejection cannot look successful; p
   await assert.rejects(createRankingClient(config, storage(), async () => Response.json(Array.from({length: 11}, () => ({})))).topTen(), /mismatch/);
 });
 
-test('unapproved score proposal preserves the victory base, counts distinct enemies, and floors only the variable part', async () => {
+test('release score preserves the victory base, counts distinct enemies, and floors only the variable part', async () => {
   const { createBattle } = await import('../../src/simulation/physical-battle.ts');
-  const { calculateProposedScore } = await import('../../src/ranking/score-proposal.ts');
+  const { calculateBattleScore } = await import('../../src/ranking/score.ts');
   const state = createBattle({ matchId: 'score-boundary', seed: 1 });
-  assert.throws(() => calculateProposedScore(state), /terminal/);
+  assert.throws(() => calculateBattleScore(state), /terminal/);
   state.phase = 'ended'; state.outcome = 'player_win';
   state.castles.enemy.destroyedPartIds = ['P1','P2','P3','P4','P5','P6','P7'];
   for (const actor of Object.values(state.actors).filter(actor => actor.team === 'enemy')) actor.deathCount = 10;
-  assert.equal(calculateProposedScore(state), 111800, 'repeat defeats do not add points');
-  state.tick = 61; assert.equal(calculateProposedScore(state), 111780, 'remaining time uses integer floor');
-  state.outcome = 'enemy_win'; assert.equal(calculateProposedScore(state), 7600, 'non-winners do not get time points');
-  state.actors.P1.deathCount = 1000; assert.equal(calculateProposedScore(state), 0);
-  state.outcome = 'player_win'; assert.equal(calculateProposedScore(state), 100000, 'death penalty does not reduce the victory base');
+  assert.equal(calculateBattleScore(state), 111800, 'repeat defeats do not add points');
+  state.tick = 61; assert.equal(calculateBattleScore(state), 111780, 'remaining time uses integer floor');
+  state.outcome = 'enemy_win'; assert.equal(calculateBattleScore(state), 7600, 'non-winners do not get time points');
+  state.actors.P1.deathCount = 1000; assert.equal(calculateBattleScore(state), 0);
+  state.outcome = 'player_win'; assert.equal(calculateBattleScore(state), 100000, 'death penalty does not reduce the victory base');
 });

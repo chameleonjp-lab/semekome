@@ -367,14 +367,20 @@ def main(argv=None) -> int:
     entries = cases.get('cases', cases.get('items', [])) if isinstance(cases, dict) else cases
     checks['eight_original_cases'] = len(entries) == 8
     checks['ruleset_bumped'] = r['ruleset_id'] == 'semekome-prototype-0.4-facing-castles'
-    checks['ranking_plan_is_unconnected_null'] = (
-        data['RANKING_INTEGRATION_PLAN.json']['status'] == 'unconnected_null_configuration'
-        and data['RANKING_INTEGRATION_PLAN.json']['connection']['game_slug'] is None
-        and data['RANKING_INTEGRATION_PLAN.json']['connection']['game_id'] is None
+    ranking = data['RANKING_INTEGRATION_PLAN.json']
+    manifest = json.loads((root.parents[2] / 'ranking-manifest.json').read_text(encoding='utf-8'))
+    checks['ranking_plan_matches_release_contract'] = (
+        ranking['status'] in ('release_configuration_prepared', 'registered_release_candidate')
+        and ranking['connection']['game_slug'] == manifest['lab']['representative_slug']
+        and ranking['connection']['game_id'] == manifest['game_id']
+        and ranking['connection']['public_game_url'] == manifest['canonical_url']
+        and all(key not in manifest for key in ('public_key', 'secret_key', 'service_role'))
     )
-    checks['score_plan_is_proposal'] = (
-        data['SCORE_PLAN.json']['status'] == 'proposal_not_approved'
+    checks['score_plan_matches_release_contract'] = (
+        data['SCORE_PLAN.json']['status'] == 'adopted_for_initial_release'
         and data['SCORE_PLAN.json']['required_for_initial_public_release']
+        and manifest['ranking_entries'][0]['score_min'] == 0
+        and manifest['ranking_entries'][0]['score_max'] == 111800
     )
     checks['no_old_game_data_or_font_files'] = not any(
         p.name in ['AMMO_CANDIDATES.json', 'CREW_CANDIDATES.json']

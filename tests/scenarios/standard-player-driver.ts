@@ -152,11 +152,24 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
-export function createStandardPlayerDriver(deliveryTarget = 4, regroupWithSupports = false) {
+export function createStandardPlayerDriver(deliveryTarget = 4, regroupWithSupports = false, finishWithSupportInvasion = false) {
   let phase: "pickup" | "turret" | "plaza-route" | "return-plaza" | "combat" | "gate-route" | "core-route" = "pickup";
   let deliveries = 0, lastTick = -1, wasAlive = true;
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
-  const choose = (_state: BattleState, intent: BattleIntent): BattleIntent => intent;
+  const orderedSupportGenerations = new Set<string>();
+  const choose = (state: BattleState, intent: BattleIntent): BattleIntent => {
+    // Once artillery has opened all gates, use the same invasion commands a
+    // player can issue and advance to the core instead of chasing respawns.
+    if (finishWithSupportInvasion && state.castles.enemy.openGateIds.length === 7) {
+      const allyId = (['P2', 'P3'] as const).find(id => state.actors[id].alive &&
+        !orderedSupportGenerations.has(`${state.actors.P1.generation}:${id}:${state.actors[id].generation}`));
+      if (allyId) {
+        orderedSupportGenerations.add(`${state.actors.P1.generation}:${allyId}:${state.actors[allyId].generation}`);
+        intent.allyCommand = { allyId, kind: 'invasion', targetRoomId: 'core' };
+      }
+    }
+    return intent;
+  };
   return (state: BattleState): BattleIntent | undefined => {
     if (state.phase !== 'running') return;
     if (state.tick !== lastTick) {
@@ -180,10 +193,10 @@ export function createStandardPlayerDriver(deliveryTarget = 4, regroupWithSuppor
     if (state.actors.P1.location.area === 'plaza') {
       const threat = nearestEnemyInP1Room(state);
       const interaction = getInteraction(state,'P1',0);
-      if (state.dashes.P1) return publicP1Intent(state,{direction:NEUTRAL});
-      if (interaction.attackTargetId) return publicP1Intent(state,{direction:p1ToActorDirection(state,interaction.attackTargetId),attack:true});
-      if (threat && state.tick >= (state.dashCooldownUntilTick.P1 ?? 0)) return publicP1Intent(state,{direction:NEUTRAL,dash:p1ToActorDirection(state,threat)});
-      if (threat) return publicP1Intent(state,{direction:p1ToActorDirection(state,threat)});
+      if (state.dashes.P1) return choose(state,publicP1Intent(state,{direction:NEUTRAL}));
+      if (interaction.attackTargetId) return choose(state,publicP1Intent(state,{direction:p1ToActorDirection(state,interaction.attackTargetId),attack:true}));
+      if (threat && state.tick >= (state.dashCooldownUntilTick.P1 ?? 0)) return choose(state,publicP1Intent(state,{direction:NEUTRAL,dash:p1ToActorDirection(state,threat)}));
+      if (threat) return choose(state,publicP1Intent(state,{direction:p1ToActorDirection(state,threat)}));
     }
     const coreRoom = state.layout.enemy.rooms.find(room => room.id === 'core')!;
     const coreCenter = { x: Math.round((coreRoom.rect.x0 + coreRoom.rect.x1) * 500), y: Math.round((coreRoom.rect.y0 + coreRoom.rect.y1) * 500) };
@@ -204,6 +217,10 @@ export function createStandardPlayerDriver(deliveryTarget = 4, regroupWithSuppor
       nextState = choose(state, publicP1Intent(state, {
         direction: phase === "return-plaza" ? p1FromRespawnToPlazaDirection(state) : p1ToPlazaDirection(state),
       }));
+    } else if (finishWithSupportInvasion && state.castles.enemy.openGateIds.length === 7 &&
+        state.actors.P1.location.castleTeam === 'enemy' && state.actors.P1.currentRoomId !== 'core') {
+      nextState = choose(state, publicP1Intent(state, { direction: { x: 1, y: 0 },
+        ...(!state.dashes.P1 && state.tick >= (state.dashCooldownUntilTick.P1 ?? 0) ? { dash: { x: 1, y: 0 } as BattleDirection } : {}) }));
     } else if (phase === "gate-route" || phase === "core-route") {
       const threatId = nearestEnemyInP1Room(state);
       const interaction = getInteraction(state, "P1", 0);

@@ -1,8 +1,8 @@
 import type { BattleState } from '../simulation/physical-battle.ts';
 import { projectBattleResultMetrics } from '../presentation/battle-result-metrics.ts';
-export const SCORE_PROPOSAL_VERSION = 'semekome-score-v5-proposal';
-/** Reviewable proposal only. Production activation requires the approved contract. */
-export function calculateProposedScore(state: BattleState): number {
+export const SCORE_VERSION = 'semekome-score-v5-1';
+/** The release score is independent of network availability. */
+export function calculateBattleScore(state: BattleState): number {
   if (state.phase !== 'ended' || state.outcome === 'ongoing') throw new Error('Score requires a terminal battle');
   const metrics = projectBattleResultMetrics(state);
   const win = state.outcome === 'player_win';

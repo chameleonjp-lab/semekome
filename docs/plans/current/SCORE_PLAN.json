@@ -1,7 +1,7 @@
 {
   "version": "5.0",
   "ruleset_id": "semekome-prototype-0.4-facing-castles",
-  "status": "proposal_not_approved",
+  "status": "adopted_for_initial_release",
   "required_for_initial_public_release": true,
   "source_document": "RESULTS_SCORE_RANKING.md",
   "formula": {
@@ -28,14 +28,20 @@
     "initial_standard_match_only": true,
     "other_difficulties": "not_selected",
     "other_loadouts": "not_selected",
-    "score_version": "semekome-score-v5-proposal",
-    "requires_approval_and_playtest": true
+    "score_version": "semekome-score-v5-1",
+    "requires_approval_and_playtest": false,
+    "enemy_preset": "standard",
+    "difficulty": "standard",
+    "support_types": [
+      "carrier",
+      "carrier"
+    ],
+    "human_acceptance": "pending"
   },
   "unresolved": [
-    "本番固定式としての承認",
-    "同率順位の表示契約",
-    "別難易度・別編成の公開範囲",
+    "iPhone 17 Pro Safari実機受入",
+    "初心者試遊によるバランス評価",
     "再生検証なしのクライアント得点に対する不正耐性"
   ],
-  "implementation_status_ja": "計画値のみ。R1では資料と仮画面の入力として扱い、ランキングへ送信可能な確定式・接続値・実装完了とは扱わない。"
+  "implementation_status_ja": "2026-10-02のページ公開依頼に基づき工程4の案を初期公開値として採用。src/ranking/score.tsとranking-manifest.jsonへ反映。実機・人の試遊の完了を意味しない。"
 }
