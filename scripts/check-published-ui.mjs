@@ -34,7 +34,8 @@ try {
   const lab=await context.newPage();
   lab.on('pageerror',error=>errors.push(String(error)));
   await lab.goto('https://chameleonjp-lab.github.io/chameleonjp_lab/',{waitUntil:'networkidle'});
-  await lab.locator('a[href="'+manifest.canonical_url+'"]').first().waitFor({state:'visible',timeout:30000});
+  await lab.getByRole('button',{name:/セメコメ/}).click();
+  await lab.locator('a[href="'+manifest.canonical_url+'"]:visible').first().waitFor({state:'visible',timeout:30000});
   await lab.screenshot({path:'public-verification/lab.png',fullPage:true});
   await lab.goto('https://chameleonjp-lab.github.io/chameleonjp_lab/ranking.html?game='+manifest.lab.representative_slug,{waitUntil:'networkidle'});
   await lab.getByText(prior.name,{exact:true}).first().waitFor({state:'visible',timeout:30000});
