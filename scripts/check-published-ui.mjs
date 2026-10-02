@@ -38,12 +38,13 @@ try {
   await lab.locator('a[href="'+manifest.canonical_url+'"]:visible').first().waitFor({state:'visible',timeout:30000});
   await lab.screenshot({path:'public-verification/lab.png',fullPage:true});
   await lab.goto('https://chameleonjp-lab.github.io/chameleonjp_lab/ranking.html?game='+manifest.lab.representative_slug,{waitUntil:'networkidle'});
-  await lab.getByText(prior.name,{exact:true}).first().waitFor({state:'visible',timeout:30000});
+  await lab.getByRole('tab',{name:'最高スコア',exact:true}).click();
+  await lab.locator('#bestPanel').getByText(prior.name,{exact:true}).waitFor({state:'visible',timeout:30000});
   await lab.screenshot({path:'public-verification/ranking.png',fullPage:true});
   assert.deepEqual(errors,[]);
   const result={result:'passed',url:manifest.canonical_url,clientVersion:manifest.client_version,prior,scope:'Reuses the receipt of the actual initial production battle. Native start/finish/score duplicates do not create new plays or fabricated scores. Home/setup/lab/card/ranking inspected; no physical-device claim.',start,finish,submit,ranking,labCard:true,labRanking:true,pageErrors:errors};
   writeFileSync('public-verification/result.json',JSON.stringify(result,null,2)); console.log(JSON.stringify(result,null,2));
 } catch(error) {
-  await page.screenshot({path:'public-verification/failure.png',fullPage:true}).catch(()=>{});
+  await context.pages().at(-1).screenshot({path:'public-verification/failure.png',fullPage:true}).catch(()=>{});
   writeFileSync('public-verification/error.txt',String(error)); throw error;
 } finally {await browser.close();}
