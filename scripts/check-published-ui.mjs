@@ -1,0 +1,48 @@
+import assert from 'node:assert/strict';
+import {readFileSync,mkdirSync,writeFileSync} from 'node:fs';
+import {chromium} from 'playwright';
+const manifest=JSON.parse(readFileSync('ranking-manifest.json','utf8'));
+const env=Object.fromEntries(readFileSync('.env.production','utf8').split('\n').filter(line=>line && !line.startsWith('#')).map(line=>{const i=line.indexOf('=');return [line.slice(0,i),line.slice(i+1)];}));
+const prior={startId:'f7c8ffcf-30eb-4719-96a7-454987b3cc8a',playId:'e9d30374-7b48-4b1a-95d0-1b6e538403d9',submissionId:'aea2d043-1b8a-4d31-a0c5-00c72237df5c',name:'公開動作確認20261002',score:0,reachedWave:1,resultType:'game_over'};
+mkdirSync('public-verification',{recursive:true});
+const browser=await chromium.launch({headless:true});
+const context=await browser.newContext({viewport:{width:402,height:700}});
+const page=await context.newPage(),errors=[];
+page.on('pageerror',error=>errors.push(String(error)));
+try {
+  await page.goto(manifest.canonical_url,{waitUntil:'networkidle'});
+  assert.equal(await page.title(),'セメコメ');
+  assert.equal(await page.locator('meta[name="chameleonjp-release"]').getAttribute('content'),manifest.client_version);
+  await page.screenshot({path:'public-verification/home.png',fullPage:true});
+  const rpc=async(name,args)=>page.evaluate(async({endpoint,key,name,args})=>{
+    const response=await fetch(endpoint+'/rpc/'+name,{method:'POST',headers:{apikey:key,'Content-Type':'application/json'},body:JSON.stringify(args)});
+    return {status:response.status,data:await response.json()};
+  },{endpoint:env.VITE_SUPABASE_REST_ENDPOINT,key:env.VITE_SUPABASE_PUBLISHABLE_KEY,name,args});
+  const common={p_display_name:prior.name,p_game_slug:manifest.lab.representative_slug,p_client_version:manifest.client_version};
+  const start=await rpc('start_game_play_v1',{...common,p_start_id:prior.startId});
+  assert.equal(start.status,200); assert.equal(start.data.play_id,prior.playId);
+  const finish=await rpc('finish_game_play_v1',{...common,p_play_id:prior.playId,p_result_type:prior.resultType,p_reached_wave:prior.reachedWave,p_score:prior.score,p_ranking_score:null});
+  assert.equal(finish.status,200); assert.equal(finish.data.accepted,true); assert.equal(finish.data.score,prior.score);
+  const submit=await rpc('submit_score_idempotent_v1',{...common,p_play_id:prior.playId,p_submission_id:prior.submissionId,p_score:prior.score});
+  assert.equal(submit.status,200); assert.equal(submit.data[0].was_duplicate,true); assert.equal(submit.data[0].result_play_count,1);
+  const ranking=await rpc('get_game_ranking',{p_game_slug:manifest.lab.representative_slug,p_limit:10});
+  assert.equal(ranking.status,200); assert.ok(ranking.data.some(row=>row.display_name===prior.name && row.best_score===prior.score && row.play_count===1));
+  await page.getByRole('button',{name:'通常戦を始める'}).click();
+  await page.getByLabel('あなたの名前').fill(prior.name);
+  await page.getByText('通常戦では、開始と結果の受付へ名前を送信します。練習は送信しません。',{exact:false}).waitFor({state:'visible'});
+  await page.screenshot({path:'public-verification/setup.png',fullPage:true});
+  const lab=await context.newPage();
+  lab.on('pageerror',error=>errors.push(String(error)));
+  await lab.goto('https://chameleonjp-lab.github.io/chameleonjp_lab/',{waitUntil:'networkidle'});
+  await lab.locator('a[href="'+manifest.canonical_url+'"]').first().waitFor({state:'visible',timeout:30000});
+  await lab.screenshot({path:'public-verification/lab.png',fullPage:true});
+  await lab.goto('https://chameleonjp-lab.github.io/chameleonjp_lab/ranking.html?game='+manifest.lab.representative_slug,{waitUntil:'networkidle'});
+  await lab.getByText(prior.name,{exact:true}).first().waitFor({state:'visible',timeout:30000});
+  await lab.screenshot({path:'public-verification/ranking.png',fullPage:true});
+  assert.deepEqual(errors,[]);
+  const result={result:'passed',url:manifest.canonical_url,clientVersion:manifest.client_version,prior,scope:'Reuses the receipt of the actual initial production battle. Native start/finish/score duplicates do not create new plays or fabricated scores. Home/setup/lab/card/ranking inspected; no physical-device claim.',start,finish,submit,ranking,labCard:true,labRanking:true,pageErrors:errors};
+  writeFileSync('public-verification/result.json',JSON.stringify(result,null,2)); console.log(JSON.stringify(result,null,2));
+} catch(error) {
+  await page.screenshot({path:'public-verification/failure.png',fullPage:true}).catch(()=>{});
+  writeFileSync('public-verification/error.txt',String(error)); throw error;
+} finally {await browser.close();}
