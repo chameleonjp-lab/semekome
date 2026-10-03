@@ -143,6 +143,6 @@ test("R3 manual repair wins at an automatic restore deadline without double reco
   assert.equal(events.filter((event) => event.type === "equipment_restored").length, 0);
   assert.equal(state.artillery.turrets["player:T1"].health, state.rules.equipmentRepairHealth);
   assert.equal(state.artillery.turrets["player:T1"].disabledUntilTick, null);
-  assert.deepEqual(state.reservations, {});
+  assert.equal(Object.values(state.reservations).some(reservation => reservation.ownerActorId === "P1"), false, "completed player repair releases its reservation while other actors keep working");
   assertObjectLocationsUnique(state);
 });

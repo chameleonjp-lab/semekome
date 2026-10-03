@@ -541,7 +541,7 @@ export interface CoreAttackInput {
   kind: "core_attack";
   actorId: ActorId;
   targetTeam: TeamId;
-  attackType: "dash" | "normal_contact" | "projectile" | "friendly";
+  attackType: "dash" | "personal_shot" | "normal_contact" | "projectile" | "friendly";
   generation: number;
   matchId: string;
   /** Accepted only as a collision envelope; its boolean value is never trusted. */

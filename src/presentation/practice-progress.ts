@@ -2,7 +2,7 @@ import type { BattleState } from '../simulation/physical-battle.ts';
 export const PRACTICES = {
   transport: { label: '運搬と砲撃', description: '床の弾を拾い、砲台へ装填して操作位置から発射します。' },
   interception: { label: '迎撃', description: '防護板などを敵弾と同じ経路へ発射し、弾同士を接触させます。' },
-  core: { label: '7部位・7門とコア', description: '7部位を破壊して7門を順に越え、敵コアへ突進します。' },
+  core: { label: '7部位・7門とコア', description: '7部位を破壊して7門を順に越え、敵コアへ射撃します。' },
 } as const;
 export type Practice = keyof typeof PRACTICES;
 export function createPracticeProgress(practice: Practice) {

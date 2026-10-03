@@ -58,7 +58,7 @@ function stepUntilRoom(state: BattleState, actorId: AssaulterId, roomId: string,
     const before = next.fixedActors[actorId].position;
     next = stepBattle(next);
     const after = next.fixedActors[actorId].position;
-    assert.ok(Math.hypot(after.x - before.x, after.y - before.y) <= 51,
+    assert.ok(Math.hypot(after.x - before.x, after.y - before.y) <= 101,
       `${actorId} must walk in fixed steps, not warp`);
   }
   assert.equal(next.actors[actorId].currentRoomId, roomId, `${actorId} did not reach ${roomId}`);
@@ -110,7 +110,7 @@ test("主人公が敵陣にいるだけでは、侵入兵の進軍を停止し�
   assert.notDeepEqual(state.fixedActors.E29.position, start, "the assault uses fixed-step movement");
 });
 
-test("E29 and E30 wait at closed gates, re-plan by gate state, walk all rooms, then dash-hit the core", () => {
+test("E29 and E30 wait at closed gates, re-plan by gate state, walk all rooms, then shoot the core", () => {
   for (const actorId of ["E29", "E30"] as const) {
     let state = createBattle({ matchId: `enemy-core-assault-${actorId}`, seed: actorId === "E29" ? 1301 : 1303 });
     placeInvaderFixture(state, actorId);
@@ -134,24 +134,28 @@ test("E29 and E30 wait at closed gates, re-plan by gate state, walk all rooms, t
       }, `opening G${opened} should advance the normal assault goal`);
       state = stepUntilRoom(state, actorId, currentRoom);
       assert.deepEqual(state.actors[actorId].location.pathGates, state.layout.home.coreRouteGates.slice(0, opened));
-      assert.equal(state.outcome, "ongoing", "room entry and all gates alone must not decide the match");
+      if (opened < 7) assert.equal(state.outcome, "ongoing", "closed gates prevent a terminal shot");
+      else if (state.outcome !== "ongoing") {
+        assert.ok(state.shots.some(shot => shot.actorId === actorId), "entry alone does not win; an actual directional shot is required");
+        assert.ok(state.lastStep.events.some(event => event.type === "core_hit_candidate" && event.attackerId === actorId));
+      }
     }
 
     const route = state.layout.home.coreRouteRooms;
     assert.deepEqual(state.actors[actorId].location.pathRooms.slice(-route.length), route);
     assert.deepEqual(state.actors[actorId].location.pathGates, state.layout.home.coreRouteGates);
 
-    let sawEnemyDash = false;
-    let sawCommonCoreContact = false;
-    // Room entry leaves about four floors to its centre: at 50 subunits per
-    // tick, 120 ticks cover the walk and twelve-tick dash without a warp.
+    let sawEnemyShot = state.shots.some(shot => shot.actorId === actorId);
+    let sawCommonCoreContact = state.lastStep.acceptedInputKinds.includes("bridge:core_contact");
+    // A shot can land immediately on entering the core room when its real
+    // direction and first unobstructed contact are valid.
     for (let tick = 0; tick < 120 && state.outcome === "ongoing"; tick += 1) {
       state = stepBattle(state);
-      sawEnemyDash ||= state.dashes[actorId] !== undefined ||
-        state.lastStep.events.some((event) => event.type === "core_hit_candidate" && event.attackerId === actorId);
+      sawEnemyShot ||= state.shots.some(shot => shot.actorId === actorId);
       sawCommonCoreContact ||= state.lastStep.acceptedInputKinds.includes("bridge:core_contact");
     }
-    assert.equal(sawEnemyDash, true, "the enemy must use the shared physical dash executor");
+    assert.equal(sawEnemyShot, true, "the enemy must fire a physical directional shot");
+    assert.equal(state.dashes[actorId], undefined, "autonomous core attacks use shooting");
     assert.equal(sawCommonCoreContact, true, "the actual first-contact event must enter the common terminal path");
     assert.equal(state.castles.player.core.hit, true);
     assert.equal(state.outcome, "enemy_win");
@@ -207,7 +211,7 @@ test("enemy assault still respects life, generation, spawn protection, and pause
   assert.deepEqual(paused.fixedActors.E29.position, pausedPosition);
 });
 
-test("a diagonal dash predicted to miss is deferred until walking enables a real core hit", () => {
+test("an off-axis assaulter walks and fires a real directional core shot", () => {
   let state = createBattle({ matchId: "enemy-assault-diagonal-retry", seed: 1319 });
   placeInRoom(state, "P1", "player", "ammo_a");
   placeInRoom(state, "P2", "player", "battery_a");
@@ -219,8 +223,8 @@ test("a diagonal dash predicted to miss is deferred until walking enables a real
   const core = coreWorldPoint(state.layout.home);
   assert.ok(core);
   const corePoint = { x: Math.round(core.x * 1_000), y: Math.round(core.y * 1_000) };
-  // The target delta is (2180, 850): within radial range, but the 8-way dash
-  // quantizes to a 45-degree sweep that stops 1332 units from the core.
+  // Off-axis position must be resolved by real movement/facing and a
+  // first-contact ray, rather than directly changing the core state.
   const start = { x: corePoint.x + 2_180, y: corePoint.y + 850 };
   const actor = state.actors.E29;
   actor.location = { area: "castle", castleTeam: "player", roomId: "core", pathRooms: [...route], pathGates: [...gates] };
@@ -232,17 +236,19 @@ test("a diagonal dash predicted to miss is deferred until walking enables a real
 
   const initialDistance = Math.hypot(start.x - corePoint.x, start.y - corePoint.y);
   state = stepBattle(state);
-  assert.equal(state.dashes.E29, undefined, "do not launch a diagonal sweep predicted to miss");
-  assert.equal(state.outcome, "ongoing");
+  assert.equal(state.dashes.E29, undefined, "shooting does not create a dash");
   assert.ok(Math.hypot(state.fixedActors.E29.position.x - corePoint.x, state.fixedActors.E29.position.y - corePoint.y) < initialDistance,
     "the ordinary path follower should close the gap before retrying");
 
-  let sawCommonCoreContact = false;
+  let sawCommonCoreContact = state.lastStep.acceptedInputKinds.includes("bridge:core_contact");
+  let sawShot = state.shots.some(shot => shot.actorId === "E29");
   for (let tick = 0; tick < 180 && state.outcome === "ongoing"; tick += 1) {
     state = stepBattle(state);
     sawCommonCoreContact ||= state.lastStep.acceptedInputKinds.includes("bridge:core_contact");
+    sawShot ||= state.shots.some(shot => shot.actorId === "E29");
   }
-  assert.equal(sawCommonCoreContact, true, "the later physical first contact must use the shared bridge");
+  assert.ok(sawShot);
+  assert.equal(sawCommonCoreContact, true, "the physical first contact must use the shared bridge");
   assert.equal(state.castles.player.core.hit, true);
   assert.equal(state.outcome, "enemy_win");
 });
@@ -262,7 +268,7 @@ test("E30 leaves its authored command-room spawn using ordinary fixed-step movem
     const after = state.fixedActors.E30.position;
     if (beforeActor.location.area === afterActor.location.area &&
         beforeActor.location.castleTeam === afterActor.location.castleTeam) {
-      assert.ok(Math.hypot(after.x - before.x, after.y - before.y) <= 51,
+      assert.ok(Math.hypot(after.x - before.x, after.y - before.y) <= 101,
         "E30 must follow collision-checked movement within one coordinate frame");
       if (afterActor.location.area === homeFrame.area && afterActor.location.castleTeam === homeFrame.castleTeam) {
         maxHomeFrameProgress = Math.max(maxHomeFrameProgress, Math.hypot(after.x - start.x, after.y - start.y));

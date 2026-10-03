@@ -81,7 +81,7 @@ test('core hints distinguish actual enemy core contact from own core defense', (
   const actor = state.actors.P1;
   actor.currentRoomId = 'core';
   actor.location = { area: 'castle', castleTeam: 'enemy', roomId: 'core', pathRooms: [], pathGates: [] };
-  assert.match(battleHint(state, actor, undefined, false, false), /核そのものへ突進.*入室・歩行/);
+  assert.match(battleHint(state, actor, undefined, false, false), /核そのものへ射撃.*入室・歩行/);
   actor.location.castleTeam = 'player';
   assert.match(battleHint(state, actor, undefined, false, false), /自陣.*敗北.*自分の核/);
 });

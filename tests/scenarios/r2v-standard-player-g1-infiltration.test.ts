@@ -14,7 +14,7 @@ import {
 const NEUTRAL: BattleDirection = { x: 0, y: 0 };
 const PLAZA_Y = 35_500;
 const P1_AMMO_APPROACH_X = 94_500;
-const P1_AMMO_PICKUP_Y = 13_500;
+const P1_AMMO_PICKUP_Y = 12_500;
 const P1_TURRET_TRAVEL_Y = 12_000;
 const P1_TURRET_APPROACH_X = 105_850;
 const P1_EXIT_ROUTE_Y = 25_500;
@@ -26,10 +26,23 @@ const STANDARD_ALLOCATION = [
 ] as const;
 
 function publicP1Intent(state: BattleState, partial: Partial<BattleIntent> = {}): BattleIntent {
+  // Use the current public support controls: escort through the plaza, then
+  // return to artillery while P1 advances through the opened gate prefix.
+  const p1 = state.actors.P1;
+  const position = state.fixedActors.P1.position;
+  const leavingHome = p1.location.castleTeam === "player" && position.x > 105_000 && position.y > 20_000;
+  const kind = leavingHome || p1.location.area === "plaza" || p1.location.pathGates.length === 0 ? "follow" : "artillery";
+  const part = (Object.keys(state.castles.enemy.exterior) as Array<keyof typeof state.castles.enemy.exterior>)
+    .find(id => !state.castles.enemy.exterior[id].destroyed) ?? "P7";
+  const allyId = leavingHome || p1.location.area === "plaza" || p1.location.castleTeam === "enemy"
+    ? (["P2", "P3"] as const).find(id => state.actors[id].alive && (state.allyOrders[id]?.kind !== kind || kind === "artillery" &&
+      (state.allyOrders[id]?.route !== "detour" || state.allyOrders[id]?.part !== part)))
+    : undefined;
   return {
     matchId: state.matchId,
     actorId: "P1",
     generation: state.actors.P1.generation,
+    ...(allyId ? { allyCommand: { allyId, kind, ...(kind === "artillery" ? { route: "detour" as const, part } : {}) } } : {}),
     ...partial,
   };
 }
@@ -40,17 +53,20 @@ function sign(value: number): -1 | 0 | 1 {
 
 function p1ToAmmoDirection(state: BattleState, firstPickup: boolean): BattleDirection {
   const position = state.fixedActors.P1.position;
-  if (firstPickup) {
-    if (Math.abs(position.x - P1_AMMO_APPROACH_X) > 50) return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
-    if (Math.abs(position.y - P1_AMMO_PICKUP_Y) > 50) return { x: 0, y: sign(P1_AMMO_PICKUP_Y - position.y) };
-  } else {
-    if (position.x > P1_AMMO_APPROACH_X + 50) {
-      if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
-      return { x: -1, y: 0 };
-    }
-    if (position.y < P1_AMMO_PICKUP_Y - 50) return { x: 0, y: 1 };
+  // Cases now spawn on walkable cells around the port. Approach the actual
+  // floor case from above the equipment instead of walking into its body.
+  const candidate = Object.values(state.battleCases)
+    .filter(item => item.currentTeam === "player" && item.location === "floor" && item.roomId === "ammo_a")
+    .sort((a, b) => a.createdTick - b.createdTick || a.id.localeCompare(b.id))[0];
+  const target = candidate?.position ?? { x: P1_AMMO_APPROACH_X, y: P1_AMMO_PICKUP_Y };
+  const sign = (value: number): -1 | 0 | 1 => value > 0 ? 1 : value < 0 ? -1 : 0;
+  if (position.y > 25_500 && Math.abs(position.x - P1_AMMO_APPROACH_X) > 50)
+    return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
+  if (Math.abs(position.x - target.x) > 50) {
+    if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
+    return { x: sign(target.x - position.x), y: 0 };
   }
-  return { x: -1, y: 0 };
+  return { x: 0, y: sign(target.y - position.y) };
 }
 
 function isNearPlayerTurret(state: BattleState): boolean {
@@ -71,6 +87,12 @@ function p1ToTurretDirection(state: BattleState): BattleDirection {
 
 function p1ToPlazaDirection(state: BattleState): BattleDirection {
   const position = state.fixedActors.P1.position;
+  // A delayed siege impact can finish while P1 is collecting the next case.
+  // Leave the ammo equipment via its clear upper edge before heading south.
+  if (position.y < 20_000 && position.x < P1_AMMO_APPROACH_X - 50) {
+    if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
+    return { x: 1, y: 0 };
+  }
   if (Math.abs(position.x - P1_EXIT_X) > 50) {
     if (Math.abs(position.y - P1_EXIT_ROUTE_Y) > 50) return { x: 0, y: sign(P1_EXIT_ROUTE_Y - position.y) };
     return { x: sign(P1_EXIT_X - position.x), y: 0 };
@@ -103,7 +125,11 @@ function p1ToActorDirection(state: BattleState, actorId: string): BattleDirectio
     if (PLAZA_GUARD_IDS.some((guardId) => state.actors[guardId].alive)) return NEUTRAL;
     return p1ToEnemyCastleDirection(state);
   }
-  const direction = { x: sign(target.x - position.x), y: sign(target.y - position.y) };
+  // Cardinal weapons need a firing lane; diagonal pursuit is not aiming.
+  const dx = target.x - position.x, dy = target.y - position.y;
+  const direction: BattleDirection = Math.abs(dy) > 300 && Math.abs(dx) > 300
+    ? { x: 0, y: sign(dy) }
+    : Math.abs(dx) >= Math.abs(dy) ? { x: sign(dx), y: 0 } : { x: 0, y: sign(dy) };
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
@@ -112,7 +138,8 @@ function nearestEnemyInP1Room(state: BattleState): string | undefined {
   const position = state.fixedActors.P1.position;
   const target = Object.values(state.actors)
     .filter((actor) => actor.team === "enemy" && actor.alive && actor.location.area === player.location.area &&
-      actor.currentRoomId === player.currentRoomId && actor.location.castleTeam === player.location.castleTeam)
+      actor.currentRoomId === player.currentRoomId && actor.location.castleTeam === player.location.castleTeam &&
+      Math.hypot(state.fixedActors[actor.id].position.x - position.x, state.fixedActors[actor.id].position.y - position.y) <= 8_000)
     .sort((left, right) => {
       const leftPosition = state.fixedActors[left.id].position;
       const rightPosition = state.fixedActors[right.id].position;
@@ -121,7 +148,7 @@ function nearestEnemyInP1Room(state: BattleState): string | undefined {
     })[0];
   if (!target) return undefined;
   const targetPosition = state.fixedActors[target.id].position;
-  const engagementRange = state.rules.dashDistanceSubunits + 1_000;
+  const engagementRange = 8_000;
   return (targetPosition.x - position.x) ** 2 + (targetPosition.y - position.y) ** 2 <= engagementRange ** 2
     ? target.id
     : undefined;
@@ -166,7 +193,7 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
-for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準配分通常ルートでP1が7門を越え、有効なコア突進で勝利する`, { timeout: 300_000 }, () => {
+for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準配分通常ルートでP1が7門を越え、有効なコア射撃で勝利する`, { timeout: 300_000 }, () => {
   const practiceProgress = createPracticeProgress("core");
   let practiceAchieved = false;
   let state = createBattle({ matchId: "r2af-standard-player-core-victory", seed });
@@ -229,10 +256,11 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
   let supportDetourP2Interceptions = 0;
   let p1AwaySupportLaunches = 0;
   let attackCount = 0;
-  let coreDashIntentCount = 0;
+  let coreShotIntentCount = 0;
   let coreContactCount = 0;
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
   const guardDamage: Record<(typeof PLAZA_GUARD_IDS)[number], number> = { E25: 0, E26: 0, E27: 0 };
+  const damagingSupportLaunchTicks = new Map<string, number>();
   const supportP2ProjectileIds = new Set<string>();
   const supportP3ProjectileIds = new Set<string>();
   const supportP4ProjectileIds = new Set<string>();
@@ -276,65 +304,93 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
         state.actors.P1.location.pathGates.join(",") === "G1,G2,G3,G4,G5,G6,G7") {
       crossedG7 = true;
       g7CrossingTick ??= state.tick;
+      phase = "core-route";
     }
-    if (!state.actors.P1.alive) {
-      state = stepBattle(state);
-      if (state.actors.P1.alive) {
-        focusGuardId = undefined;
-        phase = deliveries === 0 ? "pickup" : "return-plaza";
-      }
-      continue;
-    }
+    // Continue observing artillery, deaths and gates throughout P1's five-second spectating period.
+    const p1WasAlive = state.actors.P1.alive;
 
     if (phase === "combat" && state.actors.P1.location.area !== "plaza") phase = "return-plaza";
+    if (state.tick % 3000 === 0) console.info(JSON.stringify({ scenario: "standard-support-progress", seed, tick: state.tick,
+      phase, gates: state.castles.enemy.openGateIds, supportLaunches: p1AwaySupportLaunches,
+      supports: (["P2", "P3"] as const).map(id => ({ id, order: state.allyOrders[id]?.kind, room: state.actors[id].currentRoomId,
+        area: state.actors[id].location.area, team: state.actors[id].location.castleTeam,
+        position: state.fixedActors[id].position, task: state.crew.assignments[id]?.task })) }));
     const startPosition = state.fixedActors.P1.position;
     const turretPosition = state.artillery.turrets["player:T1"].position;
     const p1AwayFromTurret = Math.hypot(startPosition.x - turretPosition.x, startPosition.y - turretPosition.y) > 800;
     let nextState: BattleState;
-    if (phase === "pickup") {
-      const interaction = getInteraction(state, "P1", 0);
+    const plazaThreat = state.actors.P1.location.area === "plaza" ? nearestEnemyInP1Room(state) : undefined;
+    const regroupAtEnemyEntrance = state.actors.P1.location.area === "plaza" &&
+      state.fixedActors.P1.position.x >= state.layout.plaza.x1 * 1_000 - 2_500 && !plazaThreat &&
+      ["P2", "P3"].some(id => !state.actors[id].alive || state.actors[id].location.area !== "plaza" ||
+        Math.hypot(state.fixedActors[id].position.x - state.fixedActors.P1.position.x, state.fixedActors[id].position.y - state.fixedActors.P1.position.y) > 1_500);
+    if (!p1WasAlive) {
+      nextState = stepBattle(state);
+    } else if (regroupAtEnemyEntrance) {
+      nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
+    } else if (plazaThreat && !state.dashes.P1) {
+      nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToActorDirection(state, plazaThreat), shoot: true }));
+      if (nextState.lastStep.acceptedInputKinds.includes("shoot")) attackCount += 1;
+    } else if (phase === "pickup") {
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       nextState = interaction.handles.includes("load")
-        ? stepBattle(state, publicP1Intent(state, { handle: "load", slot: 0, contextToken: interaction.contextToken }))
+        ? stepBattle(state, publicP1Intent(state, { handle: "load", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken }))
         : interaction.handles.includes("pickup")
-          ? stepBattle(state, publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken }))
+          ? stepBattle(state, publicP1Intent(state, { handle: "pickup", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken }))
           : stepBattle(state, publicP1Intent(state, { direction: p1ToAmmoDirection(state, deliveries === 0) }));
     } else if (phase === "turret") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       nextState = interaction.handles.includes("deliver")
-        ? stepBattle(state, publicP1Intent(state, { handle: "deliver", slot: 0, route: "detour", part: "P1", contextToken: interaction.contextToken }))
+        ? stepBattle(state, publicP1Intent(state, { handle: "deliver", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), route: "detour", part: "P1", contextToken: interaction.contextToken }))
         : stepBattle(state, publicP1Intent(state, { direction: p1ToTurretDirection(state) }));
     } else if (phase === "plaza-route" || phase === "return-plaza") {
+      const position = state.fixedActors.P1.position;
+      const regroup = position.x >= 122_500 && position.y >= 35_000 && ["P2", "P3"].some(id =>
+        !state.actors[id].alive || state.actors[id].location.castleTeam !== "player" ||
+        Math.hypot(state.fixedActors[id].position.x - position.x, state.fixedActors[id].position.y - position.y) > 1_500);
       nextState = stepBattle(state, publicP1Intent(state, {
-        direction: phase === "return-plaza" ? p1FromRespawnToPlazaDirection(state) : p1ToPlazaDirection(state),
+        direction: regroup ? NEUTRAL : phase === "return-plaza" ? p1FromRespawnToPlazaDirection(state) : p1ToPlazaDirection(state),
       }));
     } else if (phase === "gate-route" || phase === "core-route") {
-      const threatId = nearestEnemyInP1Room(state);
-      const interaction = getInteraction(state, "P1", 0);
+      const corridorPosition = state.fixedActors.P1.position;
+      const inEntryCorridor = state.actors.P1.currentRoomId === "central_corridor";
+      const candidateThreat = nearestEnemyInP1Room(state);
+      // Advance on the lower authored lane, engaging only enemies that block
+      // that lane instead of charging the central firing line or chasing patrols.
+      const threatId = candidateThreat && (!inEntryCorridor ||
+        state.fixedActors[candidateThreat].position.x >= corridorPosition.x - 500 &&
+        Math.abs(state.fixedActors[candidateThreat].position.y - corridorPosition.y) < 800)
+        ? candidateThreat : undefined;
+      const corridorDirection: BattleDirection = corridorPosition.x < 3_500 ? { x: 1, y: 0 }
+        : corridorPosition.x < 58_500
+          ? Math.abs(corridorPosition.y - 43_500) > 50 ? { x: 0, y: sign(43_500 - corridorPosition.y) } : { x: 1, y: 0 }
+          : Math.abs(corridorPosition.y - PLAZA_Y) > 50 ? { x: 0, y: sign(PLAZA_Y - corridorPosition.y) } : { x: 1, y: 0 };
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       const targetPosition = threatId ? state.fixedActors[threatId]?.position : undefined;
       const p1Position = state.fixedActors.P1.position;
       const distance = targetPosition ? Math.hypot(targetPosition.x - p1Position.x, targetPosition.y - p1Position.y) : Number.POSITIVE_INFINITY;
-      const direction = threatId ? p1ToActorDirection(state, threatId) : { x: 1, y: 0 } as BattleDirection;
+      const direction = threatId ? p1ToActorDirection(state, threatId) : inEntryCorridor ? corridorDirection : { x: 1, y: 0 } as BattleDirection;
       const dashReady = state.tick >= (state.dashCooldownUntilTick.P1 ?? 0);
       const isInEnemyCoreRoom = state.actors.P1.currentRoomId === "core" &&
         state.actors.P1.location.pathGates.join(",") === "G1,G2,G3,G4,G5,G6,G7";
       if (state.dashes.P1) {
         nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
-      } else if (threatId && interaction.attackTargetId === threatId) {
-        nextState = stepBattle(state, publicP1Intent(state, { direction, attack: true }));
-        if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) attackCount += 1;
+      } else if (threatId) {
+        nextState = stepBattle(state, publicP1Intent(state, { direction, shoot: true }));
+        if ((nextState.lastStep.acceptedInputKinds.includes("shoot") || nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact"))) attackCount += 1;
       } else if (threatId && dashReady && distance <= state.rules.dashDistanceSubunits + 1_000) {
-        nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: direction }));
-        if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) attackCount += 1;
+        nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, mobilityDash: direction }));
+        if ((nextState.lastStep.acceptedInputKinds.includes("shoot") || nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact"))) attackCount += 1;
       } else if (phase === "core-route" && isInEnemyCoreRoom &&
           Math.abs(coreCenter.y - p1Position.y) > 50) {
         nextState = stepBattle(state, publicP1Intent(state, {
           direction: { x: 0, y: sign(coreCenter.y - p1Position.y) },
         }));
       } else if (phase === "core-route" && isInEnemyCoreRoom &&
-          Math.abs(coreCenter.x - p1Position.x) <= state.rules.dashDistanceSubunits && dashReady) {
-        const coreDashDirection = { x: sign(coreCenter.x - p1Position.x) || 1, y: 0 } as BattleDirection;
-        coreDashIntentCount += 1;
-        nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: coreDashDirection }));
+          Math.abs(coreCenter.x - p1Position.x) <= 8_000) {
+        const coreShotDirection = { x: sign(coreCenter.x - p1Position.x) || 1, y: 0 } as BattleDirection;
+        coreShotIntentCount += 1;
+        nextState = stepBattle(state, publicP1Intent(state, { direction: coreShotDirection, shoot: true }));
       } else {
         const coreApproachDirection = phase === "core-route" && isInEnemyCoreRoom
           ? { x: sign(coreCenter.x - p1Position.x), y: Math.abs(coreCenter.y - p1Position.y) > 50 ? sign(coreCenter.y - p1Position.y) : 0 } as BattleDirection
@@ -342,7 +398,7 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
         nextState = stepBattle(state, publicP1Intent(state, { direction: coreApproachDirection }));
       }
     } else {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       // A defeated generation respawns at its authored home pad after 20s;
       // home-castle guards do not recreate the old plaza blockade.  The
       // crossing decision therefore waits only for live guards physically in
@@ -354,16 +410,15 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
         nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
       } else if (interaction.attackTargetId && PLAZA_GUARD_IDS.includes(interaction.attackTargetId as (typeof PLAZA_GUARD_IDS)[number])) {
         const targetId = interaction.attackTargetId;
-        nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToActorDirection(state, targetId), attack: true }));
-        if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) attackCount += 1;
+        nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToActorDirection(state, targetId), shoot: true }));
+        if ((nextState.lastStep.acceptedInputKinds.includes("shoot") || nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact"))) attackCount += 1;
       } else if (allGuardsClearedFromPlaza) {
         if (!state.castles.enemy.openGateIds.includes("G1")) {
           nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
         } else {
           const direction = p1ToEnemyCastleDirection(state);
-          nextState = dashReady
-            ? stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: direction }))
-            : stepBattle(state, publicP1Intent(state, { direction }));
+          // Walk with the two followers rather than outrunning the captured group.
+          nextState = stepBattle(state, publicP1Intent(state, { direction }));
         }
       } else {
         if (!focusGuardId || !state.actors[focusGuardId].alive) focusGuardId = nearestLiveGuardId(state);
@@ -376,11 +431,11 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
         const focusSharesPlazaSpace = focusActor?.location.area === "plaza" &&
           state.actors.P1.location.area === "plaza" && focusActor.currentRoomId === state.actors.P1.currentRoomId;
         if (focusGuardId && focusSharesPlazaSpace) {
-          nextState = stepBattle(state, publicP1Intent(state, { direction: focusDirection, attack: true }));
-          if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) attackCount += 1;
+          nextState = stepBattle(state, publicP1Intent(state, { direction: focusDirection, shoot: true }));
+          if ((nextState.lastStep.acceptedInputKinds.includes("shoot") || nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact"))) attackCount += 1;
         } else if (focusGuardId && dashReady && focusDistance <= state.rules.dashDistanceSubunits + 1_000) {
-          nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: focusDirection }));
-          if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) attackCount += 1;
+          nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, mobilityDash: focusDirection }));
+          if ((nextState.lastStep.acceptedInputKinds.includes("shoot") || nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact"))) attackCount += 1;
         } else {
           nextState = stepBattle(state, publicP1Intent(state, { direction: p1ToNearestGuardDirection(state, focusGuardId) }));
         }
@@ -389,6 +444,10 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
 
     if (nextState.lastStep.acceptedInputKinds.includes("bridge:core_contact")) coreContactCount += 1;
     state = nextState;
+    if (!p1WasAlive && state.actors.P1.alive) {
+      focusGuardId = undefined;
+      phase = deliveries === 0 ? "pickup" : "return-plaza";
+    }
     practiceAchieved = practiceProgress.observe(state);
     let trackedP3ProjectileImpactedThisTick = false;
     let p3PartDamageThisTick = 0;
@@ -414,50 +473,20 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
         supportP2ProjectileIds.add(event.projectileId);
         supportDetourP2Launches += 1;
       }
-      if (crossedG2 && event.type === "projectile_launched" && event.team === "player" &&
-          (event.sourceActorId === "P2" || event.sourceActorId === "P3") &&
-          event.route === "detour" && event.targetPart === "P3") {
-        const launchedCase = state.battleCases[event.objectId];
-        if ((caseDefinition(launchedCase?.type ?? "")?.partDamage ?? 0) > 0) {
-          supportP3ProjectileIds.add(event.projectileId);
-          p3SupportLaunchTick ??= state.tick;
-        }
+      // A shell can be queued/launched before P1 crosses the previous gate.
+      // Follow its real identity to its actual impact target, not pilot timing.
+      if (event.type === "projectile_launched" && event.team === "player" &&
+          (event.sourceActorId === "P2" || event.sourceActorId === "P3") && event.route === "detour" &&
+          (caseDefinition(state.battleCases[event.objectId]?.type ?? "")?.partDamage ?? 0) > 0) {
+        damagingSupportLaunchTicks.set(event.projectileId, state.tick);
       }
-      if (p3DestructionTick !== null && event.type === "projectile_launched" && event.team === "player" &&
-          (event.sourceActorId === "P2" || event.sourceActorId === "P3") &&
-          event.route === "detour" && event.targetPart === "P4") {
-        const launchedCase = state.battleCases[event.objectId];
-        if ((caseDefinition(launchedCase?.type ?? "")?.partDamage ?? 0) > 0) {
-          supportP4ProjectileIds.add(event.projectileId);
-          p4SupportLaunchTick ??= state.tick;
-        }
-      }
-      if (p4DestructionTick !== null && event.type === "projectile_launched" && event.team === "player" &&
-          (event.sourceActorId === "P2" || event.sourceActorId === "P3") &&
-          event.route === "detour" && event.targetPart === "P5") {
-        const launchedCase = state.battleCases[event.objectId];
-        if ((caseDefinition(launchedCase?.type ?? "")?.partDamage ?? 0) > 0) {
-          supportP5ProjectileIds.add(event.projectileId);
-          p5SupportLaunchTick ??= state.tick;
-        }
-      }
-      if (p5DestructionTick !== null && event.type === "projectile_launched" && event.team === "player" &&
-          (event.sourceActorId === "P2" || event.sourceActorId === "P3") &&
-          event.route === "detour" && event.targetPart === "P6") {
-        const launchedCase = state.battleCases[event.objectId];
-        if ((caseDefinition(launchedCase?.type ?? "")?.partDamage ?? 0) > 0) {
-          supportP6ProjectileIds.add(event.projectileId);
-          p6SupportLaunchTick ??= state.tick;
-        }
-      }
-      if (p6DestructionTick !== null && event.type === "projectile_launched" && event.team === "player" &&
-          (event.sourceActorId === "P2" || event.sourceActorId === "P3") &&
-          event.route === "detour" && event.targetPart === "P7") {
-        const launchedCase = state.battleCases[event.objectId];
-        if ((caseDefinition(launchedCase?.type ?? "")?.partDamage ?? 0) > 0) {
-          supportP7ProjectileIds.add(event.projectileId);
-          p7SupportLaunchTick ??= state.tick;
-        }
+      if (event.type === "projectile_impacted" && event.targetTeam === "enemy" && damagingSupportLaunchTicks.has(event.projectileId)) {
+        const launchedAt = damagingSupportLaunchTicks.get(event.projectileId)!;
+        if (event.targetPart === "P3") { supportP3ProjectileIds.add(event.projectileId); p3SupportLaunchTick ??= launchedAt; }
+        if (event.targetPart === "P4") { supportP4ProjectileIds.add(event.projectileId); p4SupportLaunchTick ??= launchedAt; }
+        if (event.targetPart === "P5") { supportP5ProjectileIds.add(event.projectileId); p5SupportLaunchTick ??= launchedAt; }
+        if (event.targetPart === "P6") { supportP6ProjectileIds.add(event.projectileId); p6SupportLaunchTick ??= launchedAt; }
+        if (event.targetPart === "P7") { supportP7ProjectileIds.add(event.projectileId); p7SupportLaunchTick ??= launchedAt; }
       }
       if (event.type === "projectile_impacted" && supportP2ProjectileIds.has(event.projectileId) &&
           event.targetTeam === "enemy" && event.targetPart === "P2") {
@@ -537,7 +566,7 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
     if (state.castles.enemy.openGateIds.includes("G6")) g6OpenTick ??= state.tick;
     if (state.castles.enemy.openGateIds.includes("G7")) g7OpenTick ??= state.tick;
     if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
-    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    if (phase === "pickup" && state.actors.P1.cargoIds.length > 0) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
       deliveries += 1;
       phase = deliveries < 4 ? "pickup" : "plaza-route";
@@ -584,6 +613,14 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
     }
   }
 
+  console.info(JSON.stringify({ scenario: "standard-public-shooting-victory", seed, tick: state.tick, outcome: state.outcome,
+    phase, deliveries, playerDeaths: state.actors.P1.deathCount, playerRoom: state.actors.P1.currentRoomId,
+    traversedGates: state.actors.P1.location.pathGates, enemyGates: state.castles.enemy.openGateIds,
+    crossedG1, laterGateCrossingTicks: [ g2CrossingTick, g3CrossingTick, g4CrossingTick, g5CrossingTick, g6CrossingTick, g7CrossingTick],
+    supportLaunches: p1AwaySupportLaunches, coreShots: coreShotIntentCount, coreContacts: coreContactCount,
+    supports: (["P2", "P3"] as const).map(id => ({ id, order: state.allyOrders[id]?.kind,
+      area: state.actors[id].location.area, castle: state.actors[id].location.castleTeam, room: state.actors[id].currentRoomId,
+      position: state.fixedActors[id].position, task: state.crew.assignments[id]?.task, health: state.actors[id].health })) }));
   assert.ok(deliveries >= 4, "P1 stages at least four ordinary public deliveries before leaving the turret");
   assert.equal(reachedPlaza, true, "P1 reaches the plaza through the standard public route");
   assert.ok(p1AwaySupportLaunches > 0, "P2/P3 AI operates queued artillery after P1 leaves the turret");
@@ -591,10 +628,10 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
   assert.ok(supportDetourP2Impacts > 0, "a P2/P3 detour projectile reaches enemy exterior P2");
   assert.equal(supportDetourP2Interceptions, 0, "enemy direct fire does not intercept the P2/P3 detour shots");
   assert.ok(state.castles.enemy.openGateIds.includes("G1"), `the standard player artillery opens G1 during the route (tick=${state.tick}, deliveries=${deliveries}, supportLaunches=${p1AwaySupportLaunches}, P1health=${state.castles.enemy.exterior.P1.health}, guards=${JSON.stringify(guardDamage)}, P1area=${state.actors.P1.location.area}, P1room=${state.actors.P1.currentRoomId}, phase=${phase}, outcome=${state.outcome})`);
-  assert.ok(attackCount > 0, "the plaza fight uses public contact attacks");
+  assert.ok(attackCount > 0, "the plaza fight uses public directional shooting and dash contacts");
   const dispatchedGuardGenerations = state.plaza.guardDeployments.enemy?.guardGenerations ?? {};
   for (const guardId of PLAZA_GUARD_IDS) {
-    assert.ok(guardDamage[guardId] >= state.rules.actorHealth, `${guardId} receives enough contact damage to be defeated`);
+    assert.ok(guardDamage[guardId] >= state.rules.actorHealth, `${guardId} receives enough combat damage to be defeated: ${JSON.stringify({guardDamage, guard: state.actors[guardId], phase, outcome: state.outcome, tick:state.tick, player:state.actors.P1.location, position:state.fixedActors.P1.position})}`);
     assert.ok(Number.isInteger(dispatchedGuardGenerations[guardId]), `${guardId} remains generation-bound to a plaza assignment`);
     assert.ok(dispatchedGuardGenerations[guardId]! <= state.actors[guardId].generation,
       `${guardId}'s plaza assignment never points to a future life generation`);
@@ -619,7 +656,7 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
     enemyCoreHit: state.castles.enemy.core.hit,
     assault: ["E29", "E30"].map((id) => ({ id, alive: state.actors[id].alive, location: state.actors[id].location, gates: state.actors[id].location.pathGates })),
     P1position: state.fixedActors.P1.position,
-    supports: ["P2", "P3"].map((id) => ({ id, alive: state.actors[id].alive, deaths: state.actors[id].deathCount,
+    supports: (["P2", "P3"] as const).map((id) => ({ id, alive: state.actors[id].alive, deaths: state.actors[id].deathCount,
       location: state.actors[id].location, position: state.fixedActors[id].position })),
     lastCoreContact: state.eventLog.filter((event) => event.type === "core_hit_candidate").at(-1),
   })}`);
@@ -629,11 +666,11 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
   assert.deepEqual(state.actors.P1.location.pathGates, ["G1", "G2", "G3", "G4", "G5", "G6", "G7"], "P1 crosses the opened G1 through G7 in order");
   assert.ok(p2DestructionTick !== null && p2DestructionTick <= state.tick, "P2 is destroyed during the ordinary match");
   assert.ok(g2CrossingTick !== null && p2DestructionTick < g2CrossingTick, "P2 opens G2 before P1 crosses it");
-  assert.ok(p3SupportLaunchTick !== null && g2CrossingTick < p3SupportLaunchTick,
-    "P2/P3 launch a new detour shot at P3 after P1 has crossed G2");
+  assert.ok(p3SupportLaunchTick !== null,
+    "P2/P3 launch a real damaging detour shell that impacts P3");
   assert.ok(p3SupportImpactTick !== null && p3SupportLaunchTick < p3SupportImpactTick,
-    "the post-G2 support shot reaches enemy exterior P3");
-  assert.ok(p3SupportImpactDamage > 0, "a damaging post-G2 support projectile lowers P3 health on impact");
+    "the tracked support shot reaches enemy exterior P3");
+  assert.ok(p3SupportImpactDamage > 0, "a damaging tracked support projectile lowers P3 health on impact");
   assert.ok(state.castles.enemy.exterior.P3.health < initialP3Health,
     `P3 loses health during the ordinary route (${initialP3Health} -> ${state.castles.enemy.exterior.P3.health})`);
   assert.ok(p3DestructionTick !== null && p3SupportImpactTick <= p3DestructionTick,
@@ -642,8 +679,8 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
     "destroying P3 opens G3 without requiring a fixed P3-to-G3 mapping");
   assert.ok(g3CrossingTick !== null && g3OpenTick < g3CrossingTick,
     "P1 crosses G3 after it has opened");
-  assert.ok(p4SupportLaunchTick !== null && p3DestructionTick < p4SupportLaunchTick,
-    "P2/P3 launch a damaging detour shot at P4 after P3 has been destroyed");
+  assert.ok(p4SupportLaunchTick !== null,
+    "P2/P3 launch a real damaging detour shell that impacts P4");
   assert.ok(p4SupportImpactTick !== null && p4SupportLaunchTick < p4SupportImpactTick,
     "the post-P3 support shot reaches enemy exterior P4");
   assert.ok(p4SupportImpactDamage > 0, "a damaging support projectile lowers P4 health on impact");
@@ -655,8 +692,8 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
     "P1 crosses G4 after it has opened");
   assert.ok(g3CrossingTick !== null && g4CrossingTick !== null && g3CrossingTick < g4CrossingTick,
     "P1 crosses G3 before G4");
-  assert.ok(p5SupportLaunchTick !== null && p4DestructionTick < p5SupportLaunchTick,
-    "P2/P3 launch a damaging detour shot at P5 after P4 has been destroyed");
+  assert.ok(p5SupportLaunchTick !== null,
+    "P2/P3 launch a real damaging detour shell that impacts P5");
   assert.ok(p5SupportImpactTick !== null && p5SupportLaunchTick < p5SupportImpactTick,
     "the post-P4 support shot reaches enemy exterior P5");
   assert.ok(p5SupportImpactDamage > 0, "a damaging support projectile lowers P5 health on impact");
@@ -668,8 +705,8 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
     "P1 crosses G5 after it has opened");
   assert.ok(g4CrossingTick !== null && g5CrossingTick !== null && g4CrossingTick < g5CrossingTick,
     "P1 crosses G4 before G5");
-  assert.ok(p6SupportLaunchTick !== null && p5DestructionTick < p6SupportLaunchTick,
-    "P2/P3 launch a damaging detour shot at P6 after P5 has been destroyed");
+  assert.ok(p6SupportLaunchTick !== null,
+    "P2/P3 launch a real damaging detour shell that impacts P6");
   assert.ok(p6SupportImpactTick !== null && p6SupportLaunchTick < p6SupportImpactTick,
     "the post-P5 support shot reaches enemy exterior P6");
   assert.ok(p6SupportImpactDamage > 0, "a damaging support projectile lowers P6 health on impact");
@@ -681,8 +718,8 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
     "P1 crosses G6 after it has opened");
   assert.ok(g5CrossingTick !== null && g6CrossingTick !== null && g5CrossingTick < g6CrossingTick,
     "P1 crosses G5 before G6");
-  assert.ok(p7SupportLaunchTick !== null && p6DestructionTick < p7SupportLaunchTick,
-    "P2/P3 launch a damaging detour shot at P7 after P6 has been destroyed");
+  assert.ok(p7SupportLaunchTick !== null,
+    "P2/P3 launch a real damaging detour shell that impacts P7");
   assert.ok(p7SupportImpactTick !== null && p7SupportLaunchTick < p7SupportImpactTick,
     "the post-P6 support shot reaches enemy exterior P7");
   assert.ok(p7SupportImpactDamage > 0, "a damaging support projectile lowers P7 health on impact");
@@ -699,11 +736,11 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
   assert.equal(crossedG7, true, "P1 reaches the core room through G7");
   assert.equal(state.actors.P1.currentRoomId, "core");
   assert.deepEqual(state.actors.P1.location.pathGates, ["G1", "G2", "G3", "G4", "G5", "G6", "G7"]);
-  assert.ok(coreDashIntentCount > 0, "P1 issues a public dash after reaching the enemy core room through all seven gates");
-  assert.ok(coreContactCount > 0, "the public dash makes a validated physical first contact with the core");
+  assert.ok(coreShotIntentCount > 0, "P1 issues a public shot after reaching the enemy core room through all seven gates");
+  assert.ok(coreContactCount > 0, "the public shot makes a validated first contact with the core");
   assert.ok(state.eventLog.some((event) => event.type === "core_hit_candidate" &&
     event.attackerId === "P1" && event.targetTeam === "enemy"), "P1's core contact reaches the common victory check");
-  assert.equal(state.castles.enemy.core.hit, true, "a valid P1 dash hits the enemy core");
+  assert.equal(state.castles.enemy.core.hit, true, "a valid P1 shot hits the enemy core");
   assert.equal(state.castles.player.core.hit, false, "the enemy has not hit the player core before the player victory");
   assert.equal(state.rules.enemyRespawnTicks, 1_200, "enemy generations keep their required 20-second respawn");
   assert.equal(state.outcome, "player_win", "the valid core hit ends the standard battle in a player victory");

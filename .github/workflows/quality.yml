@@ -44,6 +44,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: npm ci
+        id: dependencies
         if: steps.scope.outputs.run_game == 'true' || env.RUN_BROWSER == 'true'
       - run: npm run check:docs
       - name: Short Node tests
@@ -52,9 +53,13 @@ jobs:
       - name: Full battle and endurance tests
         if: steps.scope.outputs.run_long == 'true'
         run: npm run test:long
+      # A failed simulation assertion must remain red, while independent UI
+      # evidence can still be collected from a successfully compiled candidate.
       - run: npm run build
-        if: steps.scope.outputs.run_game == 'true' || env.RUN_BROWSER == 'true'
+        id: build
+        if: ${{ !cancelled() && steps.dependencies.outcome == 'success' && (steps.scope.outputs.run_game == 'true' || env.RUN_BROWSER == 'true') }}
       - name: Report browser test mode
+        if: ${{ !cancelled() }}
         run: |
           if [ "${RUN_BROWSER}" = "true" ]; then
             echo "Browser tests enabled (workflow_dispatch input or run-browser label)."
@@ -62,13 +67,15 @@ jobs:
             echo "Browser tests skipped by default; use workflow_dispatch with run_browser=true or the run-browser label when needed."
           fi
       - name: Install browser dependencies
-        if: env.RUN_BROWSER == 'true'
+        id: browser_dependencies
+        if: ${{ !cancelled() && env.RUN_BROWSER == 'true' && steps.build.outcome == 'success' }}
         run: npx playwright install --with-deps chromium webkit
       - name: Install browser fonts
-        if: env.RUN_BROWSER == 'true'
+        id: browser_fonts
+        if: ${{ !cancelled() && env.RUN_BROWSER == 'true' && steps.browser_dependencies.outcome == 'success' }}
         run: sudo apt-get install -y fonts-noto-cjk
       - name: Run browser tests
-        if: env.RUN_BROWSER == 'true'
+        if: ${{ !cancelled() && env.RUN_BROWSER == 'true' && steps.browser_fonts.outcome == 'success' }}
         run: npm run test:browser
       - uses: actions/upload-artifact@v4
         if: always() && env.RUN_BROWSER == 'true'
@@ -77,7 +84,7 @@ jobs:
           path: playwright-report/
           retention-days: 7
       - uses: actions/upload-artifact@v4
-        if: steps.scope.outputs.run_game == 'true' || env.RUN_BROWSER == 'true'
+        if: ${{ !cancelled() && steps.build.outcome == 'success' }}
         with:
           name: semekome-r2a-preview
           path: dist/

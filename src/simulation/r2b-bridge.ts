@@ -1,8 +1,10 @@
+import { PERSONAL_SHOT_RANGE } from "../actors/personal-weapon.ts";
 import {
   CORE_CONTACT_RADIUS_SUBUNITS,
   canOccupyFixed,
   coreWorldPoint,
   hasFloorLineOfSight,
+  segmentCircleEntryT,
 } from "../actors/geometry.ts";
 import { ACTOR_RADIUS_SUBUNITS, FLOOR_SUBUNITS, floorCell } from "../actors/movement.ts";
 import { routeHasAllGates } from "../domain/layout.ts";
@@ -34,7 +36,7 @@ export interface PhysicalFirstContactEvidence {
   actorId: ActorId;
   generation: number;
   targetTeam: TeamId;
-  attackType: "dash" | "normal_contact";
+  attackType: "dash" | "normal_contact" | "personal_shot";
   firstContact: PhysicalFirstContact;
   /** The attacker's physical center at the first-contact stop point. */
   from: FixedPoint;
@@ -206,8 +208,8 @@ export function bridgeCoreFirstContact(
   if (!validTeam(evidence.targetTeam) || actor.team === evidence.targetTeam) {
     return failure("invalid_target", "core target must be the opposing castle");
   }
-  if (evidence.attackType !== "dash" || evidence.firstContact !== "core") {
-    return failure("invalid_contact", "only a dash whose first contact is the core can end a match");
+  if ((evidence.attackType !== "dash" && evidence.attackType !== "personal_shot") || evidence.firstContact !== "core") {
+    return failure("invalid_contact", "only a dash or personal shot whose first contact is the core can end a match");
   }
   if (!finitePoint(evidence.from) || !finitePoint(evidence.to)) {
     return failure("invalid_contact", "fixed-point contact is not finite");
@@ -236,7 +238,7 @@ export function bridgeCoreFirstContact(
     return failure("invalid_contact", "core contact must target the exact displayed core center");
   }
   const distanceToCore = Math.hypot(evidence.from.x - coreCenter.x, evidence.from.y - coreCenter.y);
-  if (distanceToCore > CORE_CONTACT_RADIUS_SUBUNITS + 2) {
+  if (evidence.attackType === "dash" && distanceToCore > CORE_CONTACT_RADIUS_SUBUNITS + 2) {
     return failure("invalid_contact", "the dash stopped outside the provisional core contact radius");
   }
   if (!targetLayout.coreRouteGates.every((gate) => state.castles[evidence.targetTeam].gates[gate].open) ||
@@ -244,6 +246,21 @@ export function bridgeCoreFirstContact(
       location.pathGates.length !== targetLayout.coreRouteGates.length ||
       location.pathGates.some((gate, index) => gate !== targetLayout.coreRouteGates[index])) {
     return failure("closed_route", "the physical route does not prove all seven gates");
+  }
+  if (evidence.attackType === "personal_shot") {
+    const facing = state.actorFacing[actor.id];
+    const length = facing ? Math.hypot(facing.x, facing.y) : 0;
+    if (!length) return failure("invalid_contact", "shot has no facing direction");
+    const rayEnd = { x: Math.round(evidence.from.x + facing.x / length * PERSONAL_SHOT_RANGE), y: Math.round(evidence.from.y + facing.y / length * PERSONAL_SHOT_RANGE) };
+    const coreT = segmentCircleEntryT(evidence.from, rayEnd, coreCenter, CORE_CONTACT_RADIUS_SUBUNITS);
+    if (coreT === undefined) return failure("invalid_contact", "core is outside the directional shot");
+    for (const blocker of Object.values(state.actors)) {
+      if (!blocker.alive || blocker.team === actor.team || blocker.location.area !== "castle" || blocker.location.castleTeam !== evidence.targetTeam) continue;
+      const point = state.fixedActors[blocker.id]?.position;
+      if (!point) continue;
+      const blockerT = segmentCircleEntryT(evidence.from, rayEnd, point, ACTOR_RADIUS_SUBUNITS);
+      if (blockerT !== undefined && blockerT <= coreT) return failure("invalid_contact", "a defender blocks the core shot");
+    }
   }
   if (!hasContinuousClearance(state, evidence.targetTeam, evidence.from, evidence.to) ||
       !hasFloorLineOfSight(state, evidence.targetTeam, evidence.from, evidence.to)) {
@@ -256,7 +273,7 @@ export function bridgeCoreFirstContact(
       matchId: evidence.matchId,
       actorId: evidence.actorId,
       targetTeam: evidence.targetTeam,
-      attackType: "dash",
+      attackType: evidence.attackType,
       generation: evidence.generation,
       collision: "core",
     },

@@ -55,6 +55,8 @@ test('invaded castle drop, repick and opponent theft preserve one case and its s
   enemy.alive = true; enemy.health = 4; enemy.respawnAtTick = null;
   place(state, 'E09', 'enemy', port.position.x + 1000, port.position.y, port.roomId);
   state = stepBattle(state);
+  assert.equal(state.battleCases[id].currentTeam, 'player', 'fresh drops retain a short automatic-pickup grace period');
+  for (let tick = 0; tick < 60 && state.battleCases[id].currentTeam !== 'enemy'; tick++) state = stepBattle(state);
   assert.equal(state.battleCases[id].currentTeam, 'enemy');
   assert.equal(state.battleCases[id].sourceTeam, 'player');
   assert.equal(state.battleCases[id].originGroupId, group);
@@ -94,7 +96,7 @@ test('stealing a physical handoff case releases exactly its original turret floo
   const point = turret.stagingPositions[0];
   // Trusted fixture: a delivered case waiting on the enemy handoff floor.
   state.actors.P1.cargoIds = [];
-  state.cargoSlots.P1 = [null, null];
+  state.cargoSlots.P1 = [null, null, null, null, null];
   Object.assign(state.battleCases[id], { location: 'handoff', currentTeam: 'enemy', floorLocation: { area: 'castle', castleTeam: 'enemy' },
     ownerActorId: undefined, ownerGeneration: undefined, position: { ...point }, currentPosition: { ...point },
     turretId: turret.id, stagingSlot: 0, roomId: turret.roomId });
@@ -159,7 +161,7 @@ test('contact and lethal drops in castles and plaza use the hit position before 
       assert.ok(moved && moved.type === 'object_moved');
       assert.deepEqual(moved.location, state.objects[id].location);
       assert.equal(state.battleCases[id].sourceTeam, 'player');
-      assert.deepEqual(state.cargoSlots.P1, [null, null]);
+      assert.deepEqual(state.cargoSlots.P1, [null, null, null, null, null]);
       assert.equal(state.actors.P1.alive, health > 1);
       assertObjectLocationsUnique(state);
     }

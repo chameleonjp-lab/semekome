@@ -134,7 +134,7 @@ test("R3 adhesive pod replaces one enemy-entry slow zone and affects walking spe
   actor.position = { x: floorCell(zone.center.x), y: floorCell(zone.center.y) };
   const before = state.fixedActors.P1.position.x;
   state = stepBattle(state, { ...neutral(state), direction: { x: 1, y: 0 } });
-  assert.equal(state.fixedActors.P1.position.x - before, 32, "50-unit walking speed × 0.65 truncates to 32");
+  assert.equal(state.fixedActors.P1.position.x - before, 65, "100-subunit walking speed × 0.65 is 65");
 
   addFlight(state, "adhesive_pod", "player", 0.999);
   state = stepBattle(state, neutral(state));

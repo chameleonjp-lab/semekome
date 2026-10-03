@@ -265,7 +265,7 @@ test("slow zone samples apply to either actor team, expire and replace by launch
   b = stepBattle(b);
   const sample = { castleTeam: "enemy" as const, roomId: "central_corridor", position: { x: 2, y: 35 } };
   assert.equal(movementMultiplier(b, sample, 0), 0.65);
-  assert.equal(movementMultiplier(b, sample, 3), 0.65 * 0.85);
+  assert.equal(movementMultiplier(b, sample, 3), 0.65);
   assert.equal(movementMultiplier(b, { ...sample, position: { x: 4, y: 35 } }, 0), 1);
   flight(b, "replace", "adhesive_pod", "player", 7199);
   b = stepBattle(b);

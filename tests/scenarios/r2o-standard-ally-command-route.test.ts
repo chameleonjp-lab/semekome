@@ -12,7 +12,7 @@ import {
 
 const NEUTRAL: BattleDirection = { x: 0, y: 0 };
 const P1_AMMO_APPROACH_X = 94_500;
-const P1_AMMO_PICKUP_Y = 13_500;
+const P1_AMMO_PICKUP_Y = 12_500;
 const P1_TURRET_TRAVEL_Y = 12_000;
 const P1_TURRET_APPROACH_X = 105_850;
 
@@ -31,17 +31,20 @@ function sign(value: number): -1 | 0 | 1 {
 
 function p1ToAmmoDirection(state: BattleState, firstPickup: boolean): BattleDirection {
   const position = state.fixedActors.P1.position;
-  if (firstPickup) {
-    if (Math.abs(position.x - P1_AMMO_APPROACH_X) > 50) return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
-    if (Math.abs(position.y - P1_AMMO_PICKUP_Y) > 50) return { x: 0, y: sign(P1_AMMO_PICKUP_Y - position.y) };
-  } else {
-    if (position.x > P1_AMMO_APPROACH_X + 50) {
-      if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
-      return { x: -1, y: 0 };
-    }
-    if (position.y < P1_AMMO_PICKUP_Y - 50) return { x: 0, y: 1 };
+  // Cases now spawn on walkable cells around the port. Approach the actual
+  // floor case from above the equipment instead of walking into its body.
+  const candidate = Object.values(state.battleCases)
+    .filter(item => item.currentTeam === "player" && item.location === "floor" && item.roomId === "ammo_a")
+    .sort((a, b) => a.createdTick - b.createdTick || a.id.localeCompare(b.id))[0];
+  const target = candidate?.position ?? { x: P1_AMMO_APPROACH_X, y: P1_AMMO_PICKUP_Y };
+  const sign = (value: number): -1 | 0 | 1 => value > 0 ? 1 : value < 0 ? -1 : 0;
+  if (position.y > 25_500 && Math.abs(position.x - P1_AMMO_APPROACH_X) > 50)
+    return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
+  if (Math.abs(position.x - target.x) > 50) {
+    if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
+    return { x: sign(target.x - position.x), y: 0 };
   }
-  return { x: -1, y: 0 };
+  return { x: 0, y: sign(target.y - position.y) };
 }
 
 function isNearPlayerTurret(state: BattleState): boolean {
@@ -123,26 +126,29 @@ test("標準配分の通常戦でP2/P3命令とP1公開ルートが同時に成�
     }
 
     let intent = p1Intent(state, { direction: NEUTRAL });
-    const interaction = getInteraction(state, "P1", 0);
+    const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
     if (phase === "pickup") {
       if (interaction.handles.includes("load")) {
-        intent = p1Intent(state, { handle: "load", slot: 0, contextToken: interaction.contextToken });
+        intent = p1Intent(state, { handle: "load", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken });
       } else if (interaction.handles.includes("pickup")) {
         const candidate = interaction.pickupCaseId ? state.battleCases[interaction.pickupCaseId] : undefined;
         if (candidate?.location === "handoff" && candidate.currentTeam === "player") selfHandoffPickups += 1;
-        if (candidate?.location === "floor") p1FloorPickups += 1;
-        intent = p1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken });
+
+        intent = p1Intent(state, { handle: "pickup", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken });
       } else {
         intent = p1Intent(state, { direction: p1ToAmmoDirection(state, deliveries === 0) });
       }
     } else {
       intent = interaction.handles.includes("deliver")
-        ? p1Intent(state, { handle: "deliver", slot: 0, route: "direct", part: "P1", contextToken: interaction.contextToken })
+        ? p1Intent(state, { handle: "deliver", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), route: "direct", part: "P1", contextToken: interaction.contextToken })
         : p1Intent(state, { direction: p1ToTurretDirection(state) });
     }
 
+    const beforePickup = state;
     state = stepBattle(state, intent);
-    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    selfHandoffPickups += state.actors.P1.cargoIds.filter(id => !beforePickup.actors.P1.cargoIds.includes(id) && beforePickup.battleCases[id]?.location === "handoff").length;
+    p1FloorPickups += state.actors.P1.cargoIds.filter(id => !beforePickup.actors.P1.cargoIds.includes(id) && beforePickup.battleCases[id]?.location === "floor").length;
+    if (phase === "pickup" && state.actors.P1.cargoIds.length > 0) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:load")) phase = "pickup";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
       deliveries += 1;

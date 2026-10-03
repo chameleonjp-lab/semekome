@@ -149,24 +149,29 @@ test('DOMとSVGの画像欠損は代替表示になり、弾アイコンも空�
     for (let attempt = 0; attempt < 30; attempt++) {
       const position = Number(await battle.getAttribute(`data-player-${axis}`));
       const distance = target - position;
-      if (Math.abs(distance) < 25) return;
+      if (Math.abs(distance) < 100) return;
       const key = axis === 'x' ? distance > 0 ? 'ArrowRight' : 'ArrowLeft' : distance > 0 ? 'ArrowDown' : 'ArrowUp';
-      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 50) - 1));
+      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 100) - 1));
       await walk(key, ticks === 1 ? 16 : ticks * 1000 / 60);
     }
     expect(Number(await battle.getAttribute(`data-player-${axis}`)), `normal movement reaches ${axis}=${target}`).toBe(target);
   };
   await walkTo('x', 94500);
-  await walkTo('y', 13500);
+  await walkTo('y', 12500);
   await walk('ArrowLeft', 200);
-  await expect(page.locator('#battle-action')).toContainText('拾う');
-  await page.locator('#battle-action').click();
-  await page.clock.runFor(34);
-  await expect(page.locator('[data-slot="0"] .cargo-label')).not.toHaveText('左：空');
+  // Walking over the supply floor collects cargo without an action press.
+  await expect(page.locator('[data-slot]')).toHaveCount(5);
+  await expect(page.locator('#battle-action')).not.toContainText('拾う');
+  await expect(page.locator('[data-slot="0"] .cargo-label')).not.toHaveText('1：空');
   await expect(page.locator('[data-slot="0"] .cargo-icon + .art-image-fallback')).toBeVisible();
-  await page.locator('#battle-drop').click();
-  await page.clock.runFor(34);
-  await expect(page.locator('[data-slot="0"] .cargo-label')).toHaveText('左：空');
+  await walkTo('y', 11500);
+  await walkTo('x', 106500);
+  await walkTo('y', 12800);
+  await expect(page.locator('#battle-action')).toContainText(/砲台/);
+  await page.locator('#battle-action').click();
+  await page.clock.runFor(1000);
+  expect(Number(await battle.getAttribute('data-player-operated-launches'))).toBeGreaterThan(0);
+  await expect(page.locator('[data-slot="0"] .cargo-label')).toHaveText('1：空');
   await expect(page.locator('[data-slot="0"] .cargo-icon + .art-image-fallback')).toBeHidden();
 });
 
@@ -221,8 +226,8 @@ test('連続移動、停止と明示再開、入力残留と時間の追いつ�
   await page.mouse.down();
   await page.clock.runFor(1000);
   const afterX = Number(await battle.getAttribute('data-player-x'));
-  expect(afterX - beforeX).toBeGreaterThan(2500);
-  expect(afterX - beforeX).toBeLessThan(3500);
+  expect(afterX - beforeX).toBeGreaterThan(5500);
+  expect(afterX - beforeX).toBeLessThan(6500);
   await page.mouse.up();
   await page.getByRole('button', { name: '一時停止', exact: true }).click();
   await page.clock.runFor(100);
@@ -270,7 +275,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
     const hintBox = (await page.locator('.battle-hint').boundingBox())!;
     const cargoBox = (await page.locator('.cargo-controls').boundingBox())!;
     expect(hintBox.y + hintBox.height, `battle hint overlaps cargo controls at ${viewport.width}px`).toBeLessThanOrEqual(cargoBox.y + 1);
-    for (const selector of ['#pause-battle', '[data-slot="0"]', '[data-slot="1"]', '#battle-action', '#battle-drop', '#battle-attack', '#battle-dash', '#route-toggle', '#target-part', '.ally-orders summary', '#battle-help', '.movement-pad']) {
+    for (const selector of ['#pause-battle', '[data-slot="0"]', '[data-slot="1"]', '[data-slot="2"]', '[data-slot="3"]', '[data-slot="4"]', '#battle-action', '#battle-drop', '#battle-attack', '#battle-dash', '#route-toggle', '#target-part', '.ally-orders summary', '#battle-help', '.movement-pad']) {
       const box = (await page.locator(selector).boundingBox())!;
       expect(box.width, selector).toBeGreaterThanOrEqual(48);
       expect(box.height, selector).toBeGreaterThanOrEqual(48);
@@ -280,7 +285,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
       expect(box.y + box.height, selector).toBeLessThanOrEqual(viewport.height + 1);
     }
     expect((await page.locator('canvas').boundingBox())!.height).toBeGreaterThan(110);
-    const controls = await Promise.all(['.movement-pad', '#battle-action', '#battle-drop', '#battle-attack', '#battle-dash', '[data-slot="0"]', '[data-slot="1"]', '#route-toggle', '#target-part', '.ally-orders summary', '#battle-help'].map(async selector => ({ selector, box: (await page.locator(selector).boundingBox())! })));
+    const controls = await Promise.all(['.movement-pad', '#battle-action', '#battle-drop', '#battle-attack', '#battle-dash', '[data-slot="0"]', '[data-slot="1"]', '[data-slot="2"]', '[data-slot="3"]', '[data-slot="4"]', '#route-toggle', '#target-part', '.ally-orders summary', '#battle-help'].map(async selector => ({ selector, box: (await page.locator(selector).boundingBox())! })));
     for (let left = 0; left < controls.length; left++) for (let right = left + 1; right < controls.length; right++) {
       const a = controls[left], b = controls[right];
       const overlapX = Math.min(a.box.x + a.box.width, b.box.x + b.box.width) - Math.max(a.box.x, b.box.x);
@@ -297,7 +302,7 @@ test('縦横の小画面でも48px操作・地図・停止導線が収まる', a
   }
 });
 
-test('味方命令は画面からP2の守備と補給復帰を一更新ずつ送れる', async ({ page }) => {
+test('味方命令は画面からP2の同行と補給復帰を一更新ずつ送れる', async ({ page }) => {
   test.setTimeout(60000);
   await page.clock.install({ time: new Date('2026-09-28T00:00:00Z') });
   await page.clock.pauseAt(new Date('2026-09-28T00:01:00Z'));
@@ -317,15 +322,16 @@ test('味方命令は画面からP2の守備と補給復帰を一更新ずつ送
   await expect(page.locator('.battle-overlay')).toBeHidden();
 
   await page.locator('.ally-orders summary').click();
-  const p2 = page.locator('#ally-p2-command');
-  await expect(p2).toContainText('守備を指示');
+  const p2 = page.locator('[data-ally-submit="P2"]');
+  await page.locator('[data-ally-kind="P2"]').selectOption('follow');
+  await p2.click();
+  await expect(page.locator('#ally-order-status')).toContainText('P2：引率・同行を指示待ち');
+  await page.clock.runFor(100);
+  await expect(battle).toHaveAttribute('data-ally-p2-order', 'follow');
+  await page.locator('[data-ally-kind="P2"]').selectOption('collect');
   await p2.click();
   await page.clock.runFor(100);
-  await expect(battle).toHaveAttribute('data-ally-p2-order', 'hold');
-  await expect(p2).toContainText('補給へ戻す');
-  await p2.click();
-  await page.clock.runFor(100);
-  await expect(battle).toHaveAttribute('data-ally-p2-order', 'supply');
+  await expect(battle).toHaveAttribute('data-ally-p2-order', 'collect');
 });
 
 test('通常の移動と作業ボタンだけで弾薬庫から砲台へ運び、主人公が発射する', async ({ page }) => {
@@ -348,28 +354,28 @@ test('通常の移動と作業ボタンだけで弾薬庫から砲台へ運び�
     for (let attempt = 0; attempt < 30; attempt++) {
       const position = Number(await battle.getAttribute(`data-player-${axis}`));
       const distance = target - position;
-      if (Math.abs(distance) < 25) return;
+      if (Math.abs(distance) < 100) return;
       const key = axis === 'x' ? distance > 0 ? 'ArrowRight' : 'ArrowLeft' : distance > 0 ? 'ArrowDown' : 'ArrowUp';
-      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 50) - 1));
+      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 100) - 1));
       await walk(key, ticks === 1 ? 16 : ticks * 1000 / 60);
     }
     expect(Number(await battle.getAttribute(`data-player-${axis}`)), `normal movement reaches ${axis}=${target}`).toBe(target);
   };
   // Follow the authored A-room passages, never teleport or inject world events.
   await walkTo('x', 94500);
-  await walkTo('y', 13500);
+  await walkTo('y', 12500);
   await walk('ArrowLeft', 200);
-  await expect(page.locator('#battle-action')).toContainText('拾う');
-  await page.locator('#battle-action').click();
-  await page.clock.runFor(34);
-  await expect(page.locator('[data-slot="0"]')).not.toHaveText('左：空');
+  // Walking over the supply floor collects cargo without an action press.
+  await expect(page.locator('[data-slot]')).toHaveCount(5);
+  await expect(page.locator('#battle-action')).not.toContainText('拾う');
+  await expect(page.locator('[data-slot="0"]')).not.toHaveText('1：空');
   await walkTo('y', 11500);
   await walkTo('x', 106500);
   await walkTo('y', 12800);
   await expect(page.locator('#battle-action')).toContainText(/砲台/);
   await page.locator('#battle-action').click();
   await page.clock.runFor(1000);
-  await expect(page.locator('[data-slot="0"]')).toHaveText('左：空');
+  await expect(page.locator('[data-slot="0"]')).toHaveText('1：空');
   expect(Number(await battle.getAttribute('data-player-operated-launches'))).toBeGreaterThan(0);
   await expect(battle).toHaveAttribute('data-match-id', match!);
 });

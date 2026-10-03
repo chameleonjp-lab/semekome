@@ -64,16 +64,15 @@ function isNearPlayerTurret(state: BattleState): boolean {
 function axisDirection(state: BattleState, targetX?: number, targetY?: number): BattleDirection {
   const position = state.fixedActors.P1.position;
   const sign = (value: number): -1 | 0 | 1 => value > 0 ? 1 : value < 0 ? -1 : 0;
-  // A carried weight-3 case advances by 42.5 subunits/tick and retains a
-  // fractional remainder.  A 50-subunit deadband hands control to the next
-  // leg without bouncing across an exact cell centre.
+  // Walking advances by 100 subunits/tick. A half-step deadband hands
+  // control to the next leg without bouncing across an exact cell centre.
   if (targetX !== undefined && Math.abs(position.x - targetX) > 50) return { x: sign(targetX - position.x), y: 0 };
   if (targetY !== undefined && Math.abs(position.y - targetY) > 50) return { x: 0, y: sign(targetY - position.y) };
   return NEUTRAL;
 }
 
 const P1_AMMO_APPROACH_X = 94_500;
-const P1_AMMO_PICKUP_Y = 13_500;
+const P1_AMMO_PICKUP_Y = 12_500;
 // y=12.0 remains inside passage_12 while leaving a >1-cell clearance from
 // the turret body; the final south leg then stops at its walkable approach.
 const P1_TURRET_TRAVEL_Y = 12_000;
@@ -96,28 +95,20 @@ function assertP1AuthoredFloorRoute(state: BattleState): void {
 
 function p1ToAmmoDirection(state: BattleState, firstDelivery: boolean): BattleDirection {
   const position = state.fixedActors.P1.position;
-  if (firstDelivery) {
-    const horizontal = axisDirection(state, P1_AMMO_APPROACH_X);
-    if (horizontal.x !== 0) return horizontal;
-    const vertical = axisDirection(state, undefined, P1_AMMO_PICKUP_Y);
-    if (vertical.y !== 0) return vertical;
-  } else {
-    // From the turret, go above the equipment, cross the authored passage,
-    // then descend on the clear side of ammo_A before approaching its port.
-    // Once the horizontal leg reaches its staging x, never re-enter the up
-    // leg: the carried fractional remainder can otherwise bounce between two
-    // y positions while the actor is trying to descend toward ammo_A.
-    if (position.x > P1_AMMO_APPROACH_X + 50) {
-      const up = axisDirection(state, undefined, P1_TURRET_TRAVEL_Y);
-      if (up.y !== 0) return up;
-      return { x: -1, y: 0 };
-    }
-    const down = axisDirection(state, undefined, P1_AMMO_PICKUP_Y);
-    if (position.y < P1_AMMO_PICKUP_Y - 50 && down.y !== 0) return down;
+  // Cases now spawn on walkable cells around the port. Approach the actual
+  // floor case from above the equipment instead of walking into its body.
+  const candidate = Object.values(state.battleCases)
+    .filter(item => item.currentTeam === "player" && item.location === "floor" && item.roomId === "ammo_a")
+    .sort((a, b) => a.createdTick - b.createdTick || a.id.localeCompare(b.id))[0];
+  const target = candidate?.position ?? { x: P1_AMMO_APPROACH_X, y: P1_AMMO_PICKUP_Y };
+  const sign = (value: number): -1 | 0 | 1 => value > 0 ? 1 : value < 0 ? -1 : 0;
+  if (position.y > 25_500 && Math.abs(position.x - P1_AMMO_APPROACH_X) > 50)
+    return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
+  if (Math.abs(position.x - target.x) > 50) {
+    if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
+    return { x: sign(target.x - position.x), y: 0 };
   }
-  // Once the staging point is reached, walk toward the port until its public
-  // pickup handle appears.  Collision stops at a physically valid approach.
-  return { x: -1, y: 0 };
+  return { x: 0, y: sign(target.y - position.y) };
 }
 
 function p1ToTurretDirection(state: BattleState): BattleDirection {
@@ -215,8 +206,8 @@ function assertCaseOwnership(state: BattleState): void {
       assert.equal(caseState?.ownerActorId, actor.id, `${caseId} owner is ${actor.id}`);
       listOnce(caseId, `${actor.id}.cargoIds`);
     }
-    const slots = state.cargoSlots[actor.id] ?? [null, null];
-    assert.equal(slots.length, 2, `${actor.id} has stable two cargo slots`);
+    const slots = state.cargoSlots[actor.id] ?? [];
+    assert.equal(slots.length, 5, `${actor.id} has stable five cargo slots`);
     for (const caseId of slots) if (caseId !== null) {
       assert.ok(actor.cargoIds.includes(caseId), `${caseId} slot belongs to ${actor.id}`);
       assert.equal(slots.filter((candidate) => candidate === caseId).length, 1, `${caseId} occupies one slot for ${actor.id}`);
@@ -337,10 +328,10 @@ function supplyScenario(mode: "enemy-core-assault" | "artillery-endurance"): voi
   const assaultIds = ["E29", "E30"] as const;
   const assaultTrace = Object.fromEntries(assaultIds.map(id => [id, {
     areas: [`castle:${state.actors[id].location.castleTeam}`],
-    firstPlazaTick: -1, firstPlayerCastleTick: -1, coreDashTick: -1,
+    firstPlazaTick: -1, firstPlayerCastleTick: -1, coreShotTick: -1,
     gates: [] as string[],
   }])) as Record<(typeof assaultIds)[number], {
-    areas: string[]; firstPlazaTick: number; firstPlayerCastleTick: number; coreDashTick: number; gates: string[];
+    areas: string[]; firstPlazaTick: number; firstPlayerCastleTick: number; coreShotTick: number; gates: string[];
   }>;
   for (const id of assaultIds) assert.equal(state.actors[id].location.castleTeam, "enemy");
 
@@ -358,27 +349,27 @@ function supplyScenario(mode: "enemy-core-assault" | "artillery-endurance"): voi
   for (let tick = 0; tick < maxRunTicks && state.phase === "running"; tick += 1) {
     let intent: BattleIntent = publicP1Intent(state, { direction: NEUTRAL });
     if (phase === "to-pickup" || phase === "repick-first") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       if (interaction.handles.includes("pickup")) {
-        intent = publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken });
+        intent = publicP1Intent(state, { handle: "pickup", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken });
       } else if (phase === "repick-first") {
-        // The first drop is intentionally followed by a fresh public pickup
-        // token at the same physical point; do not walk away while waiting.
+        // Wait at the real dropped case until automatic pickup is eligible
+        // again; do not walk away or inject a replacement case.
         intent = publicP1Intent(state, { direction: NEUTRAL });
       } else {
         intent = publicP1Intent(state, { direction: p1ToAmmoDirection(state, deliveryCount === 0) });
       }
     } else if (phase === "drop-first") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       if (interaction.handles.includes("drop")) {
-        intent = publicP1Intent(state, { handle: "drop", slot: 0, contextToken: interaction.contextToken });
+        intent = publicP1Intent(state, { handle: "drop", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken });
       }
     } else if (phase === "to-turret") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       if (interaction.handles.includes("deliver")) {
         intent = publicP1Intent(state, {
           handle: "deliver",
-          slot: 0,
+          slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)),
           route: deliveryCount % 2 === 0 ? "detour" : "direct",
           part: nextEnemyPart(state),
           contextToken: interaction.contextToken,
@@ -401,7 +392,7 @@ function supplyScenario(mode: "enemy-core-assault" | "artillery-endurance"): voi
         if (trace.firstPlayerCastleTick < 0) trace.firstPlayerCastleTick = tick;
         trace.gates = [...current.location.pathGates];
       }
-      if (current.location.roomId === "core" && state.dashes[id] && trace.coreDashTick < 0) trace.coreDashTick = tick;
+      if ((state.lastStep.events.some(event => event.type === "core_hit_candidate" && event.attackerId === id)) && trace.coreShotTick < 0) trace.coreShotTick = tick;
       if (previous.alive && current.alive && previous.generation === current.generation &&
           previous.location.area === current.location.area && previous.location.castleTeam === current.location.castleTeam) {
         const a = before.fixedActors[id].position, b = state.fixedActors[id].position;
@@ -414,7 +405,7 @@ function supplyScenario(mode: "enemy-core-assault" | "artillery-endurance"): voi
     assertGatePrefix(state, "player");
     assertGatePrefix(state, "enemy");
     assert.equal(Object.keys(state.actors).length, 33, "AI never adds or removes a combatant");
-    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) {
+    if ((phase === "to-pickup" || phase === "repick-first") && state.actors.P1.cargoIds.length > 0) {
       if (phase === "to-pickup" && deliveryCount === 0) phase = "drop-first";
       else if (phase === "to-pickup" || phase === "repick-first") phase = "to-turret";
     }
@@ -510,15 +501,16 @@ function supplyScenario(mode: "enemy-core-assault" | "artillery-endurance"): voi
       assert.ok(trace.firstPlazaTick > 0 && trace.firstPlayerCastleTick > trace.firstPlazaTick);
     }
     const coreHits = allEvents.filter((event): event is Extract<WorldEvent, { type: "core_hit_candidate" }> => event.type === "core_hit_candidate");
-    assert.ok(coreHits.length > 0, "physical dash generated a validated core contact");
+    assert.ok(coreHits.length > 0, "personal shot generated a validated core contact");
     for (const hit of coreHits) {
       assert.equal(hit.targetTeam, "player");
+      assert.ok(state.shots.some(shot => shot.actorId === hit.attackerId), "the terminal core attacker produced an actual personal shot");
       assert.ok(assaultIds.includes(hit.attackerId as (typeof assaultIds)[number]));
       const trace = assaultTrace[hit.attackerId as (typeof assaultIds)[number]];
       assert.deepEqual(trace.areas, ["castle:enemy", "plaza", "castle:player"]);
       assert.ok(trace.firstPlazaTick > 0 && trace.firstPlayerCastleTick > trace.firstPlazaTick);
       assert.deepEqual(trace.gates, [...state.layout.home.coreRouteGates]);
-      assert.ok(trace.coreDashTick > trace.firstPlayerCastleTick);
+      assert.ok(trace.coreShotTick > trace.firstPlayerCastleTick);
     }
     assert.equal(allEvents.filter(event => event.type === "outcome").length, 1);
     assert.equal(state.castles.player.core.hit, true);
@@ -543,7 +535,7 @@ function supplyScenario(mode: "enemy-core-assault" | "artillery-endurance"): voi
 
 for (const mode of ["enemy-core-assault", "artillery-endurance"] as const) {
   test(mode === "enemy-core-assault"
-    ? "normal initial battle carries real supply, opens seven gates and ends on an enemy AI core dash"
+    ? "normal initial battle carries real supply, opens seven gates and ends on an enemy AI core shot"
     : "artillery-only fixture preserves 25000-tick supply, ownership and firing endurance",
   { timeout: 180_000 }, () => supplyScenario(mode));
 }

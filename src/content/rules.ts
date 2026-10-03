@@ -49,7 +49,7 @@ const positiveNumber = (value: number | undefined, fallback: number): number => 
 };
 
 export const DEFAULT_RULES: RulesConfig = {
-  rulesetId: source.ruleset_id ?? "semekome-prototype-0.4-facing-castles",
+  rulesetId: source.ruleset_id ?? "semekome-prototype-0.5-directional-cargo5",
   ticksPerSecond: positiveInteger(source.simulation?.ticks_per_second, 60),
   matchLimitTicks: positiveInteger(source.simulation?.match_limit_ticks, 25_200),
   actorHealth: positiveNumber(source.actor?.health, 4),
@@ -73,7 +73,7 @@ export const DEFAULT_RULES: RulesConfig = {
   repairBudget: positiveNumber(source.exterior?.repair_budget_per_team, 96),
   repairPerCase: positiveNumber(source.exterior?.repair_per_crate, 12),
   repairWorkTicks: positiveInteger(source.exterior?.repair_work_ticks, 90),
-  maxCarrySlots: positiveInteger(source.actor?.carry_slots, 2),
+  maxCarrySlots: positiveInteger(source.actor?.carry_slots, 5),
 };
 
 export const TICKS_PER_SECOND = DEFAULT_RULES.ticksPerSecond;

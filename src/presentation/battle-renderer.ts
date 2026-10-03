@@ -1,10 +1,11 @@
+import layoutSource from "../../docs/plans/current/INTERIOR_LAYOUTS.json" with { type: "json" };
 import { getInteraction } from '../simulation/physical-battle.ts';
-import type { BattleState } from '../simulation/physical-battle.ts';
+import type { BattleState, BattleShot } from '../simulation/physical-battle.ts';
 import type { ActorState, CastleLayout, PartId, Point, TeamId } from '../domain/types.ts';
 import { PART_IDS } from '../domain/types.ts';
 import {
-  drawGameArt, getGameArt, requestGameArtLoad,
-  type GameArtName,
+  drawGameArt, getGameArt, requestGameArtLoad, actorArtFacing, drawDirectionalActorArt,
+  type GameArtName, type ActorArtName,
 } from './game-art.ts';
 import {
   ACTOR_HITBOX_RADIUS_CELLS,
@@ -168,11 +169,66 @@ function drawCase(context: CanvasRenderingContext2D, type: string, x: number, y:
   context.restore();
 }
 
+/** Floor pickups are deliberately larger than held/queued icons. No collision change. */
+export function floorAmmoRenderSize(scale: number): number { return Math.max(18, scale * 1.55); }
+function drawFloorAmmo(context: CanvasRenderingContext2D, type: string, x: number, y: number, size: number): void {
+  context.save();
+  context.fillStyle = '#0a1728bb'; context.strokeStyle = '#ead899'; context.lineWidth = 1.2;
+  context.beginPath(); context.ellipse(x, y + size * 0.2, size * 0.52, size * 0.3, 0, 0, Math.PI * 2); context.fill(); context.stroke();
+  drawCase(context, type, x, y, size);
+  context.restore();
+}
+
+export function castleExitGuide(layout: CastleLayout): { point: Point; direction: 1 | -1; label: string } {
+  return {
+    point: { x: layout.frontDirection > 0 ? layoutSource.front_entry.cell[0] + 0.5 : layout.widthCells - layoutSource.front_entry.cell[0] - 0.5, y: layoutSource.front_entry.cell[1] + 0.5 },
+    direction: layout.frontDirection,
+    label: layout.side === 'player' ? '広場・敵陣へ →' : '← 広場・自陣へ',
+  };
+}
+function drawRouteArrow(context: CanvasRenderingContext2D, x: number, y: number, direction: 1 | -1, size: number): void {
+  context.save(); context.translate(x, y); context.scale(direction, 1);
+  context.strokeStyle = '#112b30'; context.lineWidth = Math.max(4, size * 0.28); context.lineJoin = 'round';
+  context.beginPath(); context.moveTo(-size * 0.7, 0); context.lineTo(size * 0.6, 0); context.moveTo(0, -size * 0.55); context.lineTo(size * 0.6, 0); context.lineTo(0, size * 0.55); context.stroke();
+  context.strokeStyle = '#ffe58d'; context.lineWidth = Math.max(2, size * 0.15); context.stroke(); context.restore();
+}
+function drawNavigationBadge(context: CanvasRenderingContext2D, label: string, top: number): void {
+  context.save(); context.fillStyle = '#10252eef'; context.fillRect(7, top + 6, 150, 25);
+  context.strokeStyle = '#d8c77a'; context.lineWidth = 1; context.strokeRect(7.5, top + 6.5, 149, 24);
+  context.fillStyle = '#ffe99f'; context.font = 'bold 11px -apple-system, "Noto Sans JP", sans-serif'; context.textAlign = 'left'; context.textBaseline = 'middle';
+  context.fillText(label, 14, top + 19); context.restore();
+}
+
+/** Visibility and area filtering prevents muzzle traces leaking unseen enemies. */
+export function visibleShotTraces(state: BattleState, area: 'castle' | 'plaza', team?: TeamId): BattleShot[] {
+  return state.shots.filter((shot) =>
+    shot.area === area && (area === 'plaza' || shot.castleTeam === team) &&
+    shot.firedAtTick <= state.tick && state.tick - shot.firedAtTick < 8 && actorVisibleToPlayer(state, shot.actorId));
+}
+function drawShotTraces(
+  context: CanvasRenderingContext2D, state: BattleState, area: 'castle' | 'plaza',
+  sx: (x: number) => number, sy: (y: number) => number, team?: TeamId,
+): void {
+  context.save(); context.lineCap = 'round';
+  for (const shot of visibleShotTraces(state, area, team)) {
+    const age = state.tick - shot.firedAtTick;
+    const fx = sx(shot.from.x / 1000), fy = sy(shot.from.y / 1000);
+    const tx = sx(shot.to.x / 1000), ty = sy(shot.to.y / 1000);
+    context.globalAlpha = Math.max(0.2, 1 - age / 8);
+    context.strokeStyle = shot.team === 'player' ? '#ffe590' : '#ff977d'; context.lineWidth = 4;
+    context.beginPath(); context.moveTo(fx, fy); context.lineTo(tx, ty); context.stroke();
+    context.strokeStyle = '#fffbe0'; context.lineWidth = 1.5; context.stroke();
+    context.fillStyle = '#fff2b0'; context.beginPath(); context.arc(fx, fy, 3.5, 0, Math.PI * 2); context.fill();
+    context.beginPath(); context.arc(tx, ty, 2.5, 0, Math.PI * 2); context.fill();
+  }
+  context.restore();
+}
+
 function drawPerson(
   context: CanvasRenderingContext2D, actor: ActorState, x: number, y: number, scale: number,
   state: BattleState, highlighted: boolean,
 ): void {
-  const imageForRole: Record<string, GameArtName> = {
+  const imageForRole: Record<string, ActorArtName> = {
     player: 'hero', support: 'helper', shooter: 'gunner', shooter_guard: 'guard', ammo_carrier: 'carrier', internal_soldier: 'soldier',
   };
   const size = Math.max(19, scale * (actor.id === 'P1' ? 2.25 : 1.95));
@@ -180,12 +236,8 @@ function drawPerson(
   const color = teamColor(actor.team);
   context.save();
   if (actor.protectedUntilTick !== null && state.tick < actor.protectedUntilTick && Math.floor(state.tick / 6) % 2 === 0) context.globalAlpha = 0.58;
-  const artVisible = drawGameArt(context, imageName, x - size / 2, y - size / 2, size, size);
-  if (!artVisible) {
-    context.fillStyle = color; context.strokeStyle = '#142631'; context.lineWidth = 1.6;
-    context.beginPath(); context.arc(x, y - size * 0.16, size * 0.23, 0, Math.PI * 2); context.fill(); context.stroke();
-    context.fillStyle = color; context.beginPath(); context.roundRect(x - size * 0.25, y, size * 0.5, size * 0.39, size * 0.12); context.fill(); context.stroke();
-  }
+  const direction = state.actorFacing[actor.id] ?? { x: actor.team === 'player' ? 1 : -1, y: 0 };
+  drawDirectionalActorArt(context, imageName, actorArtFacing(direction), x, y, size);
   context.globalAlpha = 1;
   // The sprite stays readable, while this small center outline shows the
   // actual movement/collision radius instead of suggesting the whole image is solid.
@@ -459,6 +511,15 @@ export function createBattleRenderer(
     context.drawImage(staticFloor, -cameraX * scale, top - cameraY * scale,
       layout.widthCells * scale, layout.heightCells * scale);
 
+    const exitGuide = castleExitGuide(layout);
+    const exitX = sx(exitGuide.point.x), exitY = sy(exitGuide.point.y);
+    context.fillStyle = '#f4d66a38'; context.fillRect(exitX - scale, exitY - scale * 2.4, scale * 2, scale * 4.8);
+    context.strokeStyle = '#ffe58d'; context.lineWidth = 2.5;
+    context.strokeRect(exitX - scale, exitY - scale * 2.4, scale * 2, scale * 4.8);
+    for (const offset of [3.5, 6.5]) drawRouteArrow(context, sx(exitGuide.point.x - exitGuide.direction * offset), exitY, exitGuide.direction, scale * 1.05);
+    context.font = 'bold 11px sans-serif'; context.textAlign = 'center'; context.fillStyle = '#fff0b8';
+    context.fillText('出入口', exitX, exitY - scale * 2.9);
+
     for (const room of layout.rooms) {
       const r = room.rect;
       const center = roomCenter(room);
@@ -582,8 +643,8 @@ export function createBattleRenderer(
       return anchor?.area === 'castle' && anchor.team === team ? [{ item, point: anchor.point }] : [];
     });
     for (const { item, point } of floorCases) {
-      const cx = sx(point.x), cy = sy(point.y), size = Math.max(9, scale * 0.76);
-      drawCase(context, item.type, cx, cy, size);
+      const cx = sx(point.x), cy = sy(point.y), size = floorAmmoRenderSize(scale);
+      drawFloorAmmo(context, item.type, cx, cy, size);
       if (item.id === highlighted?.id) {
         context.strokeStyle = '#fff0ac'; context.lineWidth = 2; context.strokeRect(cx - size * 0.72, cy - size * 0.72, size * 1.44, size * 1.44);
         context.fillStyle = '#f5f0d9'; context.font = '8px -apple-system, "Noto Sans JP", sans-serif'; context.textAlign = 'center';
@@ -646,6 +707,7 @@ export function createBattleRenderer(
       context.strokeRect(px - plateSize / 2, py - plateSize / 2, plateSize, plateSize * 0.72);
       if (!part.destroyed) drawHealthPips(context, px, py + plateSize * 0.44, plateSize, part.health, part.maxHealth, false);
     }
+    drawShotTraces(context, state, 'castle', sx, sy, team);
     for (const effect of effects) {
       const age = state.tick - effect.tick;
       if (age < 0 || age > 22) continue;
@@ -692,6 +754,8 @@ export function createBattleRenderer(
     context.font = '8px sans-serif'; context.fillStyle = '#d9e4e3'; context.textAlign = 'left';
     context.fillText(team === 'player' ? '自陣' : '敵陣', miniX, miniY + miniHeight + 10);
 
+    drawNavigationBadge(context, exitGuide.label, top);
+
     const currentRoom = actor.currentRoomId === 'plaza' ? '広場' : layout.rooms.find((room) => room.id === actor.currentRoomId)?.label ?? actor.currentRoomId;
     context.fillStyle = '#0d1b24df'; context.fillRect(5, height - 21, Math.min(160, width * 0.52), 16);
     context.fillStyle = '#dbe8e5'; context.font = '9px -apple-system, "Noto Sans JP", sans-serif'; context.textAlign = 'left';
@@ -737,6 +801,11 @@ export function createBattleRenderer(
     // entities. Each slot visibly disappears as its matching part is lost.
     drawFortressFacade(context, state, 'player', sx(8.8), sy(35), scale);
     drawFortressFacade(context, state, 'enemy', sx(117.2), sy(35), scale);
+    // The two actual ground entrances retain the adopted player-left/enemy-right direction.
+    for (const entry of [{ x: 13, direction: -1 as const }, { x: 113, direction: 1 as const }]) {
+      drawRouteArrow(context, sx(entry.x), sy(35.5), entry.direction, scale * 1.4);
+    }
+    for (const x of [32, 62, 92]) drawRouteArrow(context, sx(x), sy(35.5), 1, scale * 1.1);
     for (const candidate of Object.values(state.actors).filter((actorState) => actorState.location.area === 'plaza' && actorState.alive)) {
       const fixed = state.fixedActors[candidate.id]?.position; if (!fixed) continue;
       const wx = sx(fixed.x / 1000), wy = sy(fixed.y / 1000);
@@ -745,9 +814,10 @@ export function createBattleRenderer(
     for (const item of Object.values(state.battleCases)) {
       const anchor = floorCaseAnchor(state, item.id);
       if (anchor?.area !== 'plaza') continue;
-      const x = sx(anchor.point.x), y = sy(anchor.point.y), size = Math.max(8, scale * 0.72);
-      drawCase(context, item.type, x, y, size);
+      const x = sx(anchor.point.x), y = sy(anchor.point.y), size = floorAmmoRenderSize(scale);
+      drawFloorAmmo(context, item.type, x, y, size);
     }
+    drawShotTraces(context, state, 'plaza', sx, sy);
     for (const effect of effects) {
       const age = state.tick - effect.tick;
       if (age < 0 || age > 23 || effect.kind === 'projectile_intercepted') continue;
@@ -755,6 +825,8 @@ export function createBattleRenderer(
       if (point) drawStepEffect(context, effect, sx(point.x), sy(point.y), scale, age);
     }
     context.restore();
+
+    drawNavigationBadge(context, '← 自陣   /   敵陣へ →', top);
 
     // Both fortress states remain available in an overview while the camera
     // keeps plaza combat large enough to read on a phone.

@@ -43,7 +43,7 @@ export function compileWeapons(rows: readonly unknown[]): Record<string, WeaponD
       durability: integer(raw.intercept_hits), speed: integer(raw.flight_speed),
       damage: integer(raw.part_damage, 0), effects: [],
     };
-    if (weapon.weight > rules.actor.carry_weight_limit) throw new Error("uncarryable weapon");
+    if (weapon.weight > 3) throw new Error("unsupported weapon weight");
     switch (raw.effect) {
       case "none": break;
       case "split_once_after_midpoint": {

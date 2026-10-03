@@ -1,3 +1,5 @@
+// Compatibility fixtures for the historical contact-dash API. Normal live
+// combat uses shooting and is covered by r2q/r2r/r2v, not these isolated setups.
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -14,7 +16,7 @@ import { registerPlazaGuardDispatch } from "../../src/simulation/plaza-guards.ts
 const NEUTRAL: BattleDirection = { x: 0, y: 0 };
 const PLAZA_Y = 35_500;
 const P1_AMMO_APPROACH_X = 94_500;
-const P1_AMMO_PICKUP_Y = 13_500;
+const P1_AMMO_PICKUP_Y = 12_500;
 const P1_TURRET_TRAVEL_Y = 12_000;
 const P1_TURRET_APPROACH_X = 105_850;
 const P1_EXIT_ROUTE_Y = 25_500;
@@ -49,17 +51,20 @@ function sign(value: number): -1 | 0 | 1 {
 
 function p1ToAmmoDirection(state: BattleState, firstDelivery: boolean): BattleDirection {
   const position = state.fixedActors.P1.position;
-  if (firstDelivery) {
-    if (Math.abs(position.x - P1_AMMO_APPROACH_X) > 50) return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
-    if (Math.abs(position.y - P1_AMMO_PICKUP_Y) > 50) return { x: 0, y: sign(P1_AMMO_PICKUP_Y - position.y) };
-  } else {
-    if (position.x > P1_AMMO_APPROACH_X + 50) {
-      if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
-      return { x: -1, y: 0 };
-    }
-    if (position.y < P1_AMMO_PICKUP_Y - 50) return { x: 0, y: 1 };
+  // Cases now spawn on walkable cells around the port. Approach the actual
+  // floor case from above the equipment instead of walking into its body.
+  const candidate = Object.values(state.battleCases)
+    .filter(item => item.currentTeam === "player" && item.location === "floor" && item.roomId === "ammo_a")
+    .sort((a, b) => a.createdTick - b.createdTick || a.id.localeCompare(b.id))[0];
+  const target = candidate?.position ?? { x: P1_AMMO_APPROACH_X, y: P1_AMMO_PICKUP_Y };
+  const sign = (value: number): -1 | 0 | 1 => value > 0 ? 1 : value < 0 ? -1 : 0;
+  if (position.y > 25_500 && Math.abs(position.x - P1_AMMO_APPROACH_X) > 50)
+    return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
+  if (Math.abs(position.x - target.x) > 50) {
+    if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
+    return { x: sign(target.x - position.x), y: 0 };
   }
-  return { x: -1, y: 0 };
+  return { x: 0, y: sign(target.y - position.y) };
 }
 
 function isNearPlayerTurret(state: BattleState): boolean {
@@ -83,6 +88,12 @@ function p1ToTurretDirection(state: BattleState): BattleDirection {
 /** Leave turret A through the authored lower passage, then approach the exit. */
 function p1ToPlazaDirection(state: BattleState): BattleDirection {
   const position = state.fixedActors.P1.position;
+  // A delayed siege impact can finish while P1 is collecting the next case.
+  // Leave the ammo equipment via its clear upper edge before heading south.
+  if (position.y < 20_000 && position.x < P1_AMMO_APPROACH_X - 50) {
+    if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
+    return { x: 1, y: 0 };
+  }
   if (Math.abs(position.x - P1_EXIT_X) > 50) {
     if (Math.abs(position.y - P1_EXIT_ROUTE_Y) > 50) return { x: 0, y: sign(P1_EXIT_ROUTE_Y - position.y) };
     return { x: sign(P1_EXIT_X - position.x), y: 0 };
@@ -133,14 +144,14 @@ test("主人公の公開入力は補給・砲台から広場へ進み、警備�
   for (let tick = 0; tick < 6_000 && state.phase === "running"; tick += 1) {
     let intent = publicP1Intent(state, { direction: NEUTRAL });
     if (phase === "pickup") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       intent = interaction.handles.includes("pickup")
-        ? publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "pickup", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToAmmoDirection(state, deliveries === 0) });
     } else if (phase === "turret") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       intent = interaction.handles.includes("deliver")
-        ? publicP1Intent(state, { handle: "deliver", slot: 0, route: "direct", part: "P1", contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "deliver", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), route: "direct", part: "P1", contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToTurretDirection(state) });
     } else if (phase === "plaza-route") {
       intent = publicP1Intent(state, { direction: p1ToPlazaDirection(state) });
@@ -151,7 +162,7 @@ test("主人公の公開入力は補給・砲台から広場へ進み、警備�
     }
 
     state = stepBattle(state, intent);
-    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    if (phase === "pickup" && state.actors.P1.cargoIds.length > 0) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
       deliveries += 1;
       phase = "plaza-route";
@@ -179,7 +190,7 @@ test("主人公の公開入力は補給・砲台から広場へ進み、警備�
   }), "at least one live dispatched guard generation remains as the physical crossing blocker");
 });
 
-test("主人公の公開突進で広場警備を全員撃破すると敵城側へ進める", { timeout: 60_000 }, () => {
+test("旧突進APIの分離検査: 主人公の公開突進で広場警備を全員撃破すると敵城側へ進める", { timeout: 60_000 }, () => {
   let state = createBattle({ matchId: "r2d-player-plaza-breakthrough", seed: 20260913 });
   registerPlazaGuardDispatch(state, "enemy", "E25");
   // The fixture isolates the player-authored plaza battle and crossing. Enemy
@@ -194,21 +205,21 @@ test("主人公の公開突進で広場警備を全員撃破すると敵城側�
   for (let tick = 0; tick < 6_000 && state.phase === "running"; tick += 1) {
     let intent = publicP1Intent(state, { direction: NEUTRAL });
     if (phase === "pickup") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       intent = interaction.handles.includes("pickup")
-        ? publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "pickup", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToAmmoDirection(state, deliveries === 0) });
     } else if (phase === "turret") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       intent = interaction.handles.includes("deliver")
-        ? publicP1Intent(state, { handle: "deliver", slot: 0, route: "direct", part: "P1", contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "deliver", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), route: "direct", part: "P1", contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToTurretDirection(state) });
     } else {
       intent = publicP1Intent(state, { direction: p1ToPlazaDirection(state) });
     }
 
     state = stepBattle(state, intent);
-    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    if (phase === "pickup" && state.actors.P1.cargoIds.length > 0) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
       deliveries += 1;
       phase = "plaza-route";
@@ -287,21 +298,21 @@ test("主人公は敵城へ越境後も閉門前で止まり核側へ抜けな�
   for (let tick = 0; tick < 6_000 && state.phase === "running"; tick += 1) {
     let intent = publicP1Intent(state, { direction: NEUTRAL });
     if (phase === "pickup") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       intent = interaction.handles.includes("pickup")
-        ? publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "pickup", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToAmmoDirection(state, deliveries === 0) });
     } else if (phase === "turret") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       intent = interaction.handles.includes("deliver")
-        ? publicP1Intent(state, { handle: "deliver", slot: 0, route: "direct", part: "P1", contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "deliver", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), route: "direct", part: "P1", contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToTurretDirection(state) });
     } else {
       intent = publicP1Intent(state, { direction: p1ToPlazaDirection(state) });
     }
 
     state = stepBattle(state, intent);
-    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    if (phase === "pickup" && state.actors.P1.cargoIds.length > 0) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
       deliveries += 1;
       phase = "plaza-route";
@@ -388,14 +399,14 @@ test("主人公の公開砲撃でG1を開けても次のG2で止まる", { timeo
   for (let tick = 0; tick < 12_000 && state.phase === "running"; tick += 1) {
     let intent = publicP1Intent(state, { direction: NEUTRAL });
     if (phase === "pickup") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       intent = interaction.handles.includes("pickup")
-        ? publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "pickup", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToAmmoDirection(state, deliveries === 0) });
     } else if (phase === "turret") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       intent = interaction.handles.includes("deliver")
-        ? publicP1Intent(state, { handle: "deliver", slot: 0, route: "direct", part: "P1", contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "deliver", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), route: "direct", part: "P1", contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToTurretDirection(state) });
     } else if (phase === "plaza-route") {
       intent = publicP1Intent(state, { direction: p1ToPlazaDirection(state) });
@@ -405,7 +416,7 @@ test("主人公の公開砲撃でG1を開けても次のG2で止まる", { timeo
     for (const event of state.lastStep.events) {
       if (event.type === "projectile_launched" && event.team === "player") playerLaunchTargets.push(event.targetPart ?? "none");
     }
-    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    if (phase === "pickup" && state.actors.P1.cargoIds.length > 0) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
       deliveries += 1;
       phase = deliveries < 4 ? "pickup" : "await-gate";
@@ -488,7 +499,7 @@ test("主人公の公開砲撃でG1を開けても次のG2で止まる", { timeo
   assert.equal(state.lastStep.acceptedInputKinds.includes("direction"), true, "the blocked movement still comes from public direction input");
 });
 
-test("主人公の公開操作で7部位・7門を通り核へ有効な突進を当てる", { timeout: 180_000 }, () => {
+test("旧突進APIの分離検査: 主人公の公開操作で7部位・7門を通り核へ有効な突進を当てる", { timeout: 180_000 }, () => {
   let state = createBattle({
     matchId: "r2j-player-seven-gates-core",
     seed: 20260913,
@@ -510,22 +521,22 @@ test("主人公の公開操作で7部位・7門を通り核へ有効な突進を
   for (let tick = 0; tick < 24_000 && state.phase === "running"; tick += 1) {
     let intent = publicP1Intent(state, { direction: NEUTRAL });
     if (phase === "pickup") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       intent = interaction.handles.includes("pickup")
-        ? publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "pickup", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToAmmoDirection(state, deliveries === 0) });
     } else if (phase === "turret") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       const targetPart = nextEnemyPart(state);
       intent = interaction.handles.includes("deliver") && targetPart
-        ? publicP1Intent(state, { handle: "deliver", slot: 0, route: "direct", part: targetPart, contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "deliver", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), route: "direct", part: targetPart, contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToTurretDirection(state) });
     } else {
       intent = publicP1Intent(state, { direction: p1ToPlazaDirection(state) });
     }
 
     state = stepBattle(state, intent);
-    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    if (phase === "pickup" && state.actors.P1.cargoIds.length > 0) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
       deliveries += 1;
       phase = "pickup";
@@ -548,7 +559,7 @@ test("主人公の公開操作で7部位・7門を通り核へ有効な突進を
       break;
     }
   }
-  assert.equal(reachedPlaza, true, "P1 leaves the home castle through the public movement input");
+  assert.equal(reachedPlaza, true, `P1 leaves the home castle through the public movement input: ${JSON.stringify({tick:state.tick,phase:state.phase,location:state.actors.P1.location,pos:state.fixedActors.P1.position})}`);
 
   const entry = state.fixedActors.P1.position;
   const guardPositions = [

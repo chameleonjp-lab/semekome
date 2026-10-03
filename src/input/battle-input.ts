@@ -144,7 +144,7 @@ export function bindDashInput(button: HTMLButtonElement, onPress: () => void): {
   };
 }
 
-/** One edge-triggered normal melee attack, independent from movement and dash. */
+/** One edge-triggered directional shot, independent from movement and dash. */
 export function bindAttackInput(button: HTMLButtonElement, onPress: () => void): { clear: () => void; setEnabled: (enabled: boolean) => void; dispose: () => void } {
   let enabled = true;
   let pointer: number | null = null;
@@ -191,4 +191,16 @@ export function bindAttackInput(button: HTMLButtonElement, onPress: () => void):
     setEnabled: next => { enabled = next; if (!enabled) clear(); },
     dispose: () => { clear(); controller.abort(); },
   };
+}
+
+/** Block double-tap zoom on game controls without disabling page pinch zoom. */
+export function bindRapidTapGuard(screen: HTMLElement): { dispose: () => void } {
+  const controller = new AbortController();
+  screen.addEventListener('dblclick', event => {
+    const target = event.target;
+    if (target instanceof Element && target.closest('.battle-controls, .cargo-controls, .battle-settings')) {
+      event.preventDefault();
+    }
+  }, { signal: controller.signal });
+  return { dispose: () => controller.abort() };
 }
