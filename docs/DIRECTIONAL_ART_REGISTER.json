@@ -1,0 +1,974 @@
+{
+  "schema_version": 2,
+  "date": "2026-10-03",
+  "creator": "OpenAI built-in image_gen, requested by repository owner",
+  "source": "Original Semekome generated robot images only. Each of 24 directions independently authored; no mirror-based direction.",
+  "usage": "Origin record, not legal clearance. Unseen surfaces and projection are generated design inference, not exact 3D reconstruction.",
+  "conversion": {
+    "engine": "sharp",
+    "version": "0.35.4",
+    "format": "WebP quality90 alphaQuality100",
+    "geometry": "Opaque bounds inspected at alpha>=128; uniform scaling only, foot midpoint anchored x128 and baseline y240, full silhouette fitted within x16..240 and consistent role height (hero212, helper224, gunner224, guard192, carrier198, soldier224); resampling makes alpha>=128 baseline238..240. No repainting or mirroring."
+  },
+  "assets": [
+    {
+      "id": "hero-right",
+      "role": "hero",
+      "facing": "right",
+      "runtime_file": "public/assets/generated/hero-right.webp",
+      "runtime_sha256": "b4c384b1859b330e170024d40522e1e0984f00a72e25fd326f738575ecd1a503",
+      "source_file": "hero-right-master.png",
+      "source_sha256": "ba189b5c25626919450ef4012098c33cf0e53e5ec3fba155f3ed2781d4ba38c1",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 13814,
+      "alpha_pixels": {
+        "transparent": 47676,
+        "opaque": 546,
+        "partial": 17314
+      },
+      "opaque_bounds": {
+        "left": 26,
+        "top": 28,
+        "right": 176,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.1872791519434629,
+        "left": -1,
+        "top": 16,
+        "foot_anchor_source": 691,
+        "baseline_source": 1196
+      },
+      "reference_file": "public/assets/generated/hero.webp",
+      "reference_sha256": "85b3928639c0e7040e60ca54b9a04c53d7b5131abcedb0b71eeab4db880c6ee5",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "hero-left",
+      "role": "hero",
+      "facing": "left",
+      "runtime_file": "public/assets/generated/hero-left.webp",
+      "runtime_sha256": "1207bc2f25d0b2c15f2ed05a800602db9ff87b8f95fcdcfa67335160661d4f77",
+      "source_file": "hero-left-master.png",
+      "source_sha256": "f4642d275e515d5b7e31f84f7c5328dabf2f98e1a7d75bd2cf386bb42fdadc03",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 14480,
+      "alpha_pixels": {
+        "transparent": 46110,
+        "opaque": 574,
+        "partial": 18852
+      },
+      "opaque_bounds": {
+        "left": 69,
+        "top": 28,
+        "right": 239,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.18682235195996663,
+        "left": 28,
+        "top": 17,
+        "foot_anchor_source": 534.5,
+        "baseline_source": 1192
+      },
+      "reference_file": "public/assets/generated/hero.webp",
+      "reference_sha256": "85b3928639c0e7040e60ca54b9a04c53d7b5131abcedb0b71eeab4db880c6ee5",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "hero-front",
+      "role": "hero",
+      "facing": "front",
+      "runtime_file": "public/assets/generated/hero-front.webp",
+      "runtime_sha256": "86110061241e0cf31b6070937c196da23d0769a040166633832ec8480500da12",
+      "source_file": "hero-front-master.png",
+      "source_sha256": "06c78e4c5a350c425c8159e135df4912e6e92a2cf4613313d8ed4388c34d1919",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 18586,
+      "alpha_pixels": {
+        "transparent": 40560,
+        "opaque": 668,
+        "partial": 24308
+      },
+      "opaque_bounds": {
+        "left": 28,
+        "top": 28,
+        "right": 215,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.19467401285583102,
+        "left": 6,
+        "top": 13,
+        "foot_anchor_source": 626,
+        "baseline_source": 1165
+      },
+      "reference_file": "public/assets/generated/hero.webp",
+      "reference_sha256": "85b3928639c0e7040e60ca54b9a04c53d7b5131abcedb0b71eeab4db880c6ee5",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "hero-back",
+      "role": "hero",
+      "facing": "back",
+      "runtime_file": "public/assets/generated/hero-back.webp",
+      "runtime_sha256": "63da10e2b50152635c9a81accfe60e148d2ee9593f0e77706da748fbf9a3c3ff",
+      "source_file": "hero-back-master.png",
+      "source_sha256": "0772de7f90a5ccc3543ef7fa36f87cfa489a602cf818c9d11b0f5c86d23892de",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 16372,
+      "alpha_pixels": {
+        "transparent": 41868,
+        "opaque": 631,
+        "partial": 23037
+      },
+      "opaque_bounds": {
+        "left": 38,
+        "top": 28,
+        "right": 218,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.1968430826369545,
+        "left": 5,
+        "top": 11,
+        "foot_anchor_source": 626.5,
+        "baseline_source": 1162
+      },
+      "reference_file": "public/assets/generated/hero.webp",
+      "reference_sha256": "85b3928639c0e7040e60ca54b9a04c53d7b5131abcedb0b71eeab4db880c6ee5",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "helper-right",
+      "role": "helper",
+      "facing": "right",
+      "runtime_file": "public/assets/generated/helper-right.webp",
+      "runtime_sha256": "ec6527267b523367c02cedf657caf76a44f705c37d6595de17fb617a87288971",
+      "source_file": "helper-right-master.png",
+      "source_sha256": "5d042d6733f0169bc7fdecd9c12d1a944f740a8d67004321dae0f4ad768cac51",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 16264,
+      "alpha_pixels": {
+        "transparent": 44071,
+        "opaque": 553,
+        "partial": 20912
+      },
+      "opaque_bounds": {
+        "left": 41,
+        "top": 16,
+        "right": 186,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.19964349376114082,
+        "left": -10,
+        "top": 2,
+        "foot_anchor_source": 692,
+        "baseline_source": 1191
+      },
+      "reference_file": "public/assets/generated/helper.webp",
+      "reference_sha256": "7e6c38e95a9b9ec812d740b93cc4d3ed9e9c229fd4a72efefd5bc6d3e8f3f2f3",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "helper-left",
+      "role": "helper",
+      "facing": "left",
+      "runtime_file": "public/assets/generated/helper-left.webp",
+      "runtime_sha256": "83dfe39ed33e663ba0e185f6884ebe93fed2e23fb90865b425fba1ce846edd59",
+      "source_file": "helper-left-master.png",
+      "source_sha256": "49123441b05b974652540eba6bed86367311ac5ee841ff5b0e1ed180bac116bf",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 19666,
+      "alpha_pixels": {
+        "transparent": 37803,
+        "opaque": 645,
+        "partial": 27088
+      },
+      "opaque_bounds": {
+        "left": 44,
+        "top": 16,
+        "right": 234,
+        "bottom": 238
+      },
+      "transform": {
+        "scale": 0.20683287165281625,
+        "left": 6,
+        "top": -4,
+        "foot_anchor_source": 588,
+        "baseline_source": 1178
+      },
+      "reference_file": "public/assets/generated/helper.webp",
+      "reference_sha256": "7e6c38e95a9b9ec812d740b93cc4d3ed9e9c229fd4a72efefd5bc6d3e8f3f2f3",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "helper-front",
+      "role": "helper",
+      "facing": "front",
+      "runtime_file": "public/assets/generated/helper-front.webp",
+      "runtime_sha256": "2e52ae67976871b5493f38d63a2a5b374a664c5dcf5d65d6393d1eedb0fc0065",
+      "source_file": "helper-front-master.png",
+      "source_sha256": "774c6fd8562fc00449142fa1894ebdc5059c29e010f83e12f79210af9037e11e",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 20394,
+      "alpha_pixels": {
+        "transparent": 37026,
+        "opaque": 811,
+        "partial": 27699
+      },
+      "opaque_bounds": {
+        "left": 37,
+        "top": 16,
+        "right": 225,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.19597550306211722,
+        "left": 5,
+        "top": 6,
+        "foot_anchor_source": 626,
+        "baseline_source": 1192
+      },
+      "reference_file": "public/assets/generated/helper.webp",
+      "reference_sha256": "7e6c38e95a9b9ec812d740b93cc4d3ed9e9c229fd4a72efefd5bc6d3e8f3f2f3",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "helper-back",
+      "role": "helper",
+      "facing": "back",
+      "runtime_file": "public/assets/generated/helper-back.webp",
+      "runtime_sha256": "8703fb837a804ae5a5fe76c8bb0229a55f7fa0dfa96b679f0bbebcda71d5139b",
+      "source_file": "helper-back-master.png",
+      "source_sha256": "7e90e01866544bf91c8b0154044dd6e54e37ff0acd9dfc1087c5721497407b67",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 19602,
+      "alpha_pixels": {
+        "transparent": 36933,
+        "opaque": 820,
+        "partial": 27783
+      },
+      "opaque_bounds": {
+        "left": 30,
+        "top": 16,
+        "right": 219,
+        "bottom": 238
+      },
+      "transform": {
+        "scale": 0.19410745233968804,
+        "left": 6,
+        "top": 7,
+        "foot_anchor_source": 626.5,
+        "baseline_source": 1198
+      },
+      "reference_file": "public/assets/generated/helper.webp",
+      "reference_sha256": "7e6c38e95a9b9ec812d740b93cc4d3ed9e9c229fd4a72efefd5bc6d3e8f3f2f3",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "gunner-right",
+      "role": "gunner",
+      "facing": "right",
+      "runtime_file": "public/assets/generated/gunner-right.webp",
+      "runtime_sha256": "2e72d388d5cd53a798e2b82979b1868085a07bb27ba5f7fabed0b6b238ddc253",
+      "source_file": "gunner-right-master.png",
+      "source_sha256": "38e2ab763e6caf86c6d8e96f311fbebfed763ce2364212f85238b77cd09ef3bf",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 16040,
+      "alpha_pixels": {
+        "transparent": 44863,
+        "opaque": 553,
+        "partial": 20120
+      },
+      "opaque_bounds": {
+        "left": 68,
+        "top": 16,
+        "right": 212,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.1895093062605753,
+        "left": 16,
+        "top": 12,
+        "foot_anchor_source": 592.5,
+        "baseline_source": 1202
+      },
+      "reference_file": "public/assets/generated/gunner.webp",
+      "reference_sha256": "f0ac20d335df19c1fa96bdb11c4589efc78133084820c8d0e3a63cdb4ef2c563",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "gunner-left",
+      "role": "gunner",
+      "facing": "left",
+      "runtime_file": "public/assets/generated/gunner-left.webp",
+      "runtime_sha256": "2e7be8c0bff3b458ebf0858e0c46b32794a2cb5ba97933fddac010b3161c7130",
+      "source_file": "gunner-left-master.png",
+      "source_sha256": "0ab6038dc108563b0962b14250eaf9a3dfb57e919e86e97252f2270bb4d39339",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 16314,
+      "alpha_pixels": {
+        "transparent": 43326,
+        "opaque": 570,
+        "partial": 21640
+      },
+      "opaque_bounds": {
+        "left": 29,
+        "top": 16,
+        "right": 188,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.19393939393939394,
+        "left": -12,
+        "top": 8,
+        "foot_anchor_source": 721,
+        "baseline_source": 1198
+      },
+      "reference_file": "public/assets/generated/gunner.webp",
+      "reference_sha256": "f0ac20d335df19c1fa96bdb11c4589efc78133084820c8d0e3a63cdb4ef2c563",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "gunner-front",
+      "role": "gunner",
+      "facing": "front",
+      "runtime_file": "public/assets/generated/gunner-front.webp",
+      "runtime_sha256": "58f37b76de22d9331a757e8004c0d42028a4736e547dd6053a28984dd4a11a97",
+      "source_file": "gunner-front-master.png",
+      "source_sha256": "d9da4d3d4a8200cb21058bd3e40f24e342d3f786043e91b6c69eba5901f480d6",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 21786,
+      "alpha_pixels": {
+        "transparent": 36428,
+        "opaque": 669,
+        "partial": 28439
+      },
+      "opaque_bounds": {
+        "left": 35,
+        "top": 16,
+        "right": 221,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.19080068143100512,
+        "left": 9,
+        "top": 10,
+        "foot_anchor_source": 626,
+        "baseline_source": 1206
+      },
+      "reference_file": "public/assets/generated/gunner.webp",
+      "reference_sha256": "f0ac20d335df19c1fa96bdb11c4589efc78133084820c8d0e3a63cdb4ef2c563",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "gunner-back",
+      "role": "gunner",
+      "facing": "back",
+      "runtime_file": "public/assets/generated/gunner-back.webp",
+      "runtime_sha256": "8e786f4d071c438e6617a9a0c4672f88a77067d80e301dba5f220c17306b2107",
+      "source_file": "gunner-back-master.png",
+      "source_sha256": "6619aae3c11ae2c97a7e71235ce29d724c95afa30be17d3b88441c8808ce0811",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 22376,
+      "alpha_pixels": {
+        "transparent": 35362,
+        "opaque": 841,
+        "partial": 29333
+      },
+      "opaque_bounds": {
+        "left": 23,
+        "top": 16,
+        "right": 232,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.19614711033274956,
+        "left": 5,
+        "top": 7,
+        "foot_anchor_source": 626.5,
+        "baseline_source": 1187
+      },
+      "reference_file": "public/assets/generated/gunner.webp",
+      "reference_sha256": "f0ac20d335df19c1fa96bdb11c4589efc78133084820c8d0e3a63cdb4ef2c563",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "guard-right",
+      "role": "guard",
+      "facing": "right",
+      "runtime_file": "public/assets/generated/guard-right.webp",
+      "runtime_sha256": "078905a0936f75d5fdaff53b02523c2d0a4af7dc843722be174c101b83f538df",
+      "source_file": "guard-right-master.png",
+      "source_sha256": "2ca1b6ffa2c41a92ecbb8bcaba2a38df4fbad500eadfa76fe09588c93bb0378d",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 12116,
+      "alpha_pixels": {
+        "transparent": 49704,
+        "opaque": 434,
+        "partial": 15398
+      },
+      "opaque_bounds": {
+        "left": 72,
+        "top": 48,
+        "right": 184,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.1725067385444744,
+        "left": 14,
+        "top": 38,
+        "foot_anchor_source": 661.5,
+        "baseline_source": 1173
+      },
+      "reference_file": "public/assets/generated/guard.webp",
+      "reference_sha256": "46457411b9645ef3a246ac538cb2adc4402c087a1976a5a13ab54b2db0ef5847",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "guard-left",
+      "role": "guard",
+      "facing": "left",
+      "runtime_file": "public/assets/generated/guard-left.webp",
+      "runtime_sha256": "cdc184825d0edc350f6a35436d9f039d53b092b6affae4ed488727ec34db716d",
+      "source_file": "guard-left-master.png",
+      "source_sha256": "250d27ca1b721bbf6d5f4bbfc9956931fa867b099ba9ed9f7acefbf2cc7b17dd",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 12790,
+      "alpha_pixels": {
+        "transparent": 48535,
+        "opaque": 473,
+        "partial": 16528
+      },
+      "opaque_bounds": {
+        "left": 54,
+        "top": 48,
+        "right": 167,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.16768558951965065,
+        "left": 7,
+        "top": 40,
+        "foot_anchor_source": 720.5,
+        "baseline_source": 1194
+      },
+      "reference_file": "public/assets/generated/guard.webp",
+      "reference_sha256": "46457411b9645ef3a246ac538cb2adc4402c087a1976a5a13ab54b2db0ef5847",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "guard-front",
+      "role": "guard",
+      "facing": "front",
+      "runtime_file": "public/assets/generated/guard-front.webp",
+      "runtime_sha256": "e029ad32d0a424e84ca01e3a47e9a89938646cfeb26a79356d59554e6a6262fb",
+      "source_file": "guard-front-master.png",
+      "source_sha256": "0cf9af4cecd33f6778eae1b0af32be7e9704fb85c9579ae6c9ddba17561534f8",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 19986,
+      "alpha_pixels": {
+        "transparent": 35025,
+        "opaque": 740,
+        "partial": 29771
+      },
+      "opaque_bounds": {
+        "left": 16,
+        "top": 48,
+        "right": 226,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.17721518987341772,
+        "left": 10,
+        "top": 37,
+        "foot_anchor_source": 666,
+        "baseline_source": 1145
+      },
+      "reference_file": "public/assets/generated/guard.webp",
+      "reference_sha256": "46457411b9645ef3a246ac538cb2adc4402c087a1976a5a13ab54b2db0ef5847",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "guard-back",
+      "role": "guard",
+      "facing": "back",
+      "runtime_file": "public/assets/generated/guard-back.webp",
+      "runtime_sha256": "7f30fede041fa48b085a288195ede80daae55d63c035d832c6fa7a0a861fe1c7",
+      "source_file": "guard-back-master.png",
+      "source_sha256": "e00660e45ceb367470c977ea74879cf26a176b2c40462943881d226a68b1df7c",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 19536,
+      "alpha_pixels": {
+        "transparent": 38781,
+        "opaque": 814,
+        "partial": 25941
+      },
+      "opaque_bounds": {
+        "left": 18,
+        "top": 48,
+        "right": 214,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.17173524150268335,
+        "left": 9,
+        "top": 36,
+        "foot_anchor_source": 692,
+        "baseline_source": 1187
+      },
+      "reference_file": "public/assets/generated/guard.webp",
+      "reference_sha256": "46457411b9645ef3a246ac538cb2adc4402c087a1976a5a13ab54b2db0ef5847",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "carrier-right",
+      "role": "carrier",
+      "facing": "right",
+      "runtime_file": "public/assets/generated/carrier-right.webp",
+      "runtime_sha256": "dd307ffb2935072cdfe5dfb9a6be4cb624d3301aca4de72ccdc00a7d7e1be003",
+      "source_file": "carrier-right-master.png",
+      "source_sha256": "e4702a8d5d584c9a4b49d64f37704f4d36210e3b44a9acc712bc909e20207687",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 14996,
+      "alpha_pixels": {
+        "transparent": 45830,
+        "opaque": 433,
+        "partial": 19273
+      },
+      "opaque_bounds": {
+        "left": 16,
+        "top": 42,
+        "right": 159,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.17662801070472792,
+        "left": -14,
+        "top": 30,
+        "foot_anchor_source": 802.5,
+        "baseline_source": 1190
+      },
+      "reference_file": "public/assets/generated/carrier.webp",
+      "reference_sha256": "6e9350777b6f012e69ee2c614c47e32bda41794af773f9383104fc7f0f5c9058",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "carrier-left",
+      "role": "carrier",
+      "facing": "left",
+      "runtime_file": "public/assets/generated/carrier-left.webp",
+      "runtime_sha256": "deebb60d0c41487888d2152a8255cb5700244d781a7ba09fa2a96815c15610e7",
+      "source_file": "carrier-left-master.png",
+      "source_sha256": "50efd6c9bbe3827cc8c15c97c56554657825f6e08e754efcedb68b87d6be14ee",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 15022,
+      "alpha_pixels": {
+        "transparent": 45228,
+        "opaque": 493,
+        "partial": 19815
+      },
+      "opaque_bounds": {
+        "left": 91,
+        "top": 42,
+        "right": 234,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.17951042611060744,
+        "left": 34,
+        "top": 27,
+        "foot_anchor_source": 524,
+        "baseline_source": 1188
+      },
+      "reference_file": "public/assets/generated/carrier.webp",
+      "reference_sha256": "6e9350777b6f012e69ee2c614c47e32bda41794af773f9383104fc7f0f5c9058",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "carrier-front",
+      "role": "carrier",
+      "facing": "front",
+      "runtime_file": "public/assets/generated/carrier-front.webp",
+      "runtime_sha256": "2e1b8b09b5fc70c88a18e3c02698e702bb7dbf8e0f5a864ee3b2de8475c6ebf0",
+      "source_file": "carrier-front-master.png",
+      "source_sha256": "f2ddcbd2d8e196a68287aafe522c8b11b209625bdcbe3174ce87f0ced4794919",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 17666,
+      "alpha_pixels": {
+        "transparent": 43082,
+        "opaque": 739,
+        "partial": 21715
+      },
+      "opaque_bounds": {
+        "left": 57,
+        "top": 42,
+        "right": 198,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.17902350813743217,
+        "left": 16,
+        "top": 28,
+        "foot_anchor_source": 626.5,
+        "baseline_source": 1185
+      },
+      "reference_file": "public/assets/generated/carrier.webp",
+      "reference_sha256": "6e9350777b6f012e69ee2c614c47e32bda41794af773f9383104fc7f0f5c9058",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "carrier-back",
+      "role": "carrier",
+      "facing": "back",
+      "runtime_file": "public/assets/generated/carrier-back.webp",
+      "runtime_sha256": "45c66ea1d1c535d06af841ea3512b7fa47bb2e002eb436a53a54ff9b346dd61b",
+      "source_file": "carrier-back-master.png",
+      "source_sha256": "ff62d7631e55ee288d265e1729fbad1cee757d25b2f3c4fed907930e1d28df00",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 16840,
+      "alpha_pixels": {
+        "transparent": 43201,
+        "opaque": 723,
+        "partial": 21612
+      },
+      "opaque_bounds": {
+        "left": 46,
+        "top": 43,
+        "right": 208,
+        "bottom": 240
+      },
+      "transform": {
+        "scale": 0.17615658362989323,
+        "left": 17,
+        "top": 31,
+        "foot_anchor_source": 627.5,
+        "baseline_source": 1189
+      },
+      "reference_file": "public/assets/generated/carrier.webp",
+      "reference_sha256": "6e9350777b6f012e69ee2c614c47e32bda41794af773f9383104fc7f0f5c9058",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "soldier-right",
+      "role": "soldier",
+      "facing": "right",
+      "runtime_file": "public/assets/generated/soldier-right.webp",
+      "runtime_sha256": "751a05320a40b19b1f9270a4e6cf51d7e22cc2bfafa0416405b452246b048a02",
+      "source_file": "soldier-right-master.png",
+      "source_sha256": "0ba6047c83886bd332a660434278e437a4a1091daf9c8ebe20131fbac839240c",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 9974,
+      "alpha_pixels": {
+        "transparent": 56302,
+        "opaque": 566,
+        "partial": 8668
+      },
+      "opaque_bounds": {
+        "left": 93,
+        "top": 16,
+        "right": 162,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.19631901840490798,
+        "left": -2,
+        "top": 10,
+        "foot_anchor_source": 664,
+        "baseline_source": 1172
+      },
+      "reference_file": "public/assets/generated/soldier.webp",
+      "reference_sha256": "f87d58f4c71dbe174a7eb0bd777e1e59501a06e8ee06f1d65ed5bc692bc0def9",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "soldier-left",
+      "role": "soldier",
+      "facing": "left",
+      "runtime_file": "public/assets/generated/soldier-left.webp",
+      "runtime_sha256": "20a9fb773788883eaf3f48ef374aafb976e0f5138d326fb6634279522354abee",
+      "source_file": "soldier-left-master.png",
+      "source_sha256": "726b60620e92657105830976bbd5370a9fd5e47373d5c260d515874080f00959",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 10574,
+      "alpha_pixels": {
+        "transparent": 55524,
+        "opaque": 564,
+        "partial": 9448
+      },
+      "opaque_bounds": {
+        "left": 70,
+        "top": 16,
+        "right": 159,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.19310344827586207,
+        "left": 5,
+        "top": 10,
+        "foot_anchor_source": 636,
+        "baseline_source": 1190
+      },
+      "reference_file": "public/assets/generated/soldier.webp",
+      "reference_sha256": "f87d58f4c71dbe174a7eb0bd777e1e59501a06e8ee06f1d65ed5bc692bc0def9",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "soldier-front",
+      "role": "soldier",
+      "facing": "front",
+      "runtime_file": "public/assets/generated/soldier-front.webp",
+      "runtime_sha256": "3ce0ff37f4c0033b5339798f607aaca8d9f588767d863f3af704fa4c56b3fae7",
+      "source_file": "soldier-front-master.png",
+      "source_sha256": "dd9cfd017392dd0e417c7ec7d4cc0fcf3b8af46cedb9db6ad58fa43e837ae689",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 14338,
+      "alpha_pixels": {
+        "transparent": 52680,
+        "opaque": 810,
+        "partial": 12046
+      },
+      "opaque_bounds": {
+        "left": 63,
+        "top": 16,
+        "right": 209,
+        "bottom": 238
+      },
+      "transform": {
+        "scale": 0.19495213228894692,
+        "left": 2,
+        "top": 9,
+        "foot_anchor_source": 647,
+        "baseline_source": 1183
+      },
+      "reference_file": "public/assets/generated/soldier.webp",
+      "reference_sha256": "f87d58f4c71dbe174a7eb0bd777e1e59501a06e8ee06f1d65ed5bc692bc0def9",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    },
+    {
+      "id": "soldier-back",
+      "role": "soldier",
+      "facing": "back",
+      "runtime_file": "public/assets/generated/soldier-back.webp",
+      "runtime_sha256": "9b687aabfc19262b8f295ae2b346fb75ef26614b8703f517314a87e9c302c97d",
+      "source_file": "soldier-back-master.png",
+      "source_sha256": "6e9866e18016eee93e3032608dc51ad669b0aecdd56988d35f352e6044ecbb88",
+      "source_width": 1254,
+      "source_height": 1254,
+      "width": 256,
+      "height": 256,
+      "has_alpha": true,
+      "bytes": 14104,
+      "alpha_pixels": {
+        "transparent": 52902,
+        "opaque": 832,
+        "partial": 11802
+      },
+      "opaque_bounds": {
+        "left": 57,
+        "top": 16,
+        "right": 180,
+        "bottom": 239
+      },
+      "transform": {
+        "scale": 0.19495213228894692,
+        "left": 5,
+        "top": 9,
+        "foot_anchor_source": 631.5,
+        "baseline_source": 1186
+      },
+      "reference_file": "public/assets/generated/soldier.webp",
+      "reference_sha256": "f87d58f4c71dbe174a7eb0bd777e1e59501a06e8ee06f1d65ed5bc692bc0def9",
+      "prompt_file": "docs/DIRECTIONAL_ART_PROMPTS.json",
+      "independently_generated": true,
+      "mirrored": false
+    }
+  ],
+  "renderer_alignment": {
+    "method": "All views pre-normalized by generator. Translate residual alpha>=128 bottom-edge differences to baseline240; no mirroring or view-dependent scale.",
+    "baselines_256px": {
+      "hero": {
+        "target": 240,
+        "right": 240,
+        "left": 240,
+        "front": 240,
+        "back": 240
+      },
+      "helper": {
+        "target": 240,
+        "right": 240,
+        "left": 239,
+        "front": 240,
+        "back": 239
+      },
+      "gunner": {
+        "target": 240,
+        "right": 240,
+        "left": 240,
+        "front": 240,
+        "back": 240
+      },
+      "guard": {
+        "target": 240,
+        "right": 240,
+        "left": 240,
+        "front": 240,
+        "back": 240
+      },
+      "carrier": {
+        "target": 240,
+        "right": 240,
+        "left": 240,
+        "front": 240,
+        "back": 241
+      },
+      "soldier": {
+        "target": 240,
+        "right": 240,
+        "left": 240,
+        "front": 239,
+        "back": 240
+      }
+    }
+  }
+}

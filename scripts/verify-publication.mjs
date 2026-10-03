@@ -26,9 +26,18 @@ for (const path of paths) {
   const local = readFileSync(`dist/${path.replace('./','')}`);
   assert.equal(createHash('sha256').update(data).digest('hex'),createHash('sha256').update(local).digest('hex'),`asset mismatch: ${path}`);
 }
-const images = readdirSync('public/assets/generated').filter(path => path.endsWith('.webp'));
-assert.equal(images.length,22);
-for (const path of images) await request(`assets/generated/${path}`);
+const imageRecords = ['docs/ART_ASSET_REGISTER.json', 'docs/DIRECTIONAL_ART_REGISTER.json']
+  .flatMap(path => JSON.parse(readFileSync(path, 'utf8')).assets);
+const images = readdirSync('public/assets/generated').filter(path => path.endsWith('.webp')).sort();
+const registeredImages = imageRecords.map(asset => asset.runtime_file.replace('public/assets/generated/', '')).sort();
+assert.equal(new Set(registeredImages).size, registeredImages.length, 'duplicate registered image');
+assert.deepEqual(images, registeredImages, 'published images must exactly match both artwork registers');
+for (const asset of imageRecords) {
+  const local = readFileSync(asset.runtime_file);
+  assert.equal(createHash('sha256').update(local).digest('hex'), asset.runtime_sha256, `local image mismatch: ${asset.id}`);
+  const data = Buffer.from(await (await request(asset.runtime_file.replace('public/', ''))).arrayBuffer());
+  assert.equal(createHash('sha256').update(data).digest('hex'), asset.runtime_sha256, `published image mismatch: ${asset.id}`);
+}
 assert.ok((await (await request('THIRD_PARTY_LICENSES.txt')).text()).includes('MIT'));
 // Verification must not treat the owner's suspension as a publication failure,
 // or query ranking while the runtime intentionally remains offline.

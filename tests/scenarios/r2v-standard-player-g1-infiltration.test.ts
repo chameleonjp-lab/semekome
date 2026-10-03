@@ -256,6 +256,7 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
   let supportDetourP2Interceptions = 0;
   let p1AwaySupportLaunches = 0;
   let attackCount = 0;
+  let corridorDashCount = 0;
   let coreShotIntentCount = 0;
   let coreContactCount = 0;
   let focusGuardId: (typeof PLAZA_GUARD_IDS)[number] | undefined;
@@ -375,12 +376,14 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
         state.actors.P1.location.pathGates.join(",") === "G1,G2,G3,G4,G5,G6,G7";
       if (state.dashes.P1) {
         nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
+      } else if (threatId && dashReady && distance <= state.rules.dashDistanceSubunits + 1_000) {
+        // This bounded mobility branch must precede the general threat branch.
+        // Dash moves only: it never counts as a personal shot or damage.
+        nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, mobilityDash: direction }));
+        if (nextState.lastStep.acceptedInputKinds.includes("mobilityDash")) corridorDashCount += 1;
       } else if (threatId) {
         nextState = stepBattle(state, publicP1Intent(state, { direction, shoot: true }));
-        if ((nextState.lastStep.acceptedInputKinds.includes("shoot") || nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact"))) attackCount += 1;
-      } else if (threatId && dashReady && distance <= state.rules.dashDistanceSubunits + 1_000) {
-        nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, mobilityDash: direction }));
-        if ((nextState.lastStep.acceptedInputKinds.includes("shoot") || nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact"))) attackCount += 1;
+        if (nextState.lastStep.acceptedInputKinds.includes("shoot")) attackCount += 1;
       } else if (phase === "core-route" && isInEnemyCoreRoom &&
           Math.abs(coreCenter.y - p1Position.y) > 50) {
         nextState = stepBattle(state, publicP1Intent(state, {
@@ -443,6 +446,15 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
     }
 
     if (nextState.lastStep.acceptedInputKinds.includes("bridge:core_contact")) coreContactCount += 1;
+    if (process.env.SEMEKOME_ROUTE_DIAGNOSTICS && nextState.actors.P1.health < state.actors.P1.health) {
+      const threat = nearestEnemyInP1Room(state);
+      console.log(JSON.stringify({ scenario: "route-damage-diagnostic", seed, tick: state.tick, phase,
+        position: state.fixedActors.P1.position, room: state.actors.P1.currentRoomId,
+        healthBefore: state.actors.P1.health, healthAfter: nextState.actors.P1.health,
+        facing: state.actorFacing.P1, accepted: nextState.lastStep.acceptedInputKinds,
+        threat, threatPosition: threat ? state.fixedActors[threat].position : null,
+        supportOrders: [state.allyOrders.P2?.kind, state.allyOrders.P3?.kind] }));
+    }
     state = nextState;
     if (!p1WasAlive && state.actors.P1.alive) {
       focusGuardId = undefined;
@@ -617,7 +629,7 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
     phase, deliveries, playerDeaths: state.actors.P1.deathCount, playerRoom: state.actors.P1.currentRoomId,
     traversedGates: state.actors.P1.location.pathGates, enemyGates: state.castles.enemy.openGateIds,
     crossedG1, laterGateCrossingTicks: [ g2CrossingTick, g3CrossingTick, g4CrossingTick, g5CrossingTick, g6CrossingTick, g7CrossingTick],
-    supportLaunches: p1AwaySupportLaunches, coreShots: coreShotIntentCount, coreContacts: coreContactCount,
+    supportLaunches: p1AwaySupportLaunches, corridorDashCount, coreShots: coreShotIntentCount, coreContacts: coreContactCount,
     supports: (["P2", "P3"] as const).map(id => ({ id, order: state.allyOrders[id]?.kind,
       area: state.actors[id].location.area, castle: state.actors[id].location.castleTeam, room: state.actors[id].currentRoomId,
       position: state.fixedActors[id].position, task: state.crew.assignments[id]?.task, health: state.actors[id].health })) }));
@@ -628,7 +640,8 @@ for (const seed of [20260913, 20260914, 20260916]) test(`seed ${seed} の標準�
   assert.ok(supportDetourP2Impacts > 0, "a P2/P3 detour projectile reaches enemy exterior P2");
   assert.equal(supportDetourP2Interceptions, 0, "enemy direct fire does not intercept the P2/P3 detour shots");
   assert.ok(state.castles.enemy.openGateIds.includes("G1"), `the standard player artillery opens G1 during the route (tick=${state.tick}, deliveries=${deliveries}, supportLaunches=${p1AwaySupportLaunches}, P1health=${state.castles.enemy.exterior.P1.health}, guards=${JSON.stringify(guardDamage)}, P1area=${state.actors.P1.location.area}, P1room=${state.actors.P1.currentRoomId}, phase=${phase}, outcome=${state.outcome})`);
-  assert.ok(attackCount > 0, "the plaza fight uses public directional shooting and dash contacts");
+  assert.ok(attackCount > 0, "the route uses public directional shooting");
+  assert.ok(corridorDashCount > 0, "a nearby corridor threat reaches the mobility-only dash branch");
   const dispatchedGuardGenerations = state.plaza.guardDeployments.enemy?.guardGenerations ?? {};
   for (const guardId of PLAZA_GUARD_IDS) {
     assert.ok(guardDamage[guardId] >= state.rules.actorHealth, `${guardId} receives enough combat damage to be defeated: ${JSON.stringify({guardDamage, guard: state.actors[guardId], phase, outcome: state.outcome, tick:state.tick, player:state.actors.P1.location, position:state.fixedActors.P1.position})}`);

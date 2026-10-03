@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { mkdtempSync, writeFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, writeFileSync, rmSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { execFileSync } from 'node:child_process';
@@ -30,6 +30,7 @@ test('publication checker validates static artifacts while paused without readin
         if (path === 'ranking-manifest.json') return Response.json(manifest);
         if (path === 'commit.txt') return new Response('a'.repeat(40));
         if (path === 'THIRD_PARTY_LICENSES.txt') return new Response('MIT');
+        if (path.startsWith('assets/generated/')) return new Response(process.env.SEMEKOME_STATIC_CORRUPT_IMAGE ? 'corrupt-image' : originalRead('public/' + path));
         return new Response('fixture-static-asset');
       };
     `);
@@ -38,7 +39,12 @@ test('publication checker validates static artifacts while paused without readin
     assert.equal(report.result, 'passed');
     assert.equal(report.rankingStatus, 'suspended_not_contacted');
     assert.equal(report.builtAssets, 2);
-    assert.equal(report.images, 22);
+    const registered = ['docs/ART_ASSET_REGISTER.json', 'docs/DIRECTIONAL_ART_REGISTER.json']
+      .flatMap(path => JSON.parse(readFileSync(path, 'utf8')).assets);
+    assert.equal(report.images, registered.length);
+    assert.throws(() => execFileSync(process.execPath, ['--import', fixture, 'scripts/verify-publication.mjs', 'a'.repeat(40)], {
+      encoding: 'utf8', stdio: 'pipe', env: { ...process.env, SEMEKOME_STATIC_CORRUPT_IMAGE: '1' },
+    }), /published image mismatch/, 'static image corruption must still fail validation');
     assert.equal(report.activeGame, undefined);
   } finally { rmSync(directory, { recursive: true, force: true }); }
 });
