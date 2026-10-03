@@ -66,8 +66,9 @@ test('visual fixture captures all six role sprites in four labeled facings', asy
   });
   await expect.poll(async () => page.evaluate(async () => {
     const art = await new Function('return import("/src/presentation/game-art.ts")')();
-    return ['hero', 'helper', 'gunner', 'guard', 'carrier', 'soldier'].filter(role => art.getGameArt(role)).length;
-  })).toBe(6);
+    return ['hero', 'helper', 'gunner', 'guard', 'carrier', 'soldier'].flatMap(role =>
+      ['up', 'down', 'left', 'right'].map(facing => art.getActorFacingArt(role, facing))).filter(Boolean).length;
+  })).toBe(24);
   await page.evaluate(async () => {
     const art = await new Function('return import("/src/presentation/game-art.ts")')();
     // Renderer review fixture only: no battle state or victory is simulated.

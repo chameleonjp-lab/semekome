@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { actorArtFacing, drawDirectionalActorArt, type ActorArtName, type ActorArtFacing } from '../../src/presentation/game-art.ts';
+import { actorArtFacing, actorFacingArtUrl, actorArtVerticalOffset, drawDirectionalActorArt, type ActorArtName, type ActorArtFacing } from '../../src/presentation/game-art.ts';
 import { castleExitGuide, floorAmmoRenderSize } from '../../src/presentation/battle-renderer.ts';
 import { createBattle } from '../../src/simulation/physical-battle.ts';
 
@@ -79,4 +79,50 @@ test('muzzle traces show only current-area visible shooters and expire by simula
   assert.deepEqual(visibleShotTraces(state, 'castle', 'player').map((shot) => shot.id), ['visible']);
   assert.deepEqual(visibleShotTraces(state, 'castle', 'enemy'), []);
   assert.equal(JSON.stringify(state), before, 'render projection never changes state');
+});
+
+
+test('all four authored assets use their matching role and direction', () => {
+  for (const role of ['hero', 'helper', 'gunner', 'guard', 'carrier', 'soldier'] as const) {
+    assert.equal(actorFacingArtUrl(role, 'up'), `/assets/generated/${role}-back.webp`);
+    assert.equal(actorFacingArtUrl(role, 'down'), `/assets/generated/${role}-front.webp`);
+    assert.equal(actorFacingArtUrl(role, 'left'), `/assets/generated/${role}-left.webp`);
+    assert.equal(actorFacingArtUrl(role, 'right'), `/assets/generated/${role}-right.webp`);
+  }
+});
+
+
+test('direction transitions keep one feet baseline at stationary world coordinates', async () => {
+  const { ACTOR_ART_BASELINES } = await import('../../src/presentation/actor-art-anchors.ts');
+  for (const [role, bounds] of Object.entries(ACTOR_ART_BASELINES)) for (const size of [18, 24, 48]) {
+    const y = 100;
+    const expected = y - size / 2 + bounds.target * size / 256;
+    for (const facing of ['up', 'down', 'left', 'right'] as const) {
+      const bottom = facing === 'up' ? bounds.back : facing === 'down' ? bounds.front : bounds[facing];
+      assert.equal(y - size / 2 + actorArtVerticalOffset(role as ActorArtName, facing, size) + bottom * size / 256, expected);
+    }
+  }
+});
+
+test('loaded normal frames use twenty-four distinct authored images without any mirror transform', async () => {
+  const host = globalThis as unknown as { Image?: unknown };
+  const original = host.Image;
+  host.Image = class { complete = true; naturalWidth = 256; src = ''; decoding = ''; onload = null; onerror = null; };
+  try {
+    const art = await import(new URL('../../src/presentation/game-art.ts?loaded-cardinal-test', import.meta.url).href);
+    const drawn: string[] = [];
+    const transforms: number[][] = [];
+    const context = { save() {}, restore() {}, translate() {},
+      scale(...args: number[]) { transforms.push(args); },
+      drawImage(image: { src: string }) { drawn.push(image.src); },
+    } as unknown as CanvasRenderingContext2D;
+    for (const role of ['hero', 'helper', 'gunner', 'guard', 'carrier', 'soldier']) {
+      for (const facing of ['up', 'down', 'left', 'right']) art.drawDirectionalActorArt(context, role, facing, 50, 50, 24);
+    }
+    assert.equal(drawn.length, 24);
+    assert.equal(new Set(drawn).size, 24);
+    assert.deepEqual(transforms, [], 'normal image rendering must never mirror or rescale a direction');
+  } finally {
+    if (original === undefined) delete host.Image; else host.Image = original;
+  }
 });

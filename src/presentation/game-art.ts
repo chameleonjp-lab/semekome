@@ -1,7 +1,11 @@
+import { ACTOR_ART_BASELINES } from './actor-art-anchors.ts';
+
 /**
  * Asset URLs and a tiny image cache for the game presentation layer.
  * Image objects are created once per asset, never from the render loop.
  */
+export const ACTOR_ART_NAMES = ['hero', 'helper', 'gunner', 'guard', 'carrier', 'soldier'] as const;
+
 export const GAME_ART_NAMES = [
   'hero', 'helper', 'gunner', 'guard', 'carrier', 'soldier',
   'turret', 'supply', 'core', 'gate', 'repair', 'floor', 'stage',
@@ -78,26 +82,56 @@ export function drawGameArt(
 /** Starts loading all visual assets without waiting for them. */
 export function requestGameArtLoad(): void {
   for (const name of GAME_ART_NAMES) getGameArt(name);
+  for (const name of ACTOR_ART_NAMES) for (const facing of ['up', 'down', 'left', 'right'] as const) getActorFacingArt(name, facing);
 }
 
 /** Four upright views; never rotate the entire robot or its labels sideways. */
 export type ActorArtFacing = 'up' | 'down' | 'left' | 'right';
-export type ActorArtName = 'hero' | 'helper' | 'gunner' | 'guard' | 'carrier' | 'soldier';
+export type ActorArtName = (typeof ACTOR_ART_NAMES)[number];
+
+export function actorFacingArtUrl(name: ActorArtName, facing: ActorArtFacing): string {
+  const view = facing === 'up' ? 'back' : facing === 'down' ? 'front' : facing;
+  return `${basePath}assets/generated/${name}-${view}.webp`;
+}
+
+export function actorArtVerticalOffset(name: ActorArtName, facing: ActorArtFacing, size: number): number {
+  const baseline = ACTOR_ART_BASELINES[name];
+  const source = facing === 'up' ? baseline.back : facing === 'down' ? baseline.front : baseline[facing];
+  return (baseline.target - source) * size / 256;
+}
+
+const directionalImageCache = new Map<string, HTMLImageElement | null>();
+export function getActorFacingArt(name: ActorArtName, facing: ActorArtFacing): HTMLImageElement | undefined {
+  const url = actorFacingArtUrl(name, facing);
+  if (!directionalImageCache.has(url)) {
+    if (typeof Image === 'undefined') { directionalImageCache.set(url, null); return undefined; }
+    const image = new Image();
+    image.decoding = 'async';
+    image.onload = () => { imageRevision += 1; };
+    image.onerror = () => { directionalImageCache.set(url, null); imageRevision += 1; };
+    directionalImageCache.set(url, image);
+    image.src = url;
+  }
+  const image = directionalImageCache.get(url);
+  return image && image.complete && image.naturalWidth > 0 ? image : undefined;
+}
 export function actorArtFacing(direction: { x: number; y: number }): ActorArtFacing {
   if (Math.abs(direction.x) >= Math.abs(direction.y) && direction.x !== 0) return direction.x < 0 ? 'left' : 'right';
   return direction.y < 0 ? 'up' : direction.y > 0 ? 'down' : 'right';
 }
 
-/** Code-authored front/back views keep role colors and equipment without new assets. */
+/** Four independently authored views; code shapes are loading/error fallbacks only. */
 export function drawDirectionalActorArt(
   context: CanvasRenderingContext2D, name: ActorArtName, facing: ActorArtFacing,
   x: number, y: number, size: number,
 ): void {
   context.save(); context.translate(x, y);
-  if (facing === 'left' || facing === 'right') {
-    context.scale(facing === 'left' ? -1 : 1, 1);
-    if (drawGameArt(context, name, -size / 2, -size / 2, size, size)) { context.restore(); return; }
+  const image = getActorFacingArt(name, facing);
+  if (image) {
+    try { context.drawImage(image, -size / 2, -size / 2 + actorArtVerticalOffset(name, facing, size), size, size); context.restore(); return; }
+    catch { /* Keep the upright fallback if a decoded asset becomes unavailable. */ }
   }
+  if (facing === 'left') context.scale(-1, 1);
   // An upright articulated robot: shoulders, two wheel-feet, torso and helmet.
   // Front has two luminous eyes; rear has a solid armor plate and exhaust slats.
   const accent = { hero: '#4ca9a5', helper: '#84ba9f', gunner: '#b28c65', guard: '#8b9fb9', carrier: '#d9ae57', soldier: '#ad7772' }[name];
