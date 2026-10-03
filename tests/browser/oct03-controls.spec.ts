@@ -49,6 +49,11 @@ test('automatic enemy tactics, five slots, directional shots, two-person follow 
   await expect(battle).toHaveAttribute('data-ally-p2-order', 'artillery');
   await expect(battle).toHaveAttribute('data-ally-p3-order', 'artillery');
   await page.getByLabel('味方命令', { exact: true }).click();
+  // Room information remains in the canvas footer and accessible DOM, but the
+  // duplicate overlay must not obscure the entrance-direction badge.
+  await expect(page.locator('.current-room')).toContainText('中央通路');
+  expect(await page.locator('.current-room').evaluate(element => getComputedStyle(element).clipPath)).toBe('inset(50%)');
+  expect(await page.getByLabel('味方命令', { exact: true }).evaluate(element => getComputedStyle(element).whiteSpace)).toBe('nowrap');
   await testInfo.attach('oct03-gameplay-controls', { body: await page.screenshot(), contentType: 'image/png' });
   expect(errors).toEqual([]);
 });
