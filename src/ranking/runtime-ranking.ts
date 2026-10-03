@@ -1,7 +1,12 @@
-import manifest from '../../ranking-manifest.json';
+import manifest from '../../ranking-manifest.json' with { type: 'json' };
 import { createRankingClient } from './ranking-client.ts';
 export interface RankingRuntime { client: ReturnType<typeof createRankingClient>; canonicalUrl: string; labUrl?: string }
 export function loadRankingRuntime(): RankingRuntime | undefined {
+  // Owner-requested suspension (2026-10-03). This precedes configuration,
+  // client creation and localStorage access: pending plays are retained and
+  // never retried. Re-enable only after an explicit owner instruction.
+  if (rankingSuspended()) return;
+  // Connection code remains for a separately reviewed future resumption.
   // Local development stays offline unless the public connection is configured.
   if (!import.meta.env.VITE_SUPABASE_REST_ENDPOINT || !import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY) return;
   try {
@@ -25,3 +30,6 @@ export function loadRankingRuntime(): RankingRuntime | undefined {
     };
   } catch { return; }
 }
+
+// No environment variable or saved preference may resume a user-requested stop.
+function rankingSuspended(): boolean { return true; }

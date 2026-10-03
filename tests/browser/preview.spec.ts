@@ -7,7 +7,7 @@ test('ホームからルールを閉じ、配置を確認してホームへ戻�
   await page.goto('/');
   await expect(page.getByRole('heading', { name: 'セメコメ', exact: true })).toBeVisible();
   await expect(page.locator('.home-notice')).toContainText('名前と編成を決めて出撃');
-  await expect(page.locator('.home-notice')).toContainText('標準');
+  await expect(page.locator('.home-notice')).toContainText('ランキングは一時停止中');
   await expect(page.locator('.home-art')).toHaveAttribute('src', /stage-v2\.webp/);
   await expect.poll(() => page.locator('.home-art').evaluate((node: HTMLImageElement) => node.complete && node.naturalWidth > 0)).toBe(true);
   await page.getByRole('button', { name: 'ルール説明' }).click();

@@ -83,7 +83,7 @@ export function openBattleSetup(app: HTMLElement, goHome: () => void): () => voi
       <section class="supply-setup"><h2>補助員の編成</h2>${['P2', 'P3'].map(id => `<label>${id}<select data-support-type>${SUPPORT_TYPES.map(type => `<option value="${type}">${SUPPORT_LABELS[type]}</option>`).join('')}</select></label>`).join('')}<p>同じ型を2人選べます。</p></section>
       <section class="supply-setup"><h2>対戦設定</h2><label>敵の作戦<select id="match-preset">${Object.entries(MATCH_PRESETS).map(([key, value]) => `<option value="${key}">${value.label}</option>`).join('')}</select></label><label>難易度<select id="match-difficulty">${Object.entries(DIFFICULTIES).map(([key, value]) => `<option value="${key}">${value.label}</option>`).join('')}</select></label><p id="preset-description"></p><label><input id="sound-enabled" type="checkbox">効果音を使う</label><label>遊び方<select id="practice"><option value="">通常戦</option>${Object.entries(PRACTICES).map(([key,value]) => `<option value="${key}">練習：${value.label}</option>`).join('')}</select></label><p>練習は通常戦の記録・ランキングに含めません。保存は名前・編成・設定・練習の達成まで。途中戦の再開は行いません。</p><p id="save-notice" role="status"></p></section>
       <button type="submit" class="primary">確認を開始する</button><button type="button" id="cancel-setup">ホームへ戻る</button></form>
-      <p class="scope-note">通常戦は、名前入力・補給編成・カウントダウン・実戦・結果画面まで進みます。${ranking ? '標準作戦・標準難易度・標準補給・運搬型2人がランキング対象です。' : '通信を使わない場合はランキング対象外で遊べます。'}</p></section>`;
+      <p class="scope-note">通常戦は、名前入力・補給編成・カウントダウン・実戦・結果画面まで進みます。${ranking ? '標準作戦・標準難易度・標準補給・運搬型2人がランキング対象です。' : 'ランキングは一時停止中です。開始・結果・得点の送信と保留分の再送は行いません。'}</p></section>`;
     bindArtImageFallbacks(app);
     const input = app.querySelector<HTMLInputElement>('#player-name')!;
     input.value = preferences.name;
@@ -580,7 +580,7 @@ function mountBattle(app: HTMLElement, name: string, playerSupplyAllocation: rea
       </dl>
       <p class="result-detail-note">敵を倒した記録は味方全体の合計です。同じ敵を復活後に倒した分は、延べ回数だけに加えます。</p>
       <section class="result-section" aria-labelledby="result-score-title"><h2 id="result-score-title">スコア</h2><p data-result-score-status="confirmed">${finalScore}点</p><p>勝利10万点＋外装破壊×1000＋一度でも倒した敵×20＋勝利時の残秒×10−主人公の死亡×100。加減点の合計は0点以上です。</p></section>
-      <section class="result-section" aria-labelledby="result-ranking-title"><h2 id="result-ranking-title">ランキング・共有</h2><p data-result-ranking-status="${ranking ? 'connected' : 'unavailable'}">${ranking ? '' : 'この試合はランキング対象外です。開始と結果はこの端末に保存しました。'}</p></section>
+      <section class="result-section" aria-labelledby="result-ranking-title"><h2 id="result-ranking-title">ランキング・共有</h2><p data-result-ranking-status="${ranking ? 'connected' : 'unavailable'}">${ranking ? '' : 'ランキングは一時停止中のため、この試合はランキング対象外です。開始と結果はこの端末に保存しました。外部への送信・保留分の再送は行いません。'}</p></section>
       <p class="result-note">次の試合は新しい試合状態として開始され、今回の入力・物体・復活状態を持ち越しません。</p>
       </div>
       <div class="result-actions"><button id="restart-battle" class="primary">再戦の準備へ</button><button id="result-home">ホームへ戻る</button><button id="download-replay" type="button">戦闘記録を保存</button></div>
