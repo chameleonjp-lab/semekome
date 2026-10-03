@@ -60,8 +60,7 @@ export function executeActorCommand(battle: BattleState, command: Record<string,
     if (!object || !object.weaponId || !Object.hasOwn(battle.catalog, object.weaponId) || object.location.kind !== "floor") return "not_floor_case";
     const location = object.location;
     if (location.area === "plaza" || actor.location.area !== "castle" || actor.location.castleTeam !== location.team || actor.location.roomId !== location.roomId || !near(actor.position, location.position)) return "out_of_range";
-    const weight = actor.cargoIds.reduce((sum, id) => sum + battle.world.objects[id].weight, 0);
-    if (actor.cargoIds.length >= battle.world.rules.maxCarrySlots || weight + object.weight > COMBAT_RULES.carryWeight) return "carry_limit";
+    if (actor.cargoIds.length >= battle.world.rules.maxCarrySlots) return "carry_limit";
     const slots = new Set(actor.cargoIds.map(id => {
       const loc = battle.world.objects[id].location;
       return loc.kind === "carried" || loc.kind === "reserved-carried" ? loc.slot : -1;

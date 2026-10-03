@@ -54,9 +54,9 @@ test('通常戦はホームから名前・カウントダウンを経て結果�
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const position = Number(await battle.getAttribute(`data-player-${axis}`));
       const distance = target - position;
-      if (Math.abs(distance) < 25) return;
+      if (Math.abs(distance) < 100) return;
       const key = axis === 'x' ? distance > 0 ? 'ArrowRight' : 'ArrowLeft' : distance > 0 ? 'ArrowDown' : 'ArrowUp';
-      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 50) - 1));
+      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 100) - 1));
       await walk(key, ticks === 1 ? 16 : ticks * 1000 / 60);
     }
     expect(Number(await battle.getAttribute(`data-player-${axis}`))).toBe(target);
@@ -65,12 +65,12 @@ test('通常戦はホームから名前・カウントダウンを経て結果�
   // Use the public movement and action controls for one real supply delivery.
   // The test never replaces actors, gates, positions, or battle state.
   await walkTo('x', 94500);
-  await walkTo('y', 13500);
+  await walkTo('y', 12500);
   await walk('ArrowLeft', 200);
-  await expect(page.locator('#battle-action')).toContainText('拾う');
-  await page.locator('#battle-action').click();
-  await page.clock.runFor(34);
-  await expect(page.locator('[data-slot="0"]')).not.toHaveText('左：空');
+  // Walking over the supply floor collects cargo without an action press.
+  await expect(page.locator('[data-slot]')).toHaveCount(5);
+  await expect(page.locator('#battle-action')).not.toContainText('拾う');
+  await expect(page.locator('[data-slot="0"]')).not.toHaveText('1：空');
   await walkTo('y', 11500);
   await walkTo('x', 106500);
   await walkTo('y', 12800);

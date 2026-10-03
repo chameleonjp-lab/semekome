@@ -1,6 +1,6 @@
 import { createBattle, stepBattle, type BattleIntent, type BattleState, type CreateBattleOptions } from '../simulation/physical-battle.ts';
 
-export const REPLAY_VERSION = 'semekome-physical-replay-1';
+export const REPLAY_VERSION = 'semekome-physical-replay-2';
 const MAX_TICKS = 25_200;
 const MAX_BYTES = 8_000_000;
 export interface BattleReplay {

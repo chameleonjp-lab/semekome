@@ -1,6 +1,6 @@
 {
   "document_version": "5.0",
-  "ruleset_id": "semekome-prototype-0.4-facing-castles",
+  "ruleset_id": "semekome-prototype-0.5-directional-cargo5",
   "status": "proposed_unplaytested",
   "notice_ja": "第5版の採用対向配置・画面状態・広場・結果表示を含む独自ゲーム用の初期調整値。ゲーム実装・プレイ検査・ランキング接続・権利調査の完了を示さない。",
   "simulation": {
@@ -17,15 +17,21 @@
   },
   "actor": {
     "health": 4,
-    "floor_speed_units_per_second": 3.0,
+    "floor_speed_units_per_second": 6.0,
     "radius_floor_units": 0.28,
-    "carry_slots": 2,
-    "carry_weight_limit": 3,
-    "weight_3_speed_multiplier": 0.85,
+    "carry_slots": 5,
+    "carry_weight_limit": null,
+    "weight_3_speed_multiplier": 1.0,
     "dash_distance_units": 1.2,
     "dash_duration_ticks": 12,
     "dash_cooldown_ticks": 54,
     "normal_contact_damage": 2,
+    "personal_shot_damage": 2,
+    "personal_shot_range_units": 8,
+    "personal_shot_cooldown_ticks": 18,
+    "personal_shot_trace_ticks": 8,
+    "personal_shot_equipment_damage": 10,
+    "mobility_dash_distance_units": 2.4,
     "dash_actor_damage": 1,
     "dash_equipment_damage": 10,
     "dash_knockback_units": 0.6,
@@ -137,6 +143,7 @@
     "requires_actor_in_core_room": true,
     "eligible_actors": "any_active_hostile_actor_at_tick_start_not_spawn_protected",
     "accepted_attack_types": [
+      "personal_shot",
       "dash"
     ],
     "requires_empty_cargo": false,

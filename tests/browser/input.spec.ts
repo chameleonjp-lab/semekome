@@ -121,7 +121,7 @@ test('Space押下中の画面離脱でkeyupを失っても支援技術のクリ�
   expect(presses).toBe(2);
 });
 
-test('近接攻撃はpointer・Xキー・支援技術クリックで一回だけ発火する', async ({ page }) => {
+test('射撃はpointer・Xキー・支援技術クリックで一回だけ発火する', async ({ page }) => {
   await page.goto('/');
   const result = await page.evaluate(async () => {
     const { bindAttackInput } = await new Function('return import("/src/input/battle-input.ts")')();

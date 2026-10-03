@@ -72,9 +72,9 @@ function home(): void {
     </section>
     <dialog aria-labelledby="rules-title"><div class="dialog-head"><h2 id="rules-title">セメコメのルール</h2><button id="close-rules">閉じる</button></div>
       <div class="rules-body"><ol>
-        <li><strong>弾を運び、砲台から撃つ</strong><br>弾を攻撃に使うか、迎撃や修理に使うかを選びます。補助員にも仕事を任せられます。</li>
+        <li><strong>弾を運び、砲台から撃つ</strong><br>弾は近づくと自動回収、全員5個まで持てます。砲台へ運び、補助員に弾回収や砲撃を任せます。「2人を引率」で仲間と移動できます。</li>
         <li><strong>外装7部位を壊して門を開く</strong><br>敵城の外装を1部位壊すごとに、核へ続く門が1つ開きます。</li>
-        <li><strong>広場を突破し、核を攻撃する</strong><br>広場の敵を倒して敵陣へ。7つの門がすべて開いてから、核へ突進を当てると勝利します。自陣の核を同じ条件で攻撃されると敗北します。</li>
+        <li><strong>広場を突破し、核を攻撃する</strong><br>移動方向へ射撃して広場の敵を倒し、敵陣へ。停止時は最後の向きに撃ちます。7つの門がすべて開いてから、核へ射撃を当てると勝利します。自陣の核を同じ条件で攻撃されると敗北します。</li>
       </ol><p class="rules-note">敵は30人。それぞれ倒されてから20秒後に復活します。主人公は5秒間、進行中の戦場を見た後に自陣で復活します。<br><br>外装をすべて壊しただけでは決着しません。</p></div>
     </dialog>`;
   const homeStage = document.querySelector<HTMLImageElement>('.home-art');

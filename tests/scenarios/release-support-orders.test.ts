@@ -68,7 +68,7 @@ test('repair preset E28 transports real supply and never gets two movement steps
     const before = { ...state.fixedActors.E28.position };
     state = stepBattle(state);
     const after = state.fixedActors.E28.position;
-    assert.ok(Math.hypot(after.x - before.x, after.y - before.y) <= 51, 'patrol and repair cannot both move E28 in one tick');
+    assert.ok(Math.hypot(after.x - before.x, after.y - before.y) <= 101, 'patrol and repair cannot both move E28 in one tick');
     for (const event of state.lastStep.events) {
       if (event.type === 'repair_started' && event.actorId === 'E28') repairCaseId = event.objectId;
       if (event.type === 'repair_completed' && event.actorId === 'E28') completed = true;

@@ -33,7 +33,20 @@ for (const pendingResult of [false, true]) {
     await expect(page.locator('[data-result-ranking-status]')).toContainText('ランキングは一時停止中');
     await expect(page.getByRole('button', { name: '同じ結果を再送する' })).toHaveCount(0);
     await expect(page.getByRole('link', { name: '実験場の詳細ランキング' })).toHaveCount(0);
+    await expect(page.getByRole('button', { name: '結果を共有する' })).toBeVisible();
+    await expect(page.getByRole('button', { name: '結果をコピーする' })).toBeVisible();
+    await expect(page.getByLabel('結果の共有')).toContainText('ランキング対象外');
+    await expect(page.getByLabel('結果の共有')).toContainText('https://chameleonjp-lab.github.io/semekome/');
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, 'share', { configurable: true, value: async () => { throw new DOMException('Canceled', 'AbortError'); } });
+    });
+    const match = await page.locator('.battle-result').getAttribute('data-match-id');
+    await page.getByRole('button', { name: '結果を共有する' }).click();
+    await expect(page.locator('.battle-result')).toHaveAttribute('data-match-id', match!);
+    expect(requests).toEqual([]);
     await page.getByRole('button', { name: '再戦の準備へ' }).click();
+    // Check before reload as well: the init script must not hide a mutated queue.
+    expect(await page.evaluate(() => localStorage.getItem('semekome-pending-ranking-v1'))).toBe(pending);
     await page.reload();
     expect(await page.evaluate(() => localStorage.getItem('semekome-pending-ranking-v1'))).toBe(pending);
     expect(requests).toEqual([]);

@@ -12,7 +12,7 @@ import {
 const NEUTRAL: BattleDirection = { x: 0, y: 0 };
 const PLAZA_Y = 35_500;
 const P1_AMMO_APPROACH_X = 94_500;
-const P1_AMMO_PICKUP_Y = 13_500;
+const P1_AMMO_PICKUP_Y = 12_500;
 const P1_TURRET_TRAVEL_Y = 12_000;
 const P1_TURRET_APPROACH_X = 105_850;
 const P1_EXIT_ROUTE_Y = 25_500;
@@ -38,9 +38,20 @@ function sign(value: number): -1 | 0 | 1 {
 
 function p1ToAmmoDirection(state: BattleState): BattleDirection {
   const position = state.fixedActors.P1.position;
-  if (Math.abs(position.x - P1_AMMO_APPROACH_X) > 50) return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
-  if (Math.abs(position.y - P1_AMMO_PICKUP_Y) > 50) return { x: 0, y: sign(P1_AMMO_PICKUP_Y - position.y) };
-  return { x: -1, y: 0 };
+  // Cases now spawn on walkable cells around the port. Approach the actual
+  // floor case from above the equipment instead of walking into its body.
+  const candidate = Object.values(state.battleCases)
+    .filter(item => item.currentTeam === "player" && item.location === "floor" && item.roomId === "ammo_a")
+    .sort((a, b) => a.createdTick - b.createdTick || a.id.localeCompare(b.id))[0];
+  const target = candidate?.position ?? { x: P1_AMMO_APPROACH_X, y: P1_AMMO_PICKUP_Y };
+  const sign = (value: number): -1 | 0 | 1 => value > 0 ? 1 : value < 0 ? -1 : 0;
+  if (position.y > 25_500 && Math.abs(position.x - P1_AMMO_APPROACH_X) > 50)
+    return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
+  if (Math.abs(position.x - target.x) > 50) {
+    if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
+    return { x: sign(target.x - position.x), y: 0 };
+  }
+  return { x: 0, y: sign(target.y - position.y) };
 }
 
 function isNearPlayerTurret(state: BattleState): boolean {
@@ -63,6 +74,12 @@ function p1ToTurretDirection(state: BattleState): BattleDirection {
 
 function p1ToPlazaDirection(state: BattleState): BattleDirection {
   const position = state.fixedActors.P1.position;
+  // A delayed siege impact can finish while P1 is collecting the next case.
+  // Leave the ammo equipment via its clear upper edge before heading south.
+  if (position.y < 20_000 && position.x < P1_AMMO_APPROACH_X - 50) {
+    if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
+    return { x: 1, y: 0 };
+  }
   if (Math.abs(position.x - P1_EXIT_X) > 50) {
     if (Math.abs(position.y - P1_EXIT_ROUTE_Y) > 50) return { x: 0, y: sign(P1_EXIT_ROUTE_Y - position.y) };
     return { x: sign(P1_EXIT_X - position.x), y: 0 };
@@ -108,7 +125,11 @@ function p1ToActorDirection(state: BattleState, actorId: string): BattleDirectio
     if (PLAZA_GUARD_IDS.some((actorId) => state.actors[actorId].alive)) return NEUTRAL;
     return p1ToEnemyCastleDirection(state);
   }
-  const direction = { x: sign(target.x - position.x), y: sign(target.y - position.y) };
+  // Cardinal weapons need a firing lane; diagonal pursuit is not aiming.
+  const dx = target.x - position.x, dy = target.y - position.y;
+  const direction: BattleDirection = Math.abs(dy) > 300 && Math.abs(dx) > 300
+    ? { x: 0, y: sign(dy) }
+    : Math.abs(dx) >= Math.abs(dy) ? { x: sign(dx), y: 0 } : { x: 0, y: sign(dy) };
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
@@ -164,7 +185,7 @@ function p1ToNearestGuardDirection(state: BattleState, preferredGuardId?: (typeo
   return direction.x === 0 && direction.y === 0 ? { x: 1, y: 0 } : direction;
 }
 
-test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃破し敵城側へ越境する", { timeout: 300_000 }, () => {
+test("標準配分の主人公P1は広場警備3人を公開射撃と突進で撃破し敵城側へ越境する", { timeout: 300_000 }, () => {
   let state = createBattle({ matchId: "r2r-standard-plaza-breakthrough", seed: 20260901 });
   assert.deepEqual(state.logistics.playerAllocation, STANDARD_ALLOCATION);
 
@@ -187,6 +208,11 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
   for (let tick = 0; tick < state.matchLimitTicks && state.phase === "running"; tick += 1) {
     if (!state.actors.P1.alive) {
       state = stepBattle(state);
+      // Spectating does not pause combat: retain damage from every update.
+      for (const event of state.lastStep.events) {
+        if (event.type === "actor_damaged" && PLAZA_GUARD_IDS.includes(event.actorId as (typeof PLAZA_GUARD_IDS)[number]))
+          guardDamage[event.actorId as (typeof PLAZA_GUARD_IDS)[number]] += event.amount;
+      }
       if (state.actors.P1.alive) {
         focusGuardId = undefined;
         phase = deliveries === 0 ? "pickup" : "return-plaza";
@@ -196,22 +222,22 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
 
     let nextState: BattleState;
     if (phase === "pickup") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       const intent = interaction.handles.includes("pickup")
-        ? publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "pickup", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToAmmoDirection(state) });
       nextState = stepBattle(state, intent);
     } else if (phase === "turret") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       const intent = interaction.handles.includes("deliver")
-        ? publicP1Intent(state, { handle: "deliver", slot: 0, route: "direct", part: "P1", contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "deliver", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), route: "direct", part: "P1", contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToTurretDirection(state) });
       nextState = stepBattle(state, intent);
     } else if (phase === "plaza-route" || phase === "return-plaza") {
       const direction = phase === "return-plaza" ? p1FromRespawnToPlazaDirection(state) : p1ToPlazaDirection(state);
       nextState = stepBattle(state, publicP1Intent(state, { direction }));
     } else {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       const dashReady = state.tick >= (state.dashCooldownUntilTick.P1 ?? 0);
       if (state.dashes.P1) {
         nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL }));
@@ -219,14 +245,14 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           PLAZA_GUARD_IDS.includes(interaction.attackTargetId as (typeof PLAZA_GUARD_IDS)[number])) {
         const targetId = interaction.attackTargetId;
         const direction = p1ToActorDirection(state, targetId);
-        nextState = stepBattle(state, publicP1Intent(state, { direction, attack: true }));
-        if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
+        nextState = stepBattle(state, publicP1Intent(state, { direction, shoot: true }));
+        if ((nextState.lastStep.acceptedInputKinds.includes("shoot") || nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact"))) {
           attackCount += 1;
         }
       } else if (PLAZA_GUARD_IDS.every((actorId) => !state.actors[actorId].alive)) {
         const routeDirection = p1ToEnemyCastleDirection(state);
         nextState = dashReady
-          ? stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: routeDirection }))
+          ? stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, mobilityDash: routeDirection }))
           : stepBattle(state, publicP1Intent(state, { direction: routeDirection }));
       } else {
         // Keep one observed guard in focus until that actor is defeated; a
@@ -244,14 +270,13 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
           state.actors.P1.location.area === "plaza" &&
           focusActor.currentRoomId === state.actors.P1.currentRoomId;
         if (focusGuardId && focusSharesPlazaSpace) {
-          // Keep the public combat snapshot stable while the observed guard
-          // is in contact recovery. The direction is still public movement
-          // toward that observed target, so P1 closes the knockback gap while
-          // attack suppresses a stale NPC movement snapshot.
-          nextState = stepBattle(state, publicP1Intent(state, { direction: focusDirection, attack: true }));
+          // Aim through public movement and shoot while NPCs keep updating;
+          // no legacy contact input freezes their movement or return fire.
+          nextState = stepBattle(state, publicP1Intent(state, { direction: focusDirection, shoot: true }));
+          if (nextState.lastStep.acceptedInputKinds.includes("shoot")) attackCount += 1;
         } else if (focusGuardId && dashReady && focusDistance <= state.rules.dashDistanceSubunits + 1_000) {
-          nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, dash: focusDirection }));
-          if (nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
+          nextState = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, mobilityDash: focusDirection }));
+          if ((nextState.lastStep.acceptedInputKinds.includes("shoot") || nextState.lastStep.acceptedInputKinds.includes("bridge:actor_contact"))) {
             attackCount += 1;
           }
         } else {
@@ -267,7 +292,7 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
       guardDamage[guardId] += event.amount;
     }
     if (focusGuardId && !state.actors[focusGuardId].alive) focusGuardId = undefined;
-    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    if (phase === "pickup" && state.actors.P1.cargoIds.length > 0) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
       deliveries += 1;
       phase = "plaza-route";
@@ -290,10 +315,10 @@ test("標準配分の主人公P1は広場警備3人を公開接触攻撃で撃�
     [...PLAZA_GUARD_IDS].sort(),
     "the standard AI keeps all three plaza guard registrations generation-bound",
   );
-  assert.ok(attackCount > 0, "the battle uses public contact attacks");
+  assert.ok(attackCount > 0, "the battle uses public directional shooting and dash contacts");
   for (const guardId of PLAZA_GUARD_IDS) {
-    assert.equal(guardDamage[guardId] >= state.rules.actorHealth, true, guardId + " receives enough public contact damage to be defeated");
-    assert.equal(state.actors[guardId].alive, false, guardId + " is defeated before the crossing");
+    assert.equal(guardDamage[guardId] >= state.rules.actorHealth, true, guardId + " receives enough combat damage to be defeated");
+    assert.ok(state.actors[guardId].deathCount >= 1, guardId + " has an actual defeat before crossing; a 20-second respawn does not erase it");
   }
   assert.equal(enteredEnemyCastle, true, "held public direction crosses after every live plaza guard is defeated");
   assert.equal(state.actors.P1.location.castleTeam, "enemy");

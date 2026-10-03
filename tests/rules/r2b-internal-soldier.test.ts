@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { floorCell } from "../../src/actors/movement.ts";
+import { floorCell, ACTOR_SPEED_SUBUNITS_PER_TICK } from "../../src/actors/movement.ts";
 import { createBattle, stepBattle, type BattleState } from "../../src/simulation/physical-battle.ts";
 
 function p1Intent(state: BattleState) {
@@ -29,8 +29,8 @@ test("R2b internal soldiers choose authored plaza/assault goals and move without
   assert.deepEqual(next.enemyDecisions.E29.intent, { kind: "move_goal", roomId: "central_corridor", purpose: "assault" });
   assert.equal(next.actors.E25.currentRoomId, "repair");
   assert.equal(next.actors.E29.currentRoomId, "command");
-  assert.equal(next.fixedActors.E25.position.x, state.fixedActors.E25.position.x - 50);
-  assert.equal(next.fixedActors.E29.position.x, state.fixedActors.E29.position.x - 50);
+  assert.equal(next.fixedActors.E25.position.x, state.fixedActors.E25.position.x - ACTOR_SPEED_SUBUNITS_PER_TICK);
+  assert.equal(next.fixedActors.E29.position.x, state.fixedActors.E29.position.x - ACTOR_SPEED_SUBUNITS_PER_TICK);
   assert.equal(next.fixedActors.E25.position.y, state.fixedActors.E25.position.y);
   assert.equal(next.fixedActors.E29.position.y, state.fixedActors.E29.position.y);
 });
@@ -58,7 +58,7 @@ test("R2b assault soldiers defend a current breach and resume after the invader 
   }
 });
 
-test("R2b internal soldier defense starts an AI dash and bridges damage with the public tick", () => {
+test("R2b internal soldier defense shoots along its facing with the public tick", () => {
   const state = createBattle({ matchId: "r2b-internal-defend", seed: 313 });
   const enemyPosition = { ...state.fixedActors.E17.position };
   placeP1InEnemyRoom(state, "central_corridor", { x: enemyPosition.x - 1_200, y: enemyPosition.y });
@@ -69,12 +69,15 @@ test("R2b internal soldier defense starts an AI dash and bridges damage with the
   }
 
   assert.deepEqual(next.enemyDecisions.E17.intent, { kind: "defend", targetId: "P1" });
-  assert.equal(next.actors.P1.health, next.actors.P1.maxHealth - next.rules.dashActorDamage);
+  assert.equal(next.actors.P1.health, next.actors.P1.maxHealth - next.rules.normalContactDamage);
   assert.equal(next.lastStep.events.some((event) => event.type === "actor_damaged" && event.actorId === "P1"), true);
+  assert.ok(next.shots.some(shot => shot.actorId === "E17"));
+  assert.equal(next.dashes.E17, undefined, "personnel combat is shooting, not an AI dash");
 });
 
 test("R2b low-health internal soldiers retreat away from a local threat", () => {
   const state = createBattle({ matchId: "r2b-internal-retreat", seed: 317 });
+  for (const actor of Object.values(state.actors)) if (actor.id !== "P1" && actor.id !== "E17") actor.protectedUntilTick = 10_000;
   const enemy = state.actors.E17;
   enemy.health = 2;
   const enemyStart = { ...state.fixedActors.E17.position };

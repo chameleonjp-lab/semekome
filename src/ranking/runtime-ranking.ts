@@ -1,5 +1,6 @@
 import manifest from '../../ranking-manifest.json' with { type: 'json' };
 import { createRankingClient } from './ranking-client.ts';
+import { rankingSuspended } from './ranking-policy.ts';
 export interface RankingRuntime { client: ReturnType<typeof createRankingClient>; canonicalUrl: string; labUrl?: string }
 export function loadRankingRuntime(): RankingRuntime | undefined {
   // Owner-requested suspension (2026-10-03). This precedes configuration,
@@ -30,6 +31,3 @@ export function loadRankingRuntime(): RankingRuntime | undefined {
     };
   } catch { return; }
 }
-
-// No environment variable or saved preference may resume a user-requested stop.
-function rankingSuspended(): boolean { return true; }

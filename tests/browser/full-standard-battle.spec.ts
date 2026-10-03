@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('通常の初期配置から画面入力だけで7門を越え、P1のコア突進で結果まで進む @full-playthrough', async ({ page }) => {
+test('通常の初期配置から画面入力だけで7門を越え、P1のコア射撃で結果まで進む @full-playthrough', async ({ page }) => {
   test.setTimeout(600000);
   // Observe the physical coordinator without changing positions, health, gates,
   // actors, or outcomes. Deterministic seed is the sole initial test condition.
@@ -40,7 +40,7 @@ test('通常の初期配置から画面入力だけで7門を越え、P1のコ�
         const intent = driver(state);
         (globalThis as any).__lastPilotIntent = intent;
         (document.activeElement as HTMLElement)?.blur();
-        const direction = intent?.dash ?? intent?.direction ?? {x:0,y:0};
+        const direction = intent?.mobilityDash ?? intent?.direction ?? {x:0,y:0};
         setDirection(direction.x, direction.y);
         if (intent?.route && document.querySelector('#route-toggle')?.getAttribute('data-route') !== intent.route) {
           const toggle = document.querySelector<HTMLButtonElement>('#route-toggle')!;
@@ -51,13 +51,12 @@ test('通常の初期配置から画面入力だけで7門を越え、P1のコ�
           const command = intent.allyCommand;
           const kind = document.querySelector<HTMLSelectElement>(`[data-ally-kind="${command.allyId}"]`)!;
           kind.value = command.kind; kind.dispatchEvent(new Event('change',{bubbles:true}));
-          const room = document.querySelector<HTMLSelectElement>(`[data-ally-room="${command.allyId}"]`)!;
-          room.value = command.targetRoomId!; room.dispatchEvent(new Event('change',{bubbles:true}));
           document.querySelector<HTMLButtonElement>(`[data-ally-submit="${command.allyId}"]`)!.click();
         }
-        if (intent?.handle) document.querySelector<HTMLButtonElement>('#battle-action')!.click();
-        if (intent?.attack) { keyboard('x',true); keyboard('x',false); }
-        if (intent?.dash) { keyboard('Space',true); keyboard('Space',false); setDirection(0,0); }
+        if (intent?.slot !== undefined) document.querySelector<HTMLButtonElement>(`[data-slot="${intent.slot}"]`)!.click();
+        if (intent?.handle && intent.handle !== "pickup") document.querySelector<HTMLButtonElement>('#battle-action')!.click();
+        if (intent?.shoot || intent?.attack) { keyboard('x',true); keyboard('x',false); }
+        if (intent?.mobilityDash) { keyboard('Space',true); keyboard('Space',false); setDirection(0,0); }
       }
       requestAnimationFrame(drive);
     };

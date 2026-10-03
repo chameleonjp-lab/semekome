@@ -29,15 +29,19 @@ test("public commands reject injected damage, teleportation, core hits, NPC impe
   assert.equal(next.world.phase, "running");
 });
 
-test("pickup checks actual distance, castle, room, slots and weight; two heavy cases cannot be carried", () => {
+test("pickup checks distance, castle, room and five slots; weight does not reduce capacity", () => {
   const b = createBattle();
   atTurret(b, "P1");
   caseAtActor(b, "a", "dense_payload");
   caseAtActor(b, "b", "dense_payload");
   caseAtActor(b, "c", "standard_slug");
   const next = stepBattle(b, [command(b, "pickup", { objectId: "a" }), command(b, "pickup", { objectId: "b" }), command(b, "pickup", { objectId: "c" })]);
-  assert.deepEqual(next.world.actors.P1.cargoIds, ["a", "c"]);
-  assert.equal(next.lastCombatStep.rejected[0]?.reason, "carry_limit");
+  assert.deepEqual(next.world.actors.P1.cargoIds, ["a", "b", "c"]);
+  assert.equal(next.lastCombatStep.rejected.length, 0);
+  for (const id of ["d", "e", "f"]) caseAtActor(next, id, "dense_payload");
+  const full = stepBattle(next, ["d", "e", "f"].map(objectId => command(next, "pickup", { objectId })));
+  assert.equal(full.world.actors.P1.cargoIds.length, 5);
+  assert.equal(full.lastCombatStep.rejected[0]?.reason, "carry_limit");
   for (const mismatch of ["distance", "room", "team"]) {
     const invalid = cloneBattle(b);
     const location = invalid.world.objects.a.location;

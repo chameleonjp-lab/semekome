@@ -4,13 +4,13 @@ test('設定と名前を戻し、練習は通常戦の保存記録へ混ぜな�
   await page.goto('/');
   await page.getByRole('button', { name: '通常戦を始める' }).click();
   await page.getByLabel('あなたの名前').fill('前回の編成');
-  await page.locator('#match-preset').selectOption('repair');
+  await expect(page.locator('#match-preset')).toHaveCount(0);
   await page.locator('#match-difficulty').selectOption('easy');
   await page.locator('[data-support-type]').first().selectOption('mechanic');
   await page.locator('#practice').selectOption('transport');
   await page.getByRole('button', { name: '確認を開始する' }).click();
   await expect(page.locator('.battle')).toHaveAttribute('data-flow', 'practice');
-  await expect(page.locator('.battle')).toHaveAttribute('data-preset', 'repair');
+  await expect(page.locator('.battle')).toHaveAttribute('data-preset', 'standard');
   await expect(page.locator('.battle')).toHaveAttribute('data-difficulty', 'easy');
   const persisted = await page.evaluate(() => Object.keys(sessionStorage));
   expect(persisted.filter(key => key.includes('battle-session'))).toEqual([]);
@@ -18,7 +18,7 @@ test('設定と名前を戻し、練習は通常戦の保存記録へ混ぜな�
   await page.locator('#leave-battle').click();
   await page.getByRole('button', { name: '通常戦を始める' }).click();
   await expect(page.getByLabel('あなたの名前')).toHaveValue('前回の編成');
-  await expect(page.locator('#match-preset')).toHaveValue('repair');
+  await expect(page.locator('#match-preset')).toHaveCount(0);
   await expect(page.locator('#match-difficulty')).toHaveValue('easy');
   await expect(page.locator('[data-support-type]').first()).toHaveValue('mechanic');
 });
@@ -44,21 +44,21 @@ test('運搬と砲撃の練習を通常操作で達成し、やり直しと終�
     for (let attempt = 0; attempt < 30; attempt++) {
       const position = Number(await battle.getAttribute(`data-player-${axis}`));
       const distance = target - position;
-      if (Math.abs(distance) < 25) return;
+      if (Math.abs(distance) < 100) return;
       const key = axis === 'x' ? distance > 0 ? 'ArrowRight' : 'ArrowLeft' : distance > 0 ? 'ArrowDown' : 'ArrowUp';
-      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 50) - 1));
+      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 100) - 1));
       await walk(key, ticks === 1 ? 16 : ticks * 1000 / 60);
     }
     expect(Number(await battle.getAttribute(`data-player-${axis}`)), `normal movement reaches ${axis}=${target}`).toBe(target);
   };
   // Follow the authored A-room passages, never teleport or inject world events.
   await walkTo('x', 94500);
-  await walkTo('y', 13500);
+  await walkTo('y', 12500);
   await walk('ArrowLeft', 200);
-  await expect(page.locator('#battle-action')).toContainText('拾う');
-  await page.locator('#battle-action').click();
-  await page.clock.runFor(34);
-  await expect(page.locator('[data-slot="0"]')).not.toHaveText('左：空');
+  // Walking over the supply floor collects cargo without an action press.
+  await expect(page.locator('[data-slot]')).toHaveCount(5);
+  await expect(page.locator('#battle-action')).not.toContainText('拾う');
+  await expect(page.locator('[data-slot="0"]')).not.toHaveText('1：空');
   await walkTo('y', 11500);
   await walkTo('x', 106500);
   await walkTo('y', 12800);
@@ -92,21 +92,21 @@ test('迎撃練習でP1が実際に発射した弾と敵弾の接触を達成す
     for (let attempt = 0; attempt < 30; attempt++) {
       const position = Number(await battle.getAttribute(`data-player-${axis}`));
       const distance = target - position;
-      if (Math.abs(distance) < 25) return;
+      if (Math.abs(distance) < 100) return;
       const key = axis === 'x' ? distance > 0 ? 'ArrowRight' : 'ArrowLeft' : distance > 0 ? 'ArrowDown' : 'ArrowUp';
-      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 50) - 1));
+      const ticks = Math.max(1, Math.min(120, Math.floor(Math.abs(distance) / 100) - 1));
       await walk(key, ticks === 1 ? 16 : ticks * 1000 / 60);
     }
     expect(Number(await battle.getAttribute(`data-player-${axis}`)), `normal movement reaches ${axis}=${target}`).toBe(target);
   };
   // Follow the authored A-room passages, never teleport or inject world events.
   await walkTo('x', 94500);
-  await walkTo('y', 13500);
+  await walkTo('y', 12500);
   await walk('ArrowLeft', 200);
-  await expect(page.locator('#battle-action')).toContainText('拾う');
-  await page.locator('#battle-action').click();
-  await page.clock.runFor(34);
-  await expect(page.locator('[data-slot="0"]')).not.toHaveText('左：空');
+  // Walking over the supply floor collects cargo without an action press.
+  await expect(page.locator('[data-slot]')).toHaveCount(5);
+  await expect(page.locator('#battle-action')).not.toContainText('拾う');
+  await expect(page.locator('[data-slot="0"]')).not.toHaveText('1：空');
   await walkTo('y', 11500);
   await walkTo('x', 106500);
   await walkTo('y', 12800);

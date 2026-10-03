@@ -156,7 +156,7 @@ export function canSupplyProduce(battle: BattleState, team: TeamId): boolean {
 
 /** R2b movement will consume this multiplier; it does not itself move actors. */
 export function movementMultiplier(battle: BattleState, sample: FloorSample, carriedWeight: number): number {
-  let multiplier = carriedWeight >= COMBAT_RULES.carryWeight ? COMBAT_RULES.heavyMultiplier : 1;
+  let multiplier = 1; // Cargo count, not weight, controls the carrying limit.
   const [homeX, y] = layoutSource.front_entry.cell;
   const layout = sample.castleTeam === "player" ? battle.world.layout.home : battle.world.layout.enemy;
   const center = { x: sample.castleTeam === "player" ? homeX : layout.widthCells - 1 - homeX, y };

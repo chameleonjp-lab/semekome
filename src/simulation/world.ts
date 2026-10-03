@@ -289,7 +289,7 @@ function coreCandidateIsValid(
   // must explicitly say that the first contact was the core; a caller's
   // optional `hit` boolean is never sufficient.
   if (input.collision !== "core") return false;
-  if (input.kind === "core_attack" && input.attackType !== "dash") return false;
+  if (input.kind === "core_attack" && input.attackType !== "dash" && input.attackType !== "personal_shot") return false;
   if (input.kind === "trusted_collision" && input.attackType !== undefined && input.attackType !== "dash") return false;
   const targetTeam = input.targetTeam;
   if (targetTeam !== PLAYER_TEAM && targetTeam !== ENEMY_TEAM) return false;

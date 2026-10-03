@@ -366,7 +366,7 @@ def main(argv=None) -> int:
     cases = data['ORIGINAL_CASES.json']
     entries = cases.get('cases', cases.get('items', [])) if isinstance(cases, dict) else cases
     checks['eight_original_cases'] = len(entries) == 8
-    checks['ruleset_bumped'] = r['ruleset_id'] == 'semekome-prototype-0.4-facing-castles'
+    checks['ruleset_bumped'] = r['ruleset_id'] == 'semekome-prototype-0.5-directional-cargo5'
     ranking = data['RANKING_INTEGRATION_PLAN.json']
     manifest = json.loads((root.parents[2] / 'ranking-manifest.json').read_text(encoding='utf-8'))
     checks['ranking_plan_matches_release_contract'] = (

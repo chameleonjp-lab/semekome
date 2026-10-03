@@ -1,3 +1,5 @@
+import { PERSONAL_SHOT_RANGE, PERSONAL_SHOT_COOLDOWN_TICKS, PERSONAL_SHOT_TRACE_TICKS, PERSONAL_SHOT_EQUIPMENT_DAMAGE, MOBILITY_DASH_DISTANCE_SUBUNITS, PERSONAL_SHOT_DAMAGE } from "../actors/personal-weapon.ts";
+export { PERSONAL_SHOT_RANGE, PERSONAL_SHOT_COOLDOWN_TICKS } from "../actors/personal-weapon.ts";
 import { MATCH_PRESETS, DIFFICULTIES, validateMatchOptions, type MatchPreset, type Difficulty } from "../content/match-presets.ts";
 import { validateSupportTypes, type SupportType } from '../content/support-types.ts';
 import { createWorld, stepWorld } from "./world.ts";
@@ -47,6 +49,7 @@ import {
   SUPPLY_FIRST_DELAY_TICKS,
   SUPPLY_GROUP_LIMIT_PER_SOURCE_TEAM,
   SUPPLY_PERIOD_TICKS,
+  MAX_CARRY_SLOTS,
   carryingSpeedMultiplier,
   canCarry,
 } from "../logistics/logistics.ts";
@@ -63,6 +66,7 @@ import type { CrewAssignment, CrewTask } from "../crew/crew.ts";
 import type { EnemyIntent } from "../domain/battle.ts";
 import {
   preparePlazaEntry,
+  bridgeCoreFirstContact,
   prepareR2bWorldInput,
   plazaGuardGenerations,
   type PhysicalActorContactEvidence,
@@ -121,7 +125,7 @@ export type BattleDirection = { x: -1 | 0 | 1; y: -1 | 0 | 1 };
 export type BattleRoute = ArtilleryRoute;
 export type BattleHandle = "pickup" | "drop" | "deliver" | "load" | "repair" | "launch" | "intercept";
 export type AllyActorId = "P2" | "P3";
-export type AllyCommandKind = "hold" | "supply" | "artillery" | "defense" | "invasion";
+export type AllyCommandKind = "hold" | "supply" | "artillery" | "defense" | "invasion" | "follow" | "collect";
 
 /** A player-facing order is intentionally limited to the two support actors. */
 export interface AllyCommand {
@@ -153,8 +157,12 @@ export interface BattleIntent {
   direction?: BattleDirection;
   /** Starts a fixed-duration dash in the sampled direction. */
   dash?: BattleDirection;
+  /** Live movement burst: stops on contact without causing damage. */
+  mobilityDash?: BattleDirection;
   /** Edge-triggered normal melee contact attack. */
   attack?: boolean;
+  /** Fire a short directional shot along the last movement direction. */
+  shoot?: boolean;
   /** Explicit support-actor order; object ids and coordinates are not accepted. */
   allyCommand?: AllyCommand;
   handle?: BattleHandle;
@@ -205,6 +213,8 @@ export interface BattleCaseView {
 
 export interface BattleCaseState extends BattleCaseView {
   createdTick: number;
+  /** Automatic pickup ignores freshly dropped cargo for half a second. */
+  autoPickupAfterTick?: number;
   roomId: string;
   position?: FixedPoint;
   flightId?: string;
@@ -334,7 +344,20 @@ export interface PhysicalEnemyDecision {
   intent: PhysicalEnemyIntent;
 }
 
+export interface BattleShot {
+  id: string;
+  actorId: ActorId;
+  team: TeamId;
+  area: "castle" | "plaza";
+  castleTeam?: TeamId;
+  from: FixedPoint;
+  to: FixedPoint;
+  firedAtTick: number;
+}
+
 export interface BattleDashState {
+  /** Undefined preserves explicit legacy replay/test attack dashes. */
+  damageEnabled?: boolean;
   direction: BattleDirection;
   remainingTicks: number;
   /** Fixed-point origin captured when the dash starts. */
@@ -387,7 +410,7 @@ export interface BattleInteraction {
     disabledUntilTick: number | null;
   }>;
   contextToken: string;
-  selectedSlot?: 0 | 1;
+  selectedSlot?: number;
 }
 
 const BATTLE_HANDLES: readonly BattleHandle[] = ["pickup", "drop", "deliver", "load", "repair", "launch", "intercept"];
@@ -415,8 +438,14 @@ export interface BattleState extends WorldState {
   dashes: Record<string, BattleDashState | undefined>;
   /** Tick at which each actor may start another dash. */
   dashCooldownUntilTick: Record<string, number>;
-  /** Two stable cargo slots; null is intentional and is never compacted. */
-  cargoSlots: Record<string, [string | null, string | null]>;
+  /** Five stable cargo slots; null is intentional and is never compacted. */
+  cargoSlots: Record<string, Array<string | null>>;
+  actorFacing: Record<string, BattleDirection>;
+  selectedCargoSlots: Record<string, number>;
+  /** Prevent a courier who empties its cargo from moving twice in one tick. */
+  cargoDeliveryTick: Record<string, number>;
+  shots: BattleShot[];
+  shootCooldownUntilTick: Record<string, number>;
   battleCases: Record<string, BattleCaseState>;
   logistics: BattleLogisticsState;
   artillery: BattleArtilleryState;
@@ -874,6 +903,7 @@ function furthestPlazaPoint(state: BattleState, from: FixedPoint, to: FixedPoint
 
 function moveFixed(state: BattleState, actor: ActorState, direction: BattleDirection): boolean {
   if (!actor.alive) return false;
+  if (direction.x || direction.y) state.actorFacing[actor.id] = { ...direction };
   const inPlaza = actor.location.area === "plaza";
   const castleTeam = actor.location.area === "castle" ? actor.location.castleTeam : undefined;
   if (!inPlaza && !castleTeam) return false;
@@ -949,6 +979,7 @@ function startDash(
   actor: ActorState,
   direction: BattleDirection | undefined,
   report: StepReport,
+  damageEnabled = true,
 ): boolean {
   if (!dashDirectionValid(direction)) {
     addRejection(report, 0, "invalid_transition", "dash direction must be a non-neutral unit vector");
@@ -967,13 +998,15 @@ function startDash(
     addRejection(report, 0, "invalid_transition", `dash cooldown until tick ${cooldownUntil}`);
     return false;
   }
+  state.actorFacing[actor.id] = { ...direction };
   state.dashes[actor.id] = {
+    damageEnabled,
     direction: { ...direction },
     remainingTicks: state.rules.dashDurationTicks,
     start: copyPoint(actorFixed(state, actor.id)),
   };
   state.dashCooldownUntilTick[actor.id] = state.tick + state.rules.dashCooldownTicks;
-  report.acceptedInputKinds.push("dash");
+  report.acceptedInputKinds.push(damageEnabled ? "dash" : "mobilityDash");
   return true;
 }
 
@@ -1044,6 +1077,7 @@ function dashEquipmentContact(
   from: FixedPoint,
   requested: FixedPoint,
   endpoint: FixedPoint,
+  radius = ACTOR_RADIUS_SUBUNITS,
 ): DashEquipmentContact | undefined {
   if (actor.location.area !== "castle" || !actor.location.castleTeam) return undefined;
   const totalDistance = Math.hypot(requested.x - from.x, requested.y - from.y);
@@ -1055,7 +1089,7 @@ function dashEquipmentContact(
   for (const definition of layout.turrets) {
     const equipment = state.artillery.turrets[turretKey(team, definition.id)];
     if (!equipment) continue;
-    const progress = segmentRectEntryT(from, requested, expandRect(equipmentRectForCell(definition.cell), ACTOR_RADIUS_SUBUNITS));
+    const progress = segmentRectEntryT(from, requested, expandRect(equipmentRectForCell(definition.cell), radius));
     // The clearance bisection rounds the conservative endpoint down by up to
     // a few fixed units; allow that bounded quantization error when matching
     // the expanded equipment body to the same first obstacle.
@@ -1072,7 +1106,7 @@ function dashEquipmentContact(
   for (const definition of layout.supplyPorts) {
     const equipment = state.logistics.ports[portKey(team, definition.id)];
     if (!equipment) continue;
-    const progress = segmentRectEntryT(from, requested, expandRect(equipmentRectForCell(definition.cell), ACTOR_RADIUS_SUBUNITS));
+    const progress = segmentRectEntryT(from, requested, expandRect(equipmentRectForCell(definition.cell), radius));
     if (progress === undefined || progress > endpointProgress + 0.02) continue;
     candidates.push({
       kind: "supply_port",
@@ -1111,11 +1145,11 @@ function restoreDisabledEquipment(state: BattleState, events: WorldEvent[]): voi
   }
 }
 
-function damageEquipment(state: BattleState, actor: ActorState, contact: DashEquipmentContact, events: WorldEvent[]): boolean {
+function damageEquipment(state: BattleState, actor: ActorState, contact: DashEquipmentContact, events: WorldEvent[], requestedDamage = state.rules.dashEquipmentDamage): boolean {
   // A dash can be stopped by friendly equipment, but only hostile equipment
   // consumes the authored equipment damage budget.
   if (contact.team === actor.team || !equipmentReady(state, contact.equipment) || contact.equipment.health <= 0) return false;
-  const amount = Math.min(state.rules.dashEquipmentDamage, contact.equipment.health);
+  const amount = Math.min(requestedDamage, contact.equipment.health);
   contact.equipment.health -= amount;
   if (contact.equipment.health === 0) contact.equipment.disabledUntilTick = state.tick + state.rules.equipmentDisabledTicks;
   events.push(event("equipment_damaged", {
@@ -1188,8 +1222,9 @@ function advanceDashes(state: BattleState, events: WorldEvent[]): DashAdvanceRes
       state.dashes[actor.id] = undefined;
       continue;
     }
+    state.actorFacing[actor.id] = { ...dash.direction };
     const from = copyPoint(actorFixed(state, actor.id));
-    const distance = state.rules.dashDistanceSubunits / state.rules.dashDurationTicks;
+    const distance = (dash.damageEnabled === false ? MOBILITY_DASH_DISTANCE_SUBUNITS : state.rules.dashDistanceSubunits) / state.rules.dashDurationTicks;
     const diagonal = dash.direction.x !== 0 && dash.direction.y !== 0 ? Math.SQRT1_2 : 1;
     const requested = {
       x: Math.round(from.x + dash.direction.x * distance * diagonal),
@@ -1262,7 +1297,8 @@ function advanceDashes(state: BattleState, events: WorldEvent[]): DashAdvanceRes
     for (const contact of contacts) {
       if (Math.abs(contact.time - nextTime) > epsilon || chosen.has(contact.actor.id)) continue;
       chosen.add(contact.actor.id);
-      const slots = state.cargoSlots[contact.target.id] ?? [null, null];
+      if (state.dashes[contact.actor.id]?.damageEnabled === false) continue;
+      const slots = state.cargoSlots[contact.target.id] ?? Array(MAX_CARRY_SLOTS).fill(null);
       const cargo = slots.find((id) => id !== null && contact.target.cargoIds.includes(id)) ?? undefined;
       result.bridges.push({
         kind: "actor_contact",
@@ -1283,6 +1319,7 @@ function advanceDashes(state: BattleState, events: WorldEvent[]): DashAdvanceRes
     for (const [actorId, motion] of active) {
       const obstacle = motion.obstacle;
       if (!obstacle || obstacle.time > nextTime + epsilon) continue;
+      if (state.dashes[actorId]?.damageEnabled === false) { stop(actorId); continue; }
       if (obstacle.kind === "equipment") {
         damageEquipment(state, motion.actor, obstacle.contact, events);
         result.equipmentContact = true;
@@ -1379,6 +1416,9 @@ function moveAlongPath(state: BattleState, actor: ActorState, path: Point[], pat
     candidate[axis] = targetPoint[axis];
     if (!canOccupy(state, castleTeam, candidate)) return false;
     setActorFixed(state, actor, candidate);
+    if (delta !== 0) state.actorFacing[actor.id] = axis === "x"
+      ? { x: delta > 0 ? 1 : -1, y: 0 }
+      : { x: 0, y: delta > 0 ? 1 : -1 };
     const remainder = state.fixedActors[actor.id].remainder ?? { x: 0, y: 0 };
     state.fixedActors[actor.id].remainder = { ...remainder, [axis]: 0 };
     return true;
@@ -1735,55 +1775,6 @@ function retreatTargetPoint(state: BattleState, actor: ActorState, threat: Actor
   return canOccupy(state, team, target) ? target : roomTargetPoint(state, team, actor.currentRoomId);
 }
 
-function startActorDash(state: BattleState, actor: ActorState, target: FixedPoint): boolean {
-  if (!actor.alive || actorIsProtected(state, actor) || state.dashes[actor.id]) return false;
-  if (state.tick < (state.dashCooldownUntilTick[actor.id] ?? 0)) return false;
-  const current = actorFixed(state, actor.id);
-  const direction = {
-    x: target.x === current.x ? 0 : target.x > current.x ? 1 : -1,
-    y: target.y === current.y ? 0 : target.y > current.y ? 1 : -1,
-  } as BattleDirection;
-  if (direction.x === 0 && direction.y === 0) return false;
-  state.dashes[actor.id] = { direction, remainingTicks: state.rules.dashDurationTicks, start: copyPoint(current) };
-  state.dashCooldownUntilTick[actor.id] = state.tick + state.rules.dashCooldownTicks;
-  return true;
-}
-
-function tryStartEnemyCoreAssaultDash(state: BattleState, actor: ActorState): boolean {
-  if (actor.location.area !== "castle" || !actor.location.castleTeam ||
-      actor.location.castleTeam === actor.team || actor.currentRoomId !== "core") return false;
-  const targetTeam = actor.location.castleTeam;
-  const layout = teamLayout(state, targetTeam);
-  const castle = state.castles[targetTeam];
-  if (castle.core.hit || !layout.coreRouteGates.every((gateId) => castle.gates[gateId].open) ||
-      !routeHasAllGates(layout, actor.location.pathRooms) ||
-      actor.location.pathGates.length !== layout.coreRouteGates.length ||
-      actor.location.pathGates.some((gateId, index) => gateId !== layout.coreRouteGates[index])) return false;
-
-  const core = coreWorldPoint(layout);
-  if (!core) return false;
-  const target = { x: Math.round(core.x * FLOOR_SUBUNITS), y: Math.round(core.y * FLOOR_SUBUNITS) };
-  const current = actorFixed(state, actor.id);
-  const direction = {
-    x: target.x === current.x ? 0 : target.x > current.x ? 1 : -1,
-    y: target.y === current.y ? 0 : target.y > current.y ? 1 : -1,
-  };
-  if (direction.x === 0 && direction.y === 0) return false;
-  const diagonal = direction.x !== 0 && direction.y !== 0 ? Math.SQRT1_2 : 1;
-  const requested = {
-    x: Math.round(current.x + direction.x * state.rules.dashDistanceSubunits * diagonal),
-    y: Math.round(current.y + direction.y * state.rules.dashDistanceSubunits * diagonal),
-  };
-  const endpoint = canOccupy(state, targetTeam, requested)
-    ? requested
-    : furthestWalkablePoint(state, targetTeam, current, requested);
-  const coreContact = dashCoreContact(state, actor, current, requested, endpoint);
-  if (!coreContact) return false;
-  const equipmentContact = dashEquipmentContact(state, actor, current, requested, endpoint);
-  if (equipmentContact && equipmentContact.progress <= coreContact.progress) return false;
-  return startActorDash(state, actor, target);
-}
-
 function enemyDecisionUsesPhysicalMover(actor: ActorState, intent: PhysicalEnemyIntent): boolean {
   if (intent.kind === "defend" || intent.kind === "retreat") return true;
   if (intent.kind !== "move_goal") return false;
@@ -1803,7 +1794,7 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
   for (const actor of Object.values(state.actors)
     .filter((candidate) => candidate.team === ENEMY_TEAM && candidate.role !== "player" && candidate.role !== "support" && candidate.alive)
     .sort((left, right) => String(left.id).localeCompare(String(right.id)))) {
-    if (enemyRepairHasPriority(state, actor)) continue;
+    if (enemyRepairHasPriority(state, actor) || needsCollectedAmmoDelivery(state, actor) || state.cargoDeliveryTick[actor.id] === state.tick) continue;
     const decision = state.enemyDecisions[actor.id];
     if (!decision || decision.generation !== actor.generation || state.dashes[actor.id] || !enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
     const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "idle" as CrewTask, path: [], pathIndex: 0 };
@@ -1827,11 +1818,6 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
           state.crew.assignments[actor.id] = assignment;
           continue;
         }
-      }
-      if (decision.intent.purpose === "assault" && decision.intent.roomId === "core" &&
-          tryStartEnemyCoreAssaultDash(state, actor)) {
-        state.crew.assignments[actor.id] = assignment;
-        continue;
       }
       const targetChanged = assignment.targetRoomId !== decision.intent.roomId || !assignment.targetPosition;
       const target = targetChanged
@@ -1864,9 +1850,7 @@ function processInternalSoldierAI(state: BattleState, suppressNpcMovement: boole
       assignment.task = "defend";
       assignment.targetActorId = targetActor.id;
       assignment.targetRoomId = undefined;
-      if (hasPhysicalLineOfSight(state, actor, actorFixed(state, actor.id), target) &&
-          distanceSquared(actorFixed(state, actor.id), target) <= (state.rules.dashDistanceSubunits + ACTOR_RADIUS_SUBUNITS * 2) ** 2 &&
-          startActorDash(state, actor, target)) continue;
+
       if (canPlanAuthoredPath && assignment.path.length === 0 && pathPlansRemaining > 0) {
         assignment.path = actorTargetPath(state, actor, target);
         assignment.pathIndex = 0;
@@ -2017,6 +2001,7 @@ function carryWeight(state: BattleState, actor: ActorState): number {
 }
 
 function setCaseFloor(state: BattleState, caseState: BattleCaseState, position: FixedPoint, floor: BattleCaseFloorLocation): void {
+  caseState.autoPickupAfterTick = state.tick + 30;
   caseState.location = "floor";
   caseState.floorLocation = { ...floor };
   caseState.position = copyPoint(position);
@@ -2069,7 +2054,7 @@ function setCaseCarried(state: BattleState, caseState: BattleCaseState, actor: A
   caseState.queueIndex = undefined;
   caseState.flightId = undefined;
   caseState.stagingSlot = undefined;
-  const slots = state.cargoSlots[actor.id] ?? [null, null];
+  const slots = state.cargoSlots[actor.id] ?? Array(MAX_CARRY_SLOTS).fill(null);
   slots[slot] = caseState.id;
   state.cargoSlots[actor.id] = slots;
   syncWorldObject(state, caseState);
@@ -2616,20 +2601,21 @@ function dropActorCargo(state: BattleState, actor: ActorState, events: WorldEven
     events.push(event("object_moved", { objectId, location: state.objects[objectId].location }));
   }
   actor.cargoIds = [];
-  state.cargoSlots[actor.id] = [null, null];
+  state.cargoSlots[actor.id] = Array(MAX_CARRY_SLOTS).fill(null);
   for (const reservationId of actor.reservationIds) delete state.reservations[reservationId];
   actor.reservationIds = [];
 }
 
 function pickCase(state: BattleState, actor: ActorState, caseState: BattleCaseState, events: WorldEvent[], requestedSlot?: number): boolean {
   if (caseState.location !== "floor" && caseState.location !== "handoff") return false;
+  if (requestedSlot === undefined && caseState.location === "floor" && state.tick < (caseState.autoPickupAfterTick ?? 0)) return false;
   if (!caseSharesActorFloor(caseState, actor)) return false;
   if (!caseState.position || !withinActionRange(actorFixed(state, actor.id), caseState.position)) return false;
   if (!hasPhysicalLineOfSight(state, actor, actorFixed(state, actor.id), caseState.position)) return false;
   if (!canCarry(carryWeight(state, actor), caseState.weight, actor.cargoIds.length)) return false;
-  const slots = state.cargoSlots[actor.id] ?? [null, null];
+  const slots = state.cargoSlots[actor.id] ?? Array(MAX_CARRY_SLOTS).fill(null);
   const slot = requestedSlot === undefined ? slots.findIndex((entry) => entry === null) : requestedSlot;
-  if (slot < 0 || slot > 1 || slots[slot] !== null) return false;
+  if (slot < 0 || slot >= MAX_CARRY_SLOTS || slots[slot] !== null) return false;
   // Validate the requested cargo slot before mutating the physical handoff
   // registry. A rejected press must not make a staged case disappear.
   if (caseState.location === "handoff" && caseState.turretId) {
@@ -2806,7 +2792,7 @@ function loadHandoff(state: BattleState, actor: ActorState, turret: BattleTurret
   const caseBefore = structuredClone(caseState);
   const objectBefore = state.objects[caseId] ? structuredClone(state.objects[caseId]) : undefined;
   const cargoBefore = [...actor.cargoIds];
-  const slotsBefore = [...(state.cargoSlots[actor.id] ?? [null, null])] as [string | null, string | null];
+  const slotsBefore = [...(state.cargoSlots[actor.id] ?? Array(MAX_CARRY_SLOTS).fill(null))] as Array<string | null>;
   const handoffIdsBefore = [...turret.handoffIds];
   const stagingSlotsBefore = [...turret.stagingSlots] as [string | null, string | null];
   if (!pickCase(state, actor, caseState, events)) return false;
@@ -2880,8 +2866,8 @@ function interactionCandidates(state: BattleState, actor: ActorState): BattleCas
 }
 
 function validPickupCandidate(state: BattleState, actor: ActorState, slot: number, candidates: BattleCaseState[]): BattleCaseState | undefined {
-  if (slot !== 0 && slot !== 1) return undefined;
-  if ((state.cargoSlots[actor.id] ?? [null, null])[slot] !== null) return undefined;
+  if (!Number.isInteger(slot) || slot < 0 || slot >= MAX_CARRY_SLOTS) return undefined;
+  if ((state.cargoSlots[actor.id] ?? Array(MAX_CARRY_SLOTS).fill(null))[slot] !== null) return undefined;
   return candidates
     // A staged handoff belongs to the receiving turret's team.  Keep it
     // physically stealable by an opposing actor, but do not offer it as an
@@ -2943,8 +2929,8 @@ function handleIntent(
     return;
   }
   const slot = intent.slot ?? 0;
-  if (!Number.isInteger(slot) || slot < 0 || slot > 1) {
-    addRejection(report, 0, "invalid_object_transition", "slot must be 0 or 1");
+  if (!Number.isInteger(slot) || slot < 0 || slot >= MAX_CARRY_SLOTS) {
+    addRejection(report, 0, "invalid_object_transition", "slot must be from 0 to 4");
     return;
   }
   let candidate: BattleCaseState | undefined;
@@ -2952,8 +2938,8 @@ function handleIntent(
     // Pickup and getInteraction share the same nearest *carryable* candidate;
     // an overweight nearby case must not mask a valid lighter one.
     candidate = validPickupCandidate(state, actor, slot, all);
-    if (intent.slot !== undefined && (intent.slot !== 0 && intent.slot !== 1)) {
-      addRejection(report, 0, "invalid_object_transition", "slot must be 0 or 1");
+    if (intent.slot !== undefined && (!Number.isInteger(intent.slot) || intent.slot < 0 || intent.slot >= MAX_CARRY_SLOTS)) {
+      addRejection(report, 0, "invalid_object_transition", "slot must be from 0 to 4");
       return;
     }
     if (!candidate || !pickCase(state, actor, candidate, events, intent.slot ?? 0)) {
@@ -3069,32 +3055,60 @@ function launchOne(state: BattleState, turret: BattleTurretState, startActors: R
   return true;
 }
 
+/** Load an existing carried object without requiring a sixth temporary slot. */
+function loadShooterCargo(state: BattleState, actor: ActorState, turret: BattleTurretState, events: WorldEvent[]): boolean {
+  if (actor.role !== "shooter" || actor.turretId !== turret.id || actor.team !== turret.team ||
+      !turret.operatorActorIds.includes(actor.id) || !actor.alive || actorIsProtected(state, actor) ||
+      actor.location.area !== "castle" || actor.location.castleTeam !== actor.team ||
+      !equipmentReady(state, turret) || turret.queueIds.length >= QUEUE_CAPACITY_PER_TURRET ||
+      !withinActionRange(actorFixed(state, actor.id), turret.position) ||
+      !hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), turret.position)) return false;
+  const cargo = actor.cargoIds.map(id => state.battleCases[id]).find(item => item?.location === "carried" &&
+    item.ownerActorId === actor.id && item.ownerGeneration === actor.generation && !reservationForCase(state, item.id));
+  if (!cargo || !state.cargoSlots[actor.id]?.includes(cargo.id)) return false;
+  syncAllWorldObjects(state);
+  const common = stepWorld(state, { kind: "enqueue_object", objectId: cargo.id, actorId: actor.id,
+    generation: actor.generation, team: actor.team, turretId: turret.id, matchId: state.matchId });
+  const object = common.objects[cargo.id];
+  if (!common.lastStep.advanced || common.lastStep.rejected.length || object?.location.kind !== "queue" ||
+      object.location.team !== actor.team || object.location.turretId !== turret.id || object.location.index !== turret.queueIds.length) return false;
+  state.objects = common.objects;
+  events.push(...common.lastStep.events);
+  removeFromArray(actor.cargoIds, cargo.id);
+  clearCargoSlot(state, actor.id, cargo.id);
+  const selection = state.launchSelections[actor.id];
+  cargo.route = selection?.route ?? MATCH_PRESETS[state.matchPreset].route;
+  cargo.targetPart = selection?.part ?? lowestAlivePart(state.castles[actor.team === PLAYER_TEAM ? ENEMY_TEAM : PLAYER_TEAM]);
+  cargo.pendingRoute = undefined;
+  cargo.pendingTargetPart = undefined;
+  cargo.pendingSelectionActorId = undefined;
+  turret.queueIds.push(cargo.id);
+  setCaseQueue(state, cargo, turret);
+  return true;
+}
+
 function autoLoadAtTurrets(state: BattleState, events: WorldEvent[]): void {
   for (const turret of Object.values(state.artillery.turrets).sort((left, right) => `${left.team}:${left.id}`.localeCompare(`${right.team}:${right.id}`))) {
     if (!equipmentReady(state, turret)) continue;
-    while (turret.queueIds.length < QUEUE_CAPACITY_PER_TURRET && turret.handoffIds.length > 0) {
+    while (turret.queueIds.length < QUEUE_CAPACITY_PER_TURRET) {
       const selected = firstHandoffCase(state, turret);
-      if (!selected) {
-        turret.handoffIds.shift();
-        continue;
-      }
-      const handoff = selected.caseState;
-      // Pick a live, unprotected operator that can actually accept this case.
-      // P1 may be the first deterministic operator but have a full/overweight
-      // cargo load while P2/P3 are available at the same turret.
-      const operator = turret.operatorActorIds
-        .map((id) => state.actors[id])
+      if (!selected && turret.handoffIds.length > 0) { turret.handoffIds.shift(); continue; }
+      const handoff = selected?.caseState;
+      const operators = turret.operatorActorIds.map(id => state.actors[id])
         .filter((actor): actor is ActorState => !!actor && actor.alive && !actorIsProtected(state, actor) &&
+          actor.location.area === "castle" && actor.location.castleTeam === turret.team && actor.team === turret.team &&
           withinActionRange(actorFixed(state, actor.id), turret.position) &&
-          hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), turret.position) &&
-          withinActionRange(actorFixed(state, actor.id), handoff.position ?? turret.position) &&
-          hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), handoff.position ?? turret.position) &&
-          canCarry(carryWeight(state, actor), handoff.weight, actor.cargoIds.length))
-        .sort((left, right) => left.id.localeCompare(right.id))[0];
-      if (!operator) break;
-      // A failed load must make progress impossible for this handoff/operator
-      // pair; break rather than spinning on an unchanged staging entry.
-      if (!loadHandoff(state, operator, turret, undefined, undefined, events)) break;
+          hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), turret.position))
+        .sort((left, right) => left.id.localeCompare(right.id));
+      const handoffOperator = handoff && operators.find(actor =>
+        withinActionRange(actorFixed(state, actor.id), handoff.position ?? turret.position) &&
+        hasFloorLineOfSight(state, actor.team, actorFixed(state, actor.id), handoff.position ?? turret.position) &&
+        canCarry(carryWeight(state, actor), handoff.weight, actor.cargoIds.length));
+      // Preserve staged FIFO when an operator has room. A full assigned shooter
+      // first feeds one of its actual carried cases, freeing a slot for handoff.
+      if (handoffOperator && loadHandoff(state, handoffOperator, turret, undefined, undefined, events)) continue;
+      if (operators.some(actor => loadShooterCargo(state, actor, turret, events))) continue;
+      break;
     }
   }
 }
@@ -3646,11 +3660,7 @@ function processSupportDefense(state: BattleState, actor: ActorState): boolean {
 
   const from = actorFixed(state, actor.id);
   const target = actorFixed(state, threat.id);
-  const dashRange = state.rules.dashDistanceSubunits + ACTOR_RADIUS_SUBUNITS * 2;
-  if (distanceSquared(from, target) <= dashRange * dashRange && startActorDash(state, actor, target)) {
-    state.crew.assignments[actor.id] = assignment;
-    return true;
-  }
+
 
   // Support defense remains local to the actor's visible physical room.
   moveDirectlyToward(state, actor, target);
@@ -3739,12 +3749,12 @@ function processSupportReturnHome(state: BattleState, actor: ActorState): boolea
   return false;
 }
 
-function processSupportEscortP1(state: BattleState, actor: ActorState): boolean {
+function processSupportEscortP1(state: BattleState, actor: ActorState, explicitFollow = false): boolean {
   const player = state.actors.P1;
   const playerInEnemyCastle = player?.location.area === "castle" && player.location.castleTeam === ENEMY_TEAM &&
-    state.castles.enemy.gates.G1.open;
+    (explicitFollow || state.castles.enemy.gates.G1.open);
   if (actor.team !== PLAYER_TEAM || actor.role !== "support" || !actor.alive || actorIsProtected(state, actor) ||
-      !player?.alive || player.location.area !== "plaza" && !playerInEnemyCastle || !supportMayEscortP1(state, actor)) return false;
+      !player?.alive || player.location.area !== "plaza" && !playerInEnemyCastle || !explicitFollow && !supportMayEscortP1(state, actor)) return false;
   const assignment = state.crew.assignments[actor.id] ?? {
     actorId: actor.id,
     task: "patrol" as CrewTask,
@@ -3876,7 +3886,8 @@ function moveSupportToRoom(state: BattleState, actor: ActorState, team: TeamId, 
   if (team === ENEMY_TEAM && roomId === "core" && actor.currentRoomId === "core" &&
       state.castles.enemy.openGateIds.length === 7 && withinActionRange(actorFixed(state, actor.id), target)) {
     const room = teamLayout(state, ENEMY_TEAM).rooms.find(candidate => candidate.id === "core")!;
-    startActorDash(state, actor, { x: Math.round((room.rect.x0 + room.rect.x1) * 500), y: Math.round((room.rect.y0 + room.rect.y1) * 500) });
+    const center = { x: Math.round((room.rect.x0 + room.rect.x1) * 500), y: Math.round((room.rect.y0 + room.rect.y1) * 500) };
+    moveDirectlyToward(state, actor, center);
   }
 }
 
@@ -3901,7 +3912,32 @@ function processSupportRepair(state: BattleState, actor: ActorState, events: Wor
   const part = chooseRepairPart(state, actor.team);
   if (!damagedEquipment && (!part || state.repairs.budgetUsed[actor.team] >= state.rules.repairBudget)) return false;
   const carried = actor.cargoIds.map(id => state.battleCases[id]).find(item => item?.location === "carried" && !reservationForCase(state, item.id));
-  if (!carried) { processCarrierAI(state, actor, events); return true; }
+  if (!carried) {
+    // Repairers wait at one real supply source instead of chasing cases that
+    // faster dedicated carriers repeatedly collect before they arrive.
+    const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "carry" as CrewTask, path: [], pathIndex: 0 };
+    const ports = Object.values(state.logistics.ports).filter(port => port.team === actor.team && equipmentReady(state, port));
+    const port = ports.find(port => port.roomId === assignment.targetRoomId && assignment.targetPosition &&
+      distanceSquared(port.position, assignment.targetPosition) === 0) ?? ports.sort((left, right) =>
+      distanceSquared(actorFixed(state, actor.id), left.position) - distanceSquared(actorFixed(state, actor.id), right.position) || left.id.localeCompare(right.id))[0];
+    if (!port) return true;
+    assignment.task = "carry";
+    assignment.targetCaseId = undefined;
+    assignment.targetTurretId = undefined;
+    assignment.targetActorId = undefined;
+    if (!assignment.targetPosition || distanceSquared(assignment.targetPosition, port.position) !== 0 || !assignment.path.length) {
+      assignment.targetRoomId = port.roomId;
+      assignment.targetPosition = copyPoint(port.position);
+      assignment.path = actorTargetPath(state, actor, port.position);
+      assignment.pathIndex = 0;
+      assignment.stuckTicks = 0;
+    }
+    if (!withinActionRange(actorFixed(state, actor.id), port.position) && assignment.path.length) {
+      moveAIAlongPath(state, actor, assignment, port.position);
+    }
+    state.crew.assignments[actor.id] = assignment;
+    return true;
+  }
   if (actor.currentRoomId !== "repair") { moveSupportToRoom(state, actor, actor.team, "repair"); return true; }
   if (damagedEquipment) startEquipmentRepair(state, actor, carried, damagedEquipment.kind, damagedEquipment.item.id, events);
   else startRepair(state, actor, carried, part, events);
@@ -3920,14 +3956,215 @@ function processExplicitSupportOrder(state: BattleState, actor: ActorState, even
     return false;
   }
   if (!actor.alive || actorIsProtected(state, actor)) return true;
-  if (processSupportDefense(state, actor)) return true;
-  if (order.kind === "artillery") {
+  // A direct work order is also a recall from the battlefield. Do not let a
+  // stream of respawning local enemies permanently preempt the return trip.
+  if ((order.kind === "collect" || order.kind === "artillery") && processSupportReturnHome(state, actor)) return true;
+  if (order.kind !== "follow" && processSupportDefense(state, actor)) return true;
+  if (order.kind === "follow") {
+    processFollowPlayer(state, actor);
+  } else if (order.kind === "collect") {
+    if (!processSupportReturnHome(state, actor)) processCarrierAI(state, actor, events);
+  } else if (order.kind === "artillery") {
     if (!processSupportReturnHome(state, actor) && !processSupportTurretAI(state, actor)) processCarrierAI(state, actor, events);
   } else if (order.kind === "defense" || order.kind === "invasion") {
     moveSupportToRoom(state, actor, order.kind === "invasion" ? ENEMY_TEAM : PLAYER_TEAM,
       order.targetRoomId ?? (order.kind === "invasion" ? "central_corridor" : "repair"));
   } else holdSupportPosition(state, actor);
   return true;
+}
+
+function canFireDirectionalShot(state: BattleState, actor: ActorState): boolean {
+  if (state.phase !== "running" || !actor.alive || actor.health <= 0 || actorIsProtected(state, actor) || state.dashes[actor.id]) return false;
+  if (state.tick < (state.shootCooldownUntilTick[actor.id] ?? 0)) return false;
+  return true;
+}
+
+/** Inspect one ray without changing health, cargo, cooldowns or the world. */
+function inspectDirectionalShot(state: BattleState, actor: ActorState) {
+  const facing = state.actorFacing[actor.id] ?? { x: actor.team === PLAYER_TEAM ? 1 : -1, y: 0 };
+  const length = Math.hypot(facing.x, facing.y);
+  if (!length) return undefined;
+  const from = copyPoint(actorFixed(state, actor.id));
+  let to = from;
+  // Small ray steps clip the visible tracer at the same walls and closed gates
+  // that block sight. A shot never changes areas or bypasses the core route.
+  for (let distance = 100; distance <= PERSONAL_SHOT_RANGE; distance += 100) {
+    const point = { x: Math.round(from.x + facing.x / length * distance), y: Math.round(from.y + facing.y / length * distance) };
+    if (!hasPhysicalLineOfSight(state, actor, from, point)) break;
+    to = point;
+  }
+  const contacts = Object.values(state.actors)
+    .filter(target => target.alive && target.team !== actor.team && target.location.area === actor.location.area &&
+      (actor.location.area === "plaza" || target.location.castleTeam === actor.location.castleTeam))
+    .map(target => ({ target, progress: segmentCircleEntryT(from, to, actorFixed(state, target.id), ACTOR_RADIUS_SUBUNITS) }))
+    .filter((contact): contact is { target: ActorState; progress: number } => contact.progress !== undefined)
+    .sort((a, b) => a.progress - b.progress || a.target.id.localeCompare(b.target.id));
+  const hit = contacts[0];
+  const equipmentHit = dashEquipmentContact(state, actor, from, to, to, 0);
+  let coreContact: Extract<R2bBridgeRequest, { kind: "core_contact" }> | undefined;
+  if (actor.location.area === "castle" && actor.location.castleTeam && actor.location.castleTeam !== actor.team && actor.currentRoomId === "core") {
+    const targetTeam = actor.location.castleTeam;
+    const anchor = coreWorldPoint(teamLayout(state, targetTeam));
+    if (anchor) {
+      const center = { x: Math.round(anchor.x * FLOOR_SUBUNITS), y: Math.round(anchor.y * FLOOR_SUBUNITS) };
+      const progress = segmentCircleEntryT(from, to, center, CORE_CONTACT_RADIUS_SUBUNITS);
+      if (progress !== undefined && (!hit || progress < hit.progress) && (!equipmentHit || progress < equipmentHit.progress)) {
+        const evidence = { matchId: state.matchId, tick: state.tick, actorId: actor.id, generation: actor.generation,
+          targetTeam, attackType: "personal_shot" as const, firstContact: "core" as const, from, to: center };
+        if (bridgeCoreFirstContact(state, evidence).ok) {
+          coreContact = { kind: "core_contact", evidence };
+          to = interpolatePoint(from, to, progress);
+        }
+      }
+    }
+  }
+  return { from, to, hit, equipmentHit, coreContact };
+}
+
+function recordDirectionalShot(state: BattleState, actor: ActorState, from: FixedPoint, to: FixedPoint, report: StepReport): void {
+  state.shots.push({ id: `${actor.id}:${actor.generation}:${state.tick}`, actorId: actor.id, team: actor.team,
+    area: actor.location.area === "plaza" ? "plaza" : "castle", castleTeam: actor.location.castleTeam,
+    from, to, firedAtTick: state.tick });
+  state.shootCooldownUntilTick[actor.id] = state.tick + PERSONAL_SHOT_COOLDOWN_TICKS;
+  report.acceptedInputKinds.push("shoot");
+}
+
+/** Preserve valid core shots before ordinary same-tick hits can stun or kill their shooters. */
+function captureDirectionalCoreShots(
+  state: BattleState, playerShooting: boolean, automaticShooting: boolean,
+  movingDashActors: ReadonlySet<ActorId>, report: StepReport,
+): R2bBridgeRequest[] {
+  const plans = Object.values(state.actors).sort((a, b) => a.id.localeCompare(b.id)).flatMap(actor => {
+    const requested = actor.id === "P1" ? playerShooting : automaticShooting && !movingDashActors.has(actor.id);
+    if (!requested || !canFireDirectionalShot(state, actor) || actor.location.area !== "castle" ||
+        actor.location.castleTeam === actor.team || actor.currentRoomId !== "core") return [];
+    const shot = inspectDirectionalShot(state, actor);
+    return shot?.coreContact ? [{ actor, shot, contact: shot.coreContact }] : [];
+  });
+  // Every plan above used the same pre-shot snapshot. Recording only a trace
+  // and cooldown prevents a second shot without settling the outcome early.
+  for (const { actor, shot } of plans) recordDirectionalShot(state, actor, shot.from, shot.to, actor.id === "P1" ? report : emptyReport());
+  return plans.map(plan => plan.contact);
+}
+
+function fireDirectionalShot(state: BattleState, actor: ActorState, report: StepReport, events: WorldEvent[]): boolean {
+  if (!canFireDirectionalShot(state, actor)) return false;
+  const shot = inspectDirectionalShot(state, actor);
+  if (!shot) return false;
+  const { from, hit, equipmentHit, coreContact } = shot;
+  let { to } = shot;
+  // Core candidates are captured together before this ordinary damage pass.
+  // Never create a new core hit from a snapshot changed by another shot.
+  if (coreContact) return false;
+  const equipmentFirst = equipmentHit && (!hit || equipmentHit.progress <= hit.progress);
+  if (equipmentFirst) {
+    to = copyPoint(equipmentHit.position);
+    damageEquipment(state, actor, equipmentHit, events, PERSONAL_SHOT_EQUIPMENT_DAMAGE);
+  }
+  if (hit && !equipmentFirst) {
+    to = interpolatePoint(from, to, hit.progress);
+    const target = hit.target;
+    if (!actorIsProtected(state, target) && (target.damageImmuneUntilTick === null || state.tick >= target.damageImmuneUntilTick)) {
+      const repair = activeAnyRepair(state, target.id);
+      if (repair) {
+        if ("partId" in repair) cancelRepair(state, repair, "interrupted", events);
+        else cancelEquipmentRepair(state, repair, "interrupted", events);
+      }
+      target.health = Math.max(0, target.health - PERSONAL_SHOT_DAMAGE);
+      target.damageImmuneUntilTick = state.tick + state.rules.damageInvulnerabilityTicks;
+      state.dashes[target.id] = undefined;
+      const cargo = state.cargoSlots[target.id]?.[state.selectedCargoSlots[target.id] ?? 0] ?? undefined;
+      if (cargo && state.battleCases[cargo]) {
+        removeFromArray(target.cargoIds, cargo);
+        clearCargoSlot(state, target.id, cargo);
+        const reservation = reservationForCase(state, cargo);
+        if (reservation) releaseReservation(state, reservation.id);
+        setCaseFloor(state, state.battleCases[cargo], actorFixed(state, target.id), actorCaseFloorLocation(target));
+        events.push(event("object_moved", { objectId: cargo, location: state.objects[cargo].location }));
+      }
+      events.push(event("actor_damaged", { actorId: target.id, amount: PERSONAL_SHOT_DAMAGE, physicalLocation: actorEventLocation(state, target) }));
+    }
+  }
+  recordDirectionalShot(state, actor, from, to, report);
+  return true;
+}
+
+function processAutomaticShooting(state: BattleState, events: WorldEvent[], movingDashActors: ReadonlySet<ActorId>): void {
+  if (state.phase !== "running") return;
+  for (const actor of Object.values(state.actors).sort((a, b) => a.id.localeCompare(b.id))) {
+    if (actor.id === "P1" || movingDashActors.has(actor.id) || !actor.alive || actor.health <= 0 || actorIsProtected(state, actor) ||
+        events.some(event => event.type === "actor_damaged" && event.actorId === actor.id)) continue;
+    const from = actorFixed(state, actor.id);
+    const threat = Object.values(state.actors).filter(target => target.team !== actor.team && target.alive && target.health > 0 &&
+      !actorIsProtected(state, target) && sharesPhysicalCombatSpace(actor, target) &&
+      distanceSquared(from, actorFixed(state, target.id)) <= PERSONAL_SHOT_RANGE ** 2 &&
+      hasPhysicalLineOfSight(state, actor, from, actorFixed(state, target.id)))
+      .sort((a, b) => distanceSquared(from, actorFixed(state, a.id)) - distanceSquared(from, actorFixed(state, b.id)) || a.id.localeCompare(b.id))[0];
+    if (threat || actor.location.area === "castle" && actor.location.castleTeam !== actor.team && actor.currentRoomId === "core")
+      fireDirectionalShot(state, actor, emptyReport(), events);
+  }
+}
+
+function autoPickupCases(state: BattleState, intent: BattleIntent | undefined, events: WorldEvent[]): void {
+  const priority = new Set(Object.values(state.actors).filter(actor => enemyRepairHasPriority(state, actor) ||
+    isAllyActorId(actor.id) && state.supportTypes[actor.id] === "mechanic").map(actor => actor.id));
+  for (const actor of Object.values(state.actors).sort((a, b) => Number(priority.has(b.id)) - Number(priority.has(a.id)) || a.id.localeCompare(b.id))) {
+    if (!actor.alive || actor.health <= 0 || actorIsProtected(state, actor) || activeAnyRepair(state, actor.id) ||
+        actor.damageImmuneUntilTick !== null && state.tick < actor.damageImmuneUntilTick ||
+        intent?.actorId === actor.id && intent.handle === "drop") continue;
+    // Stable identity order resolves simultaneous reach without duplication.
+    while (actor.cargoIds.length < MAX_CARRY_SLOTS) {
+      const slot = state.cargoSlots[actor.id].findIndex(entry => entry === null);
+      const candidate = validPickupCandidate(state, actor, slot, interactionCandidates(state, actor).filter(item => state.tick >= (item.autoPickupAfterTick ?? 0)));
+      if (!candidate || !pickCase(state, actor, candidate, events, slot)) break;
+    }
+  }
+}
+
+function processFollowPlayer(state: BattleState, actor: ActorState): void {
+  const player = state.actors.P1;
+  if (!player.alive) return;
+  if (actor.location.area !== player.location.area || actor.location.castleTeam !== player.location.castleTeam) {
+    if (player.location.area === "castle" && player.location.castleTeam === PLAYER_TEAM ||
+        player.location.area === "plaza" && actor.location.area === "castle" && actor.location.castleTeam === ENEMY_TEAM) {
+      processSupportReturnHome(state, actor);
+    } else {
+      // Explicit following overrides the ordinary escort restriction while
+      // retaining physical plaza checks, closed gates and the authored route.
+      processSupportEscortP1(state, actor, true);
+    }
+    return;
+  }
+  const target = actorFixed(state, player.id);
+  const threat = supportThreatAtActor(state, actor);
+  // Following combatants cover only a visible local threat near their leader.
+  // They physically turn by moving toward it, never aim using hidden targets,
+  // and regroup immediately when the leader leaves the room or the leash.
+  if (sharesPhysicalCombatSpace(actor, player) && threat &&
+      distanceSquared(actorFixed(state, actor.id), target) <= PERSONAL_SHOT_RANGE ** 2 &&
+      distanceSquared(actorFixed(state, threat.id), target) <= PERSONAL_SHOT_RANGE ** 2 &&
+      distanceSquared(actorFixed(state, actor.id), actorFixed(state, threat.id)) <= PERSONAL_SHOT_RANGE ** 2) {
+    processSupportDefense(state, actor);
+    return;
+  }
+  if (distanceSquared(actorFixed(state, actor.id), target) <= 1_300 ** 2) { holdSupportPosition(state, actor); return; }
+  const assignment = state.crew.assignments[actor.id] ?? { actorId: actor.id, task: "patrol" as CrewTask, path: [], pathIndex: 0 };
+  assignment.task = "patrol";
+  assignment.targetActorId = player.id;
+  if (actor.location.area === "plaza") moveDirectlyToward(state, actor, target);
+  else {
+    const targetChanged = !assignment.targetPosition || distanceSquared(assignment.targetPosition, target) > 1_000 ** 2;
+    const retryUnreachable = !assignment.path.length && ((assignment.stuckTicks ?? 0) === 0 || (assignment.stuckTicks ?? 0) >= AI_REPLAN_TICKS);
+    if (targetChanged || retryUnreachable) {
+      assignment.targetPosition = copyPoint(target);
+      assignment.path = actorTargetPath(state, actor, target);
+      assignment.pathIndex = 0;
+      assignment.stuckTicks = 0;
+    }
+    if (assignment.path.length) moveAIAlongPath(state, actor, assignment, target);
+    else assignment.stuckTicks = (assignment.stuckTicks ?? 0) + 1;
+  }
+  state.crew.assignments[actor.id] = assignment;
 }
 
 function normalContactBridge(state: BattleState, actor: ActorState): R2bBridgeRequest | undefined {
@@ -3951,6 +4188,14 @@ function normalContactBridge(state: BattleState, actor: ActorState): R2bBridgeRe
   return { kind: "actor_contact", evidence };
 }
 
+function needsCollectedAmmoDelivery(state: BattleState, actor: ActorState): boolean {
+  if ((actor.role !== "internal_soldier" && actor.role !== "shooter_guard") || !actor.alive ||
+      actor.cargoIds.length === 0 || actor.location.area !== "castle" || actor.location.castleTeam !== actor.team ||
+      actorIsProtected(state, actor) || activeAnyRepair(state, actor.id) || enemyRepairHasPriority(state, actor)) return false;
+  const intent = state.enemyDecisions[actor.id]?.intent;
+  return intent?.kind !== "defend" && intent?.kind !== "retreat";
+}
+
 function processCrewAI(state: BattleState, events: WorldEvent[], suppressNpcMovement = false): void {
   // Keep enemy positions stable for a player melee attack so its contact
   // target cannot move before validation. Player supports still run their
@@ -3958,6 +4203,11 @@ function processCrewAI(state: BattleState, events: WorldEvent[], suppressNpcMove
   for (const actor of Object.values(state.actors).sort((left, right) => left.id.localeCompare(right.id))) {
     if (suppressNpcMovement && actor.team !== PLAYER_TEAM) continue;
     if (enemyRepairHasPriority(state, actor) && processSupportRepair(state, actor, events)) continue;
+    if (needsCollectedAmmoDelivery(state, actor)) {
+      state.cargoDeliveryTick[actor.id] = state.tick;
+      processCarrierAI(state, actor, events);
+      continue;
+    }
     const decision = state.enemyDecisions[actor.id];
     if (decision && enemyDecisionUsesPhysicalMover(actor, decision.intent)) continue;
     if (actor.role === "support") {
@@ -4007,12 +4257,14 @@ function finishRespawns(state: BattleState, events: WorldEvent[]): void {
     actor.respawnAtTick = null;
     actor.protectedUntilTick = state.tick + state.rules.spawnProtectionTicks;
     actor.damageImmuneUntilTick = null;
+    state.actorFacing[actor.id] = { x: actor.team === PLAYER_TEAM ? 1 : -1, y: 0 };
+    state.shootCooldownUntilTick[actor.id] = 0;
     state.dashes[actor.id] = undefined;
     state.dashCooldownUntilTick[actor.id] = state.tick;
     actor.currentRoomId = actor.respawnRoomId;
     actor.location = { area: "castle", castleTeam: actor.team, roomId: actor.respawnRoomId, pathRooms: [actor.respawnRoomId], pathGates: [] };
     actor.cargoIds = [];
-    state.cargoSlots[actor.id] = [null, null];
+    state.cargoSlots[actor.id] = Array(MAX_CARRY_SLOTS).fill(null);
     actor.reservationIds = [];
     actor.turretControlIds = actor.turretId ? [actor.turretId] : [];
     // A respawned plaza guard remains at its assigned home room; it is not
@@ -4101,10 +4353,16 @@ export function createBattle(options: CreateBattleOptions): BattleState {
   const world = createWorld({ matchId: options.matchId, seed: options.seed });
   const state = {
     ...world,
+    rules: { ...world.rules, maxCarrySlots: MAX_CARRY_SLOTS },
     fixedActors: Object.fromEntries(Object.values(world.actors).map((actor) => [actor.id, { position: { x: cellCenter(actor.position.x), y: cellCenter(actor.position.y) }, remainder: { x: 0, y: 0 } }])) as BattleState["fixedActors"],
+    actorFacing: Object.fromEntries(Object.values(world.actors).map(actor => [actor.id, { x: actor.team === PLAYER_TEAM ? 1 : -1, y: 0 }])) as BattleState["actorFacing"],
+    selectedCargoSlots: {},
+    cargoDeliveryTick: {},
+    shots: [],
+    shootCooldownUntilTick: {},
     dashes: Object.fromEntries(Object.keys(world.actors).map((actorId) => [actorId, undefined])) as BattleState["dashes"],
     dashCooldownUntilTick: Object.fromEntries(Object.keys(world.actors).map((actorId) => [actorId, 0])) as BattleState["dashCooldownUntilTick"],
-    cargoSlots: Object.fromEntries(Object.keys(world.actors).map((actorId) => [actorId, [null, null]])) as BattleState["cargoSlots"],
+    cargoSlots: Object.fromEntries(Object.keys(world.actors).map((actorId) => [actorId, Array(MAX_CARRY_SLOTS).fill(null)])) as BattleState["cargoSlots"],
     battleCases: {},
     logistics: {
       ports: {},
@@ -4171,7 +4429,7 @@ function isAllyActorId(value: unknown): value is AllyActorId {
 }
 
 function isAllyCommandKind(value: unknown): value is AllyCommandKind {
-  return value === "hold" || value === "supply" || value === "artillery" || value === "defense" || value === "invasion";
+  return value === "collect" || value === "follow" || value === "hold" || value === "supply" || value === "artillery" || value === "defense" || value === "invasion";
 }
 
 function applyAllyCommand(state: BattleState, command: unknown, report: StepReport, events: WorldEvent[]): boolean {
@@ -4247,6 +4505,16 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
   }
   const actor = resolveActor(state, intent, report);
   if (!actor) return;
+  if (intent.slot !== undefined && Number.isInteger(intent.slot) && intent.slot >= 0 && intent.slot < MAX_CARRY_SLOTS) state.selectedCargoSlots[actor.id] = intent.slot;
+  if (intent.shoot !== undefined && typeof intent.shoot !== "boolean") {
+    addRejection(report, 0, "invalid_transition", "shoot must be boolean"); return;
+  }
+  if (intent.shoot && (intent.attack || intent.dash || intent.mobilityDash)) {
+    addRejection(report, 0, "invalid_transition", "shoot cannot be combined with attack or dash"); return;
+  }
+  if (intent.mobilityDash && (intent.dash || intent.attack)) {
+    addRejection(report, 0, "invalid_transition", "mobility dash cannot be combined with an attack"); return;
+  }
   if (intent.attack !== undefined && typeof intent.attack !== "boolean") {
     addRejection(report, 0, "invalid_transition", "attack must be boolean");
     return;
@@ -4258,7 +4526,7 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
   if (intent.allyCommand !== undefined && !applyAllyCommand(state, intent.allyCommand, report, events)) return;
   const repair = activeAnyRepair(state, actor.id);
   const movementRequested = (intent.direction !== undefined && isFiniteDirection(intent.direction) && (intent.direction.x !== 0 || intent.direction.y !== 0)) ||
-    intent.dash !== undefined || intent.attack === true;
+    intent.dash !== undefined || intent.mobilityDash !== undefined || intent.attack === true || intent.shoot === true;
   if (repair && movementRequested) {
     if ("partId" in repair) cancelRepair(state, repair, "interrupted", events);
     else cancelEquipmentRepair(state, repair, "interrupted", events);
@@ -4293,6 +4561,7 @@ function applyIntent(state: BattleState, intent: BattleIntent | undefined, repor
   }
   const rejectionCountBeforeDash = report.rejected.length;
   if (intent.dash !== undefined) startDash(state, actor, intent.dash, report);
+  if (intent.mobilityDash !== undefined) startDash(state, actor, intent.mobilityDash, report, false);
   if (report.rejected.length > rejectionCountBeforeDash) return;
   if (intent.direction !== undefined) {
     if (intent.direction.x === 0 && intent.direction.y === 0) {
@@ -4323,7 +4592,7 @@ interface BridgedActorContactSnapshot {
   target: ActorState;
   targetPosition: FixedPoint;
   cargoBefore: Set<string>;
-  slotsBefore: [string | null, string | null];
+  slotsBefore: Array<string | null>;
 }
 
 /** Consume every physical first-contact envelope through one common-world tick. */
@@ -4377,7 +4646,7 @@ function applyR2bBridges(
           target,
           targetPosition: copyPoint(actorFixed(state, evidence.targetActorId)),
           cargoBefore: new Set(target.cargoIds),
-          slotsBefore: [...(state.cargoSlots[target.id] ?? [null, null])] as [string | null, string | null],
+          slotsBefore: [...(state.cargoSlots[target.id] ?? Array(MAX_CARRY_SLOTS).fill(null))] as Array<string | null>,
         });
       }
     }
@@ -4430,7 +4699,7 @@ function applyR2bBridges(
     if (!mergedTarget) continue;
     state.cargoSlots[targetId] = contact.slotsBefore.map((objectId) =>
       objectId !== null && mergedTarget.cargoIds.includes(objectId) ? objectId : null,
-    ) as [string | null, string | null];
+    ) as Array<string | null>;
   }
   for (const bridgedEvent of bridgedReport.events) {
     if ((bridgedEvent.type === "actor_damaged" || bridgedEvent.type === "actor_died") && contactByTarget.has(bridgedEvent.actorId)) {
@@ -4484,6 +4753,7 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
     return next;
   }
   const currentTick = next.tick;
+  next.shots = next.shots.filter(shot => currentTick - shot.firedAtTick < PERSONAL_SHOT_TRACE_TICKS);
   report.processedTick = currentTick;
   for (const [team, zone] of Object.entries(next.logistics.slowZones)) {
     if (zone && currentTick >= zone.expiresAtTick) delete next.logistics.slowZones[team as TeamId];
@@ -4511,7 +4781,13 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
     }
   }
   const generatedBridges = normalBridge ? [...dashResult.bridges, normalBridge] : dashResult.bridges;
-  applyR2bBridges(next, intent, generatedBridges, dashResult.simulatedActorIds, report, events);
+  const playerShooting = intent?.shoot === true && report.rejected.length === 0;
+  const automaticShooting = !intent?.bridge && !intent?.attack && !intent?.dash;
+  const shotCoreBridges = captureDirectionalCoreShots(next, playerShooting, automaticShooting, dashResult.simulatedActorIds, report);
+  if (playerShooting) fireDirectionalShot(next, next.actors.P1, report, events);
+  if (automaticShooting) processAutomaticShooting(next, events, dashResult.simulatedActorIds);
+  applyR2bBridges(next, intent, [...generatedBridges, ...shotCoreBridges], dashResult.simulatedActorIds, report, events);
+  markDeathIfNeeded(next, events);
   // A validated actor hit must be visible to the common world before launch
   // selection.  A terminal core contact ends the tick without creating new
   // logistics/artillery side effects.
@@ -4526,6 +4802,7 @@ function advanceBattleTick(state: BattleState, intent: BattleIntent | undefined)
     autoLaunch(next, startActors, events);
     resolveFlights(next, events);
     spawnSupply(next, events);
+    autoPickupCases(next, intent, events);
     markDeathIfNeeded(next, events);
   }
 
@@ -4601,8 +4878,8 @@ export function getInteraction(state: BattleState, actorId: ActorId = "P1", slot
   const candidates = actor ? interactionCandidates(state, actor) : [];
   const contextToken = actor ? caseToken(state, actor, candidates) : `${state.tick}|${actorId}|unknown`;
   const candidateViews = candidates.map((candidate) => caseView(candidate, contextToken));
-  const validSlot = slot === 0 || slot === 1;
-  const selectedSlot = validSlot ? slot as 0 | 1 : undefined;
+  const validSlot = Number.isInteger(slot) && slot >= 0 && slot < MAX_CARRY_SLOTS;
+  const selectedSlot = validSlot ? slot : undefined;
   const selectedCaseId = actor && selectedSlot !== undefined ? state.cargoSlots[actor.id]?.[selectedSlot] ?? null : null;
   const selectedCase = selectedCaseId ? state.battleCases[selectedCaseId] : undefined;
   const pickupCandidate = actor && validSlot ? validPickupCandidate(state, actor, slot, candidates) : undefined;

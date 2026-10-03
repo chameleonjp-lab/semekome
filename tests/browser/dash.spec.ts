@@ -12,7 +12,7 @@ async function start(page: Page) {
 // Test-only module interception. No fixture controls or mutable state are
 // exposed by the production app. These are boundary tests, not a complete
 // playthrough from the standard initial position.
-async function fixture(page: Page, mode: 'core' | 'spectator' | 'enemy_win' | 'double_core' | 'timeout') {
+async function fixture(page: Page, mode: 'core' | 'spectator' | 'enemy_win' | 'double_core' | 'timeout' | 'respawn_facing') {
   await page.route('**/src/simulation/physical-battle.ts', async route => {
     const response = await route.fetch();
     let body = await response.text();
@@ -45,7 +45,7 @@ async function fixture(page: Page, mode: 'core' | 'spectator' | 'enemy_win' | 'd
           actor.alive = false; actor.health = 0; actor.respawnAtTick = 300;
         } else if (mode === 'timeout') {
           state.tick = state.matchLimitTicks - 1;
-        } else {
+        } else if (mode !== 'respawn_facing') {
           state.phase = 'ended';
           state.outcome = mode === 'enemy_win' ? 'enemy_win' : 'draw';
           state.castles.player.core.hit = true;
@@ -58,6 +58,13 @@ async function fixture(page: Page, mode: 'core' | 'spectator' | 'enemy_win' | 'd
         if (!state.actors.P1.alive && intent) trace.deadIntents++;
         if (state.phase === 'ended') trace.stepsAfterEnd++;
         const next = fixtureStepBattle(state, intent);
+        // Death boundary after genuine left movement leaves the input binding's
+        // remembered direction stale while the simulation later resets facing.
+        if (${JSON.stringify(mode)} === 'respawn_facing' && next.actors.P1.generation === 0 &&
+            next.actors.P1.alive && intent?.direction?.x === -1) {
+          next.actors.P1.alive = false; next.actors.P1.health = 0;
+          next.actors.P1.respawnAtTick = next.tick + 300;
+        }
         trace.outcomes += next.lastStep.events.filter(event => event.type === 'outcome').length;
         trace.generation = next.actors.P1.generation;
         return next;
@@ -81,15 +88,15 @@ test('画面の突進は初期右向き・一押し一回で、待機中とSpace
   await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
   await page.keyboard.down('Space');
   await page.clock.runFor(250);
-  await expect(battle).toHaveAttribute('data-player-x', String(initialX + 1200));
+  await expect(battle).toHaveAttribute('data-player-x', String(initialX + 2400));
   await expect(page.locator('#battle-dash')).toBeDisabled();
   await page.keyboard.down('Space'); // repeat
   await page.clock.runFor(1000);
-  await expect(battle).toHaveAttribute('data-player-x', String(initialX + 1200));
+  await expect(battle).toHaveAttribute('data-player-x', String(initialX + 2400));
   await page.keyboard.up('Space');
   await page.keyboard.press('Space');
   await page.clock.runFor(250);
-  await expect(battle).toHaveAttribute('data-player-x', String(initialX + 2400));
+  await expect(battle).toHaveAttribute('data-player-x', String(initialX + 4800));
 });
 
 test('停止中は最後の移動方向へ突進し、停止・説明・非表示で予約入力を消す', async ({ page }) => {
@@ -102,14 +109,14 @@ test('停止中は最後の移動方向へ突進し、停止・説明・非表�
   const x = Number(await battle.getAttribute('data-player-x'));
   await page.locator('#battle-dash').click();
   await page.clock.runFor(250);
-  await expect(battle).toHaveAttribute('data-player-x', String(x - 1200));
+  await expect(battle).toHaveAttribute('data-player-x', String(x - 2400));
   await page.clock.runFor(900);
   await page.locator('#battle-dash').click(); // queued, no frame yet
   await page.locator('#pause-battle').click();
   await page.clock.runFor(500);
   await page.getByRole('button', { name: '再開する' }).click();
   await page.clock.runFor(250);
-  await expect(battle).toHaveAttribute('data-player-x', String(x - 1200));
+  await expect(battle).toHaveAttribute('data-player-x', String(x - 2400));
   await page.locator('#battle-help').click();
   await expect(page.getByRole('dialog')).toBeVisible();
   await page.evaluate(() => (document.activeElement as HTMLElement)?.blur());
@@ -117,7 +124,7 @@ test('停止中は最後の移動方向へ突進し、停止・説明・非表�
   await page.getByRole('button', { name: '閉じる', exact: true }).click();
   await page.getByRole('button', { name: '再開する' }).click();
   await page.clock.runFor(250);
-  await expect(battle).toHaveAttribute('data-player-x', String(x - 1200));
+  await expect(battle).toHaveAttribute('data-player-x', String(x - 2400));
   await page.locator('#battle-dash').click();
   await page.evaluate(() => {
     Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
@@ -130,16 +137,40 @@ test('停止中は最後の移動方向へ突進し、停止・説明・非表�
   });
   await page.getByRole('button', { name: '再開する' }).click();
   await page.clock.runFor(250);
-  await expect(battle).toHaveAttribute('data-player-x', String(x - 1200));
+  await expect(battle).toHaveAttribute('data-player-x', String(x - 2400));
 });
 
-test('実核手前の境界fixtureから画面の突進で一度だけ勝利し、同フレームの残り更新も止まる', async ({ page }) => {
+test('左移動後に倒れて復活したら、停止中の突進は新しい右向きに一致する', async ({ page }) => {
+  await fixture(page, 'respawn_facing');
+  await start(page);
+  await page.clock.runFor(3100);
+  const battle = page.locator('.battle');
+  await page.keyboard.down('ArrowLeft');
+  await page.clock.runFor(50);
+  await page.keyboard.up('ArrowLeft');
+  await expect(battle).toHaveAttribute('data-spectating', 'true');
+  await page.clock.runFor(6200);
+  await expect(battle).toHaveAttribute('data-spectating', 'false');
+  await expect(battle).toHaveAttribute('data-player-facing', JSON.stringify({ x: 1, y: 0 }));
+  expect((await trace(page)).generation).toBe(1);
+  const x = Number(await battle.getAttribute('data-player-x'));
+  await page.locator('#battle-dash').click();
+  await page.clock.runFor(250);
+  await expect(battle).toHaveAttribute('data-player-x', String(x + 2400));
+  await expect(battle).toHaveAttribute('data-player-facing', JSON.stringify({ x: 1, y: 0 }));
+});
+
+test('核へ移動突進しても勝利せず、方向射撃で一度だけ勝利し終局後は停止する', async ({ page }) => {
   await fixture(page, 'core');
   await start(page);
   await page.clock.runFor(3100);
   await expect(page.locator('.battle')).toHaveAttribute('data-phase', 'running');
   await page.locator('#battle-dash').click();
   await page.clock.runFor(250);
+  await expect(page.locator('.battle')).toHaveAttribute('data-phase', 'running');
+  await expect(page.locator('.battle-result')).toHaveCount(0);
+  await page.locator('#battle-attack').click();
+  await page.clock.runFor(50);
   const result = page.locator('.battle-result');
   await expect(result).toHaveAttribute('data-outcome', 'player_win');
   await expect(result).toContainText('勝利');

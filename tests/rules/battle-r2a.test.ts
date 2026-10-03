@@ -73,7 +73,7 @@ test("enemy AI walks cases through handoff and shooter pickup into a queue befor
   assert.ok(activeFlights.some((flight) => flight.team === "enemy" && flight.progress === 0), "new flight does not move during launch tick");
 });
 
-test("candidate token rejects an old handling press instead of selecting a replacement case", () => {
+test("candidate token rejects a stale manual press without duplicating automatic pickup", () => {
   let state = createBattle({ matchId: "r2a-token", seed: 13 });
   for (let index = 0; index < 31; index += 1) state = stepBattle(state);
   const source = Object.values(state.battleCases).find((item) => item.currentTeam === "player" && item.location === "floor");
@@ -92,7 +92,7 @@ test("candidate token rejects an old handling press instead of selecting a repla
     contextToken: interaction.contextToken,
   });
   assert.equal(rejected.lastStep.rejected[0]?.reason, "invalid_object_transition");
-  assert.equal(Object.values(rejected.actors.P1.cargoIds).length, 0);
+  assert.deepEqual(rejected.actors.P1.cargoIds, [source!.id], "automatic pickup remains a single owned object after stale input rejection");
 });
 
 test("same seeded battle produces equal supply and artillery state", () => {
@@ -173,13 +173,13 @@ test("empty cargo slots do not expose drop or deliver and never compact a later 
     slot: 0,
     contextToken: interaction.contextToken,
   });
-  assert.deepEqual(state.cargoSlots.P1, [source!.id, null]);
+  assert.deepEqual(state.cargoSlots.P1, [source!.id, null, null, null, null]);
   assert.equal(getInteraction(state, "P1", 1).handles.includes("drop"), false);
   assert.equal(getInteraction(state, "P1", 1).handles.includes("deliver"), false);
   assert.equal(getInteraction(state, "P1", 0).handles.includes("drop"), true);
 });
 
-test("pickup interaction and execution skip an overweight nearest case", () => {
+test("pickup accepts another case regardless of the carried weight", () => {
   let state = createBattle({ matchId: "r2a-pickup-candidate", seed: 48 });
   for (const port of Object.values(state.logistics.ports)) if (port.team === "player") port.nextSpawnTick = 0;
   state = stepBattle(state);
@@ -200,7 +200,7 @@ test("pickup interaction and execution skip an overweight nearest case", () => {
   heavy.ownerActorId = "P1";
   heavy.ownerGeneration = state.actors.P1.generation;
   state.actors.P1.cargoIds = [heavy.id];
-  state.cargoSlots.P1 = [heavy.id, null];
+  state.cargoSlots.P1 = [heavy.id, null, null, null, null];
   light.location = "floor";
   light.currentTeam = "player";
   light.weight = 1;
@@ -222,16 +222,22 @@ test("pickup interaction and execution skip an overweight nearest case", () => {
     contextToken: interaction.contextToken,
   });
   assert.equal(state.lastStep.rejected.length, 0);
-  assert.deepEqual(state.cargoSlots.P1, [heavy.id, light.id]);
+  assert.deepEqual(state.cargoSlots.P1, [heavy.id, light.id, null, null, null]);
 });
 
 test("automatic loading skips a full first operator and hands off to P2 without spinning", () => {
   let state = createBattle({ matchId: "r2a-loader-capacity", seed: 49 });
   for (const port of Object.values(state.logistics.ports)) if (port.team === "player") port.nextSpawnTick = 0;
+  for (const actor of Object.values(state.actors)) actor.protectedUntilTick = 10_000;
   state = stepBattle(state);
+  for (const port of Object.values(state.logistics.ports)) if (port.team === "player") port.nextSpawnTick = state.tick;
+  state = stepBattle(state);
+  state.actors.P1.protectedUntilTick = null;
+  state.actors.P2.protectedUntilTick = null;
   const playerCases = Object.values(state.battleCases).filter((item) => item.currentTeam === "player");
-  assert.ok(playerCases.length >= 3);
-  const [first, second, handoff] = playerCases;
+  assert.ok(playerCases.length >= 6);
+  const fullCargo = playerCases.slice(0, 5);
+  const handoff = playerCases[5];
   const turret = state.artillery.turrets["player:T1"];
   assert.ok(turret);
 
@@ -242,9 +248,9 @@ test("automatic loading skips a full first operator and hands off to P2 without 
   placeAtTurret("P1");
   placeAtTurret("P2");
 
-  state.actors.P1.cargoIds = [first.id, second.id];
-  state.cargoSlots.P1 = [first.id, second.id];
-  for (const carried of [first, second]) {
+  state.actors.P1.cargoIds = fullCargo.map(item => item.id);
+  state.cargoSlots.P1 = fullCargo.map(item => item.id);
+  for (const carried of fullCargo) {
     carried.location = "carried";
     carried.currentTeam = "player";
     carried.position = undefined;
@@ -274,8 +280,8 @@ test("automatic loading skips a full first operator and hands off to P2 without 
   const next = stepBattle(state);
   const nextTurret = next.artillery.turrets["player:T1"];
   assert.deepEqual(nextTurret.queueIds, [handoff.id]);
-  assert.deepEqual(next.cargoSlots.P1, [first.id, second.id]);
-  assert.deepEqual(next.cargoSlots.P2, [null, null]);
+  assert.deepEqual(next.cargoSlots.P1, fullCargo.map(item => item.id));
+  assert.deepEqual(next.cargoSlots.P2, [null, null, null, null, null]);
   assert.deepEqual(next.actors.P2.cargoIds, []);
 });
 

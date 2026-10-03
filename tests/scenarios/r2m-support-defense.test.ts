@@ -20,7 +20,7 @@ function p1Intent(state: BattleState): BattleIntent {
   };
 }
 
-function placeInPlayerRoom(state: BattleState, actorId: "P1" | "P2" | "E29", x: number, y: number): void {
+function placeInPlayerRoom(state: BattleState, actorId: "P1" | "P2" | "P3" | "E29", x: number, y: number): void {
   const actor = state.actors[actorId];
   actor.location = {
     area: "castle",
@@ -42,7 +42,7 @@ function keepEnemyDecisionStill(state: BattleState, actorId: "E29"): void {
   };
 }
 
-test("P2はP1が離れていても同室の侵入敵へ物理突進で防衛する", { timeout: 60_000 }, () => {
+test("P2はP1が離れていても同室の侵入敵へ方向射撃で防衛する", { timeout: 60_000 }, () => {
   let state = createBattle({ matchId: "r2m-support-defense", seed: 20260915 });
   placeInPlayerRoom(state, "P1", 34_500, 33_500);
   state.actors.P1.location = {
@@ -53,26 +53,29 @@ test("P2はP1が離れていても同室の侵入敵へ物理突進で防衛す�
     pathGates: [],
   };
   placeInPlayerRoom(state, "P2", 94_500, 34_500);
+  // Isolate the defending support from P3’s new long-range automatic fire.
+  placeInPlayerRoom(state, "P3", 75_500, 34_500);
   placeInPlayerRoom(state, "E29", 95_700, 34_500);
   state.actors.E29.health = 1;
   state.actors.E29.canAssaultOtherVehicle = false;
   keepEnemyDecisionStill(state, "E29");
 
-  const start = { ...state.fixedActors.P2.position };
   let contact = false;
   for (let tick = 0; tick < 30 && state.phase === "running"; tick += 1) {
+    const start = { ...state.fixedActors.P2.position };
     state = stepBattle(state, p1Intent(state));
-    if (state.lastStep.acceptedInputKinds.includes("bridge:actor_contact")) {
+    assert.ok(Math.hypot(state.fixedActors.P2.position.x - start.x, state.fixedActors.P2.position.y - start.y) <= 101,
+      "P2 takes at most one ordinary walking step per update before shooting");
+    if (state.shots.some(shot => shot.actorId === "P2")) {
       contact = true;
       break;
     }
   }
 
   assert.equal(state.actors.P1.location.castleTeam, "enemy", "the public player remains away from the home defence room");
-  assert.equal(contact, true, "P2 reaches the intruder through the physical dash bridge");
-  assert.equal(state.actors.E29.alive, false, "the local support dash defeats the intruder");
+  assert.equal(contact, true, "P2 fires a physical directional shot at the intruder");
+  assert.equal(state.actors.E29.alive, false, "the local support shot defeats the intruder");
   assert.ok((state.actors.E29.respawnAtTick ?? 0) > state.tick, "the defeated intruder keeps its own respawn deadline");
-  assert.notDeepEqual(state.fixedActors.P2.position, start, "P2 moves through fixed-point simulation instead of teleporting");
   assert.equal(state.lastStep.rejected.length, 0);
 });
 
@@ -87,6 +90,8 @@ test("P2は同室でない敵を見て別室へ移動せず、敵が消えると
     pathGates: [],
   };
   placeInPlayerRoom(state, "P2", 94_500, 34_500);
+  // Isolate the defending support from P3’s new long-range automatic fire.
+  placeInPlayerRoom(state, "P3", 75_500, 34_500);
   state.actors.E29.location = {
     area: "castle",
     castleTeam: "player",

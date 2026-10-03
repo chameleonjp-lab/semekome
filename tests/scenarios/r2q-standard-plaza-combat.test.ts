@@ -12,7 +12,7 @@ import {
 const NEUTRAL: BattleDirection = { x: 0, y: 0 };
 const PLAZA_Y = 35_500;
 const P1_AMMO_APPROACH_X = 94_500;
-const P1_AMMO_PICKUP_Y = 13_500;
+const P1_AMMO_PICKUP_Y = 12_500;
 const P1_TURRET_TRAVEL_Y = 12_000;
 const P1_TURRET_APPROACH_X = 105_850;
 const P1_EXIT_ROUTE_Y = 25_500;
@@ -34,9 +34,20 @@ function sign(value: number): -1 | 0 | 1 {
 
 function p1ToAmmoDirection(state: BattleState): BattleDirection {
   const position = state.fixedActors.P1.position;
-  if (Math.abs(position.x - P1_AMMO_APPROACH_X) > 50) return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
-  if (Math.abs(position.y - P1_AMMO_PICKUP_Y) > 50) return { x: 0, y: sign(P1_AMMO_PICKUP_Y - position.y) };
-  return { x: -1, y: 0 };
+  // Cases now spawn on walkable cells around the port. Approach the actual
+  // floor case from above the equipment instead of walking into its body.
+  const candidate = Object.values(state.battleCases)
+    .filter(item => item.currentTeam === "player" && item.location === "floor" && item.roomId === "ammo_a")
+    .sort((a, b) => a.createdTick - b.createdTick || a.id.localeCompare(b.id))[0];
+  const target = candidate?.position ?? { x: P1_AMMO_APPROACH_X, y: P1_AMMO_PICKUP_Y };
+  const sign = (value: number): -1 | 0 | 1 => value > 0 ? 1 : value < 0 ? -1 : 0;
+  if (position.y > 25_500 && Math.abs(position.x - P1_AMMO_APPROACH_X) > 50)
+    return { x: sign(P1_AMMO_APPROACH_X - position.x), y: 0 };
+  if (Math.abs(position.x - target.x) > 50) {
+    if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
+    return { x: sign(target.x - position.x), y: 0 };
+  }
+  return { x: 0, y: sign(target.y - position.y) };
 }
 
 function isNearPlayerTurret(state: BattleState): boolean {
@@ -59,6 +70,12 @@ function p1ToTurretDirection(state: BattleState): BattleDirection {
 
 function p1ToPlazaDirection(state: BattleState): BattleDirection {
   const position = state.fixedActors.P1.position;
+  // A delayed siege impact can finish while P1 is collecting the next case.
+  // Leave the ammo equipment via its clear upper edge before heading south.
+  if (position.y < 20_000 && position.x < P1_AMMO_APPROACH_X - 50) {
+    if (position.y > P1_TURRET_TRAVEL_Y + 50) return { x: 0, y: -1 };
+    return { x: 1, y: 0 };
+  }
   if (Math.abs(position.x - P1_EXIT_X) > 50) {
     if (Math.abs(position.y - P1_EXIT_ROUTE_Y) > 50) return { x: 0, y: sign(P1_EXIT_ROUTE_Y - position.y) };
     return { x: sign(P1_EXIT_X - position.x), y: 0 };
@@ -67,7 +84,7 @@ function p1ToPlazaDirection(state: BattleState): BattleDirection {
   return { x: 1, y: 0 };
 }
 
-test("標準配分の主人公P1は広場の実警備へ最初の通常接触攻撃を当てる", { timeout: 60_000 }, () => {
+test("標準配分の主人公P1は広場の実警備へ最初の方向射撃を当てる", { timeout: 60_000 }, () => {
   let state = createBattle({ matchId: "r2q-standard-plaza-combat", seed: 20260913 });
   assert.deepEqual(state.logistics.playerAllocation, [
     "standard_slug", "standard_slug", "standard_slug",
@@ -94,34 +111,36 @@ test("標準配分の主人公P1は広場の実警備へ最初の通常接触攻
 
     let intent = publicP1Intent(state, { direction: NEUTRAL });
     if (phase === "pickup") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       if (interaction.handles.includes("pickup")) {
-        if (interaction.pickupCaseId && state.battleCases[interaction.pickupCaseId]?.location === "floor") floorPickups += 1;
-        intent = publicP1Intent(state, { handle: "pickup", slot: 0, contextToken: interaction.contextToken });
+
+        intent = publicP1Intent(state, { handle: "pickup", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), contextToken: interaction.contextToken });
       } else {
         intent = publicP1Intent(state, { direction: p1ToAmmoDirection(state) });
       }
     } else if (phase === "turret") {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       intent = interaction.handles.includes("deliver")
-        ? publicP1Intent(state, { handle: "deliver", slot: 0, route: "direct", part: "P1", contextToken: interaction.contextToken })
+        ? publicP1Intent(state, { handle: "deliver", slot: Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)), route: "direct", part: "P1", contextToken: interaction.contextToken })
         : publicP1Intent(state, { direction: p1ToTurretDirection(state) });
     } else {
-      const interaction = getInteraction(state, "P1", 0);
+      const interaction = getInteraction(state, "P1", Math.max(0, state.cargoSlots.P1.findIndex(id => id !== null)));
       const candidate = PLAZA_GUARD_IDS.find((actorId) => actorId === interaction.attackTargetId);
       if (candidate) {
         attackTick = state.tick;
         attackTargetId = candidate;
         guardHealthBefore = state.actors[candidate].health;
         p1PositionBeforeAttack = { ...state.fixedActors.P1.position };
-        state = stepBattle(state, publicP1Intent(state, { direction: NEUTRAL, attack: true }));
+        state = stepBattle(state, publicP1Intent(state, { direction: { x: sign(state.fixedActors[candidate].position.x - state.fixedActors.P1.position.x), y: sign(state.fixedActors[candidate].position.y - state.fixedActors.P1.position.y) }, shoot: true }));
         break;
       }
       intent = publicP1Intent(state, { direction: p1ToPlazaDirection(state) });
     }
 
+    const beforePickup = state;
     state = stepBattle(state, intent);
-    if (state.lastStep.acceptedInputKinds.includes("handle:pickup")) phase = "turret";
+    floorPickups += state.actors.P1.cargoIds.filter(id => !beforePickup.actors.P1.cargoIds.includes(id) && beforePickup.battleCases[id]?.location === "floor").length;
+    if (phase === "pickup" && state.actors.P1.cargoIds.length > 0) phase = "turret";
     if (state.lastStep.acceptedInputKinds.includes("handle:deliver")) {
       deliveries += 1;
       phase = "plaza";
@@ -129,18 +148,18 @@ test("標準配分の主人公P1は広場の実警備へ最初の通常接触攻
     if (state.actors.P1.location.area === "plaza" && reachedPlazaAt === undefined) reachedPlazaAt = state.tick;
   }
 
-  assert.equal(floorPickups, 1, "P1 picks up one real floor case from the standard initial layout");
+  assert.ok(floorPickups >= 1, "P1 automatically acquires real floor cases from the standard initial layout");
   assert.equal(deliveries, 1, "P1 uses one ordinary delivery before the plaza route");
   assert.ok(reachedPlazaAt !== undefined, `P1 reaches the plaza before combat (tick=${state.tick}, area=${state.actors.P1.location.area}, outcome=${state.outcome})`);
   assert.ok(attackTick !== undefined, `P1 reaches a live plaza guard through public movement (tick=${state.tick}, position=${JSON.stringify(state.fixedActors.P1.position)})`);
   assert.ok(attackTargetId !== undefined);
-  assert.equal(state.actors.P1.alive, true, "P1 survives until the first public contact attack");
+  assert.equal(state.actors.P1.alive, true, "P1 survives until the first public directional shot");
   assert.equal(state.actors.P1.location.area, "plaza");
   assert.equal(state.plaza.guardDeployments.enemy?.guardGenerations[attackTargetId], state.actors[attackTargetId].generation);
   assert.equal(state.actors[attackTargetId].health, guardHealthBefore! - state.rules.normalContactDamage);
-  assert.deepEqual(state.fixedActors.P1.position, p1PositionBeforeAttack);
-  assert.equal(state.dashes.P1, undefined, "normal contact attack does not start a dash");
-  assert.equal(state.lastStep.acceptedInputKinds.includes("bridge:actor_contact"), true);
+  assert.ok(Math.hypot(state.fixedActors.P1.position.x - p1PositionBeforeAttack!.x, state.fixedActors.P1.position.y - p1PositionBeforeAttack!.y) <= 101, "aiming uses no more than one ordinary walking step");
+  assert.equal(state.dashes.P1, undefined, "directional shooting does not start a dash");
+  assert.equal(state.lastStep.acceptedInputKinds.includes("shoot"), true);
   assert.equal(state.lastStep.rejected.length, 0);
   assert.equal(state.outcome, "ongoing");
 });

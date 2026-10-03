@@ -43,6 +43,8 @@ test('結果の集計と保存値が一致し、短い画面や文字拡大で�
   const stored = await page.evaluate(key => JSON.parse(sessionStorage.getItem(key) ?? 'null'), `semekome:battle-session:${matchId}`);
   expect(stored.result.payload.combatMetrics).toEqual({ enemyDefeatsTotal: 4, enemyUniqueDefeats: 2, playerDeaths: 2 });
 
+  const share = page.getByRole('button', { name: '結果を共有する', exact: true });
+  const copy = page.getByRole('button', { name: '結果をコピーする', exact: true });
   const restart = page.getByRole('button', { name: '再戦の準備へ' });
   const home = page.getByRole('button', { name: 'ホームへ戻る', exact: true });
   const detail = page.getByRole('region', { name: '結果の詳細' });
@@ -75,12 +77,24 @@ test('結果の集計と保存値が一致し、短い画面や文字拡大で�
   await page.keyboard.press('Space');
   await page.clock.runFor(600);
   await expect.poll(() => detail.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  // Sharing controls are inside the detail region, before the persistent
+  // restart/home actions in native DOM tab order. Check both directions.
+  await page.keyboard.press('Tab');
+  await expect(share).toBeFocused();
+  await page.keyboard.press('Tab');
+  await expect(copy).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(restart).toBeFocused();
   await page.keyboard.press('Tab');
   await expect(home).toBeFocused();
   await page.keyboard.press('Shift+Tab');
   await expect(restart).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(copy).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(share).toBeFocused();
+  await page.keyboard.press('Shift+Tab');
+  await expect(detail).toBeFocused();
   await page.addStyleTag({ content: ':root { font-size: 200%; }' });
   for (const button of [restart, home]) {
     const bounds = await button.boundingBox();

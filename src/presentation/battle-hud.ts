@@ -96,14 +96,14 @@ export function battleHint(state: BattleState, actor: ActorState, available: Hud
     const guardHint = !guards.dispatched
       ? `広場の防衛者が出動中です（生存${guards.count}人）。敵城側の入口へ向かう前に、防衛者を確認してください。`
       : guards.count > 0
-        ? `広場の防衛者が残り${guards.count}人です。全員を突進で倒すまで敵城側へは進めません。`
+        ? `広場の防衛者が残り${guards.count}人です。全員を射撃で倒すまで敵城側へは進めません。`
         : '広場の防衛者を突破しました。敵城側の入口へ進めます。';
-    return `広場です。${cargoHint}${guardHint}突進は移動方向、停止中は最後に向いた方向へ進みます。`;
+    return `広場です。${cargoHint}${guardHint}射撃は進行方向、停止中は最後に向いた方向へ撃ちます。`;
   }
 
   const homeCastle = actor.location.castleTeam === actor.team;
   if (!homeCastle) {
-    if (actor.currentRoomId === 'core') return '敵陣の核室です。全7門を通った後、核そのものへ突進を当てると勝利します。入室・歩行・「扱う」だけでは決着しません。';
+    if (actor.currentRoomId === 'core') return '敵陣の核室です。全7門を通った後、核そのものへ射撃を当てると勝利します。入室・歩行・「扱う」だけでは決着しません。';
     if (canDrop && hasCargo) return `敵陣 · ${castleRoomName(state, actor)}です。ここで選択中の弾を置けます。砲台操作と修理は自陣で行います。`;
     if (hasCargo) return `敵陣 · ${castleRoomName(state, actor)}です。運搬中の弾を自陣へ持ち帰れます。砲台操作と修理は自陣で行います。`;
     return `敵陣 · ${castleRoomName(state, actor)}です。床の弾はここでも拾えます。砲台操作と修理は自陣で行います。`;
@@ -117,13 +117,13 @@ export function battleHint(state: BattleState, actor: ActorState, available: Hud
   if (available === 'deliver') return '選択中の弾を砲台の受け渡し枠へ渡せます。';
   if (hasCargo) return '選んだ弾を砲台へ運び、受け渡し枠へ渡すか装填します。';
   if (actor.currentRoomId === 'repair') return '修理室です。損傷した外装や設備の修理には弾を1個使います。';
-  if (actor.currentRoomId === 'central_corridor') return '中央通路です。自陣の弾薬庫でケースを拾い、隣の砲台へ運びます。広場では「突進」またはSpaceキーで敵を攻撃できます。';
-  if (actor.currentRoomId === 'core') return '自陣の核室です。敵が核へ突進を当てると敗北します。自分の核を攻撃しても勝利にはなりません。';
+  if (actor.currentRoomId === 'central_corridor') return '中央通路です。自陣の弾薬庫で弾を自動回収して砲台へ。敵陣は右、広場では「射撃」またはXで進行方向へ攻撃します。';
+  if (actor.currentRoomId === 'core') return '自陣の核室です。敵が核へ射撃を当てると敗北します。自分の核を攻撃しても勝利にはなりません。';
   if (state.layout.home.rooms.some((room) => room.id === actor.currentRoomId && room.kind === 'supply')) {
-    return '弾薬庫です。床のケースに近づき、選択中の所持枠へ拾って隣の砲台へ運びます。';
+    return '弾薬庫です。床のケースに近づくと自動で5個まで回収します。隣の砲台へ運びます。';
   }
   if (state.layout.home.rooms.some((room) => room.id === actor.currentRoomId && room.kind === 'battery')) {
     return '砲撃室です。床のケースを砲台近くまで運び、砲台へ渡すか装填します。';
   }
-  return '床の弾に近づいて拾い、砲台へ運びます。砲台の操作位置で待つと自動発射します。';
+  return '床の弾に近づくと自動回収します（最大5個）。砲台へ運びます。砲台の操作位置で待つと自動発射します。';
 }

@@ -21,7 +21,7 @@ function p1Intent(state: BattleState, partial: Partial<BattleIntent> = {}): Batt
   };
 }
 
-function placeInPlayerRoom(state: BattleState, actorId: "P1" | "P2" | "E29", x: number, y: number): void {
+function placeInPlayerRoom(state: BattleState, actorId: "P1" | "P2" | "P3" | "E29", x: number, y: number): void {
   const actor = state.actors[actorId];
   actor.location = {
     area: "castle",
@@ -81,18 +81,20 @@ test("守備命令中のP2は同室の敵だけを防衛し、別室救援は作
     pathGates: [],
   };
   placeInPlayerRoom(state, "P2", 94_500, 34_500);
+  // Isolate the defending support from P3’s new long-range automatic fire.
+  placeInPlayerRoom(state, "P3", 75_500, 34_500);
   placeInPlayerRoom(state, "E29", 95_700, 34_500);
   state.actors.E29.health = 1;
   state.actors.E29.canAssaultOtherVehicle = false;
   freezeEnemyDecision(state);
 
   state = stepBattle(state, p1Intent(state, { allyCommand: { allyId: "P2", kind: "hold" } }));
-  let contact = false;
+  let contact = state.shots.some(shot => shot.actorId === "P2");
   for (let tick = 0; tick < 30 && state.actors.E29.alive; tick += 1) {
     state = stepBattle(state, p1Intent(state));
-    contact = contact || state.lastStep.acceptedInputKinds.includes("bridge:actor_contact");
+    contact = contact || state.shots.some(shot => shot.actorId === "P2");
   }
-  assert.equal(contact, true, "the commanded support actor uses the existing physical contact bridge");
+  assert.equal(contact, true, "the commanded support actor fires a directional shot");
   assert.equal(state.actors.E29.alive, false);
   assert.equal(state.allyOrders.P2?.kind, "hold");
   for (let tick = 0; tick < 4; tick += 1) state = stepBattle(state, p1Intent(state));

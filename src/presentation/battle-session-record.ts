@@ -1,6 +1,7 @@
+import { DEFAULT_RULES } from '../content/rules.ts';
 import type { BattleResultMetrics } from './battle-result-metrics.ts';
 
-export const BATTLE_RULESET_ID = 'semekome-prototype-0.4-facing-castles';
+export const BATTLE_RULESET_ID = DEFAULT_RULES.rulesetId;
 export const SESSION_RECORD_STORAGE_PREFIX = 'semekome:battle-session:';
 
 export type BattleOutcome = 'player_win' | 'enemy_win' | 'draw';
